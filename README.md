@@ -12,7 +12,7 @@ All you need is the for **pypackage_generator.sh**.
 1. Save as...
 1. Change permissions to make the file user executable
     ```bash
-    chmod u+x pypackage_generator.py
+    chmod u+x pypackage_generator.sh
     ```
 
 
