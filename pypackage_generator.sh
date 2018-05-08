@@ -17,9 +17,13 @@ DOCS_DIR="docs"
 NOTEBOOK_DIR="notebooks"
 SOURCE_DIR=$1
 TEST_DIR="tests"
+VIRTUALENV_DIR=".env"
 
 DOC_SUB_DIRECTORIES=("_build" "_static" "_templates")
 SUB_DIRECTORIES=(${DATA_DIR} ${DOCS_DIR} ${NOTEBOOK_DIR} ${SOURCE_DIR})
+
+CONDA="~/working_python/anaconda/bin/conda"
+PYTHON_VERSION="3.6"
 
 
 ###############################################################################
@@ -227,3 +231,9 @@ GITIGNORE+="docs/Makefile\n"
 printf %b "${GITIGNORE}" >> "${MAIN_DIR}${FILE_SEP}.gitignore"
 cd ${MAIN_DIR}
 git init
+
+# Virtual Environment
+### Update conda
+${CONDA} update conda
+### Create Virtual Environment
+${CONDA} create --prefix ${VIRTUALENV_DIR} python=${PYTHON_VERSION}
