@@ -44,6 +44,7 @@ A new repository will be generated and initialized in Git.
     - The default license is based off the open source license used by NumPy.
 - Manifest File
 - Readme File
+- Requirements File
 - Python Setup File
 - .gitignore File
 - Data Directory
@@ -52,6 +53,7 @@ A new repository will be generated and initialized in Git.
 - Source Constructor
 - Tests Directory
 - Tests Constructor
+- Virtual Envronment based from Anaconda
 - .git Directory
 
 #### The Package hierarchy
@@ -70,7 +72,9 @@ A new repository will be generated and initialized in Git.
 │   │   └── tests/
 │   │       └── __init__.py
 │   ├── notebooks
+│   ├── requirements
 │   ├── setup.py
+│   ├── .env/
 │   ├── .git/
 │   └── .gitignore
 ```
