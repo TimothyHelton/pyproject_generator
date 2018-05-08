@@ -19,7 +19,7 @@ notebooks/.ipynb_checkpoints/*
 *.sql
 *.sqlite
 
-# OS generatee files #
+# OS generate files #
 .DS_Store
 .DS_store?
 ._*
@@ -41,9 +41,11 @@ Thumbs.db
 *.coverage
 *.profile
 
+# Project Specific #
+example
+
 # PyCharm files #
 .idea/*
-example_project/.idea/*
 
 # pytest files #
 .cache/*
