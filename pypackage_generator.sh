@@ -17,12 +17,12 @@ DOCS_DIR="docs"
 NOTEBOOK_DIR="notebooks"
 SOURCE_DIR=$1
 TEST_DIR="tests"
-VIRTUALENV_DIR=".env"
 
 DOC_SUB_DIRECTORIES=("_build" "_static" "_templates")
 SUB_DIRECTORIES=(${DATA_DIR} ${DOCS_DIR} ${NOTEBOOK_DIR} ${SOURCE_DIR})
 
-CONDA="~/working_python/anaconda/bin/conda"
+ANACONDA="${HOME}/working_python/anaconda"
+CONDA="${ANACONDA}${FILE_SEP}bin${FILE_SEP}conda"
 PYTHON_VERSION="3.6"
 
 
@@ -212,6 +212,9 @@ GITIGNORE+="# Profile files #\n"
 GITIGNORE+="*.coverage\n"
 GITIGNORE+="*.profile\n"
 GITIGNORE+="\n"
+GITIGNORE+="# Project files #\n"
+GITIGNORE+="source_venv.sh\n"
+GITIGNORE+="\n"
 GITIGNORE+="# PyCharm files #\n"
 GITIGNORE+=".idea${FILE_SEP}*\n"
 GITIGNORE+="${MAIN_DIR}${FILE_SEP}.idea${FILE_SEP}*\n"
@@ -236,4 +239,9 @@ git init
 ### Update conda
 ${CONDA} update conda
 ### Create Virtual Environment
-${CONDA} create --prefix ${VIRTUALENV_DIR} python=${PYTHON_VERSION}
+${CONDA} create --name ${MAIN_DIR} python=${PYTHON_VERSION}
+### Source commands
+SOURCE="source ${ANACONDA}${FILE_SEP}bin${FILE_SEP}activate\n"
+SOURCE+="source activate ${MAIN_DIR}\n"
+
+printf %b "${SOURCE}" >> "source_venv.txt"
