@@ -107,6 +107,10 @@ printf %b "include LICENSE.txt" >> "${MAIN_DIR}${FILE_SEP}MANIFEST.in"
 touch "${MAIN_DIR}${FILE_SEP}README.md"
 
 
+# requirements.txt
+touch "${MAIN_DIR}${FILE_SEP}requirements.txt"
+
+
 # setup.py
 SETUP+="#!/usr/bin/env python3\n"
 SETUP+="# -*- coding: utf-8 -*-\n"
