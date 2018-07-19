@@ -239,6 +239,23 @@ GITIGNORE+="docs/_templates/*\n"
 GITIGNORE+="docs/Makefile\n"
 
 printf %b "${GITIGNORE}" >> "${MAIN_DIR}${FILE_SEP}.gitignore"
+
+### Setup Git to ignore Jupyter Notebook Outputs
+##### Project Level Git Config File
+GITCONFIG="[filter \"jupyter_clear_output\"]\n"
+GITCONFIG+="    clean = \"jupyter nbconvert --stdin --stdout \ \n"
+GITCONFIG+="             --log-level=ERROR --to notebook \ \n"
+GITCONFIG+="             --ClearOutputPreprocessor.enabled=True\"\n"
+GITCONFIG+="    smudge = cat\n"
+GITCONFIG+="    required = true"
+
+printf %b "${GITCONFIG}" >> "${MAIN_DIR}${FILE_SEP}.gitconfig"
+
+##### Project Level Git Attributes File
+GITATTR="*.ipynb    filter=jupyter_clear_output"
+
+printf %b "${GITATTR}" >> "${MAIN_DIR}${FILE_SEP}.gitattributes"
+
 cd ${MAIN_DIR}
 git init
 
