@@ -13,13 +13,17 @@ FILE_SEP="/"
 
 MAIN_DIR=$1
 DATA_DIR="data"
+DOCKER_DIR="docker"
 DOCS_DIR="docs"
 NOTEBOOK_DIR="notebooks"
 SOURCE_DIR=$1
 TEST_DIR="tests"
+WHEEL_DIR="wheels"
+PKG_VERSION="0.1.0"
 
 DOC_SUB_DIRECTORIES=("_build" "_static" "_templates")
-SUB_DIRECTORIES=(${DATA_DIR} ${DOCS_DIR} ${NOTEBOOK_DIR} ${SOURCE_DIR})
+SUB_DIRECTORIES=(${DATA_DIR} ${DOCKER_DIR} ${DOCS_DIR} ${NOTEBOOK_DIR} \
+                 ${SOURCE_DIR} ${WHEEL_DIR})
 
 ANACONDA="${HOME}/working_python/anaconda"
 CONDA="${ANACONDA}${FILE_SEP}bin${FILE_SEP}conda"
@@ -70,6 +74,72 @@ BASE_PATH="${MAIN_DIR}${FILE_SEP}${SOURCE_DIR}${FILE_SEP}"
 printf %b "${PK_INIT}" >> "${BASE_PATH}__init__.py"
 ### Test Constructor
 printf %b "${INIT_HEADER}" >> "${BASE_PATH}${FILE_SEP}${TEST_DIR}${FILE_SEP}__init__.py"
+
+# Docker
+PROD_VERSION="${MAIN_DIR}-prod-${PKG_VERSION}"
+PROD_DOCKERFILE="${DOCKER_DIR}${FILE_SEP}ProdDockerfile"
+DEV_VERSION="${MAIN_DIR}-dev-${PKG_VERSION}"
+DEV_DOCKERFILE="${DOCKER_DIR}${FILE_SEP}DevDockerfile"
+
+COMMON_DOCK+="WORKDIR ${FILE_SEP}usr${FILE_SEP}${MAIN_DIR}\n\n"
+COMMON_DOCK+="ADD / ./\n\n"
+COMMON_DOCK+="CMD [ \"/bin/bash\" ]\n\n"
+
+### Production Dockerfile
+PROD_DOCK+="FROM python:3\n\n"
+PROD_DOCK+=${COMMON_DOCK}
+PROD_DOCK+="RUN pip3 install .\n\n"
+
+printf %b "${PROD_DOCK}" >> "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}ProdDockerfile"
+
+### Development Dockerfile
+DEV_DOCK+="FROM continuumio/anaconda3\n\n"
+DEV_DOCK+=${COMMON_DOCK}
+DEV_DOCK+="RUN pip install -e .\n\n"
+
+printf %b "${DEV_DOCK}" >> "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}DevDockerfile"
+
+### README
+README_DOCK+="The Docker files contained in this directory will allow "
+README_DOCK+="environments to be created.\n\n"
+README_DOCK+="NOTE: Docker must be called from the package base directory!\n\n"
+README_DOCK+="## Production Environment\n"
+README_DOCK+="Ideally the production environment would be as lean as "
+README_DOCK+="possible.\n"
+README_DOCK+="### Image Build Commands\n"
+README_DOCK+="From the package base directory (${MAIN_DIR}) execute:\n"
+README_DOCK+="\`\`\`bash \n"
+README_DOCK+="docker image build --tag ${PROD_VERSION} -f ${PROD_DOCKERFILE} .\n"
+README_DOCK+="\`\`\`\n\n"
+README_DOCK+="Or from the package docker directory (${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}) execute:\n"
+README_DOCK+="\`\`\`bash \n"
+README_DOCK+="make prod\n"
+README_DOCK+="\`\`\`\n\n"
+README_DOCK+="### Container Run Command\n"
+README_DOCK+="Run interactively\n"
+README_DOCK+="docker container run -it --rm ${PROD_VERSION}\n"
+README_DOCK+="Run detached\n"
+README_DOCK+="docker container run -d --name $ ${PROD_VERSION}\n"
+README_DOCK+="\n"
+README_DOCK+="## Development Environment\n"
+README_DOCK+="Anaconda is utilized during development."
+README_DOCK+="### Image Build Commands\n"
+README_DOCK+="From the package base directory (${MAIN_DIR}) execute:\n"
+README_DOCK+="\`\`\`bash \n"
+README_DOCK+="docker image build --tag ${DEV_VERSION} -f ${DEV_DOCKERFILE} .\n"
+README_DOCK+="\`\`\`\n\n"
+README_DOCK+="Or from the package docker directory (${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}) execute:\n"
+README_DOCK+="\`\`\`bash \n"
+README_DOCK+="make dev\n"
+README_DOCK+="\`\`\`\n\n"
+README_DOCK+="### Container Run Command\n"
+README_DOCK+="Run interactively\n"
+README_DOCK+="docker container run -it --rm ${DEV_VERSION}\n"
+README_DOCK+="Run detached\n"
+README_DOCK+="docker container run -d --name $ ${DEV_VERSION}\n"
+
+
+printf %b "${README_DOCK}" >> "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}README.md"
 
 
 # LICENSE
@@ -175,7 +245,7 @@ printf %b "${SETUP}" >> "${MAIN_DIR}${FILE_SEP}setup.py"
 
 # Version Control
 ### Git Ignore File
-GITIGNORE="# Compiled source #\n"
+GITIGNORE+="# Compiled source #\n"
 GITIGNORE+="build${FILE_SEP}*\n"
 GITIGNORE+="*.com\n"
 GITIGNORE+="dist${FILE_SEP}*\n"
@@ -242,7 +312,7 @@ printf %b "${GITIGNORE}" >> "${MAIN_DIR}${FILE_SEP}.gitignore"
 
 ### Setup Git to ignore Jupyter Notebook Outputs
 ##### Project Level Git Config File
-GITCONFIG="[filter \"jupyter_clear_output\"]\n"
+GITCONFIG+="[filter \"jupyter_clear_output\"]\n"
 GITCONFIG+="    clean = \"jupyter nbconvert --stdin --stdout \ \n"
 GITCONFIG+="             --log-level=ERROR --to notebook \ \n"
 GITCONFIG+="             --ClearOutputPreprocessor.enabled=True\"\n"
@@ -265,7 +335,7 @@ ${CONDA} update conda
 ### Create Virtual Environment
 ${CONDA} create --name ${MAIN_DIR} python=${PYTHON_VERSION}
 ### Source commands
-SOURCE="source ${ANACONDA}${FILE_SEP}bin${FILE_SEP}activate\n"
+SOURCE+="source ${ANACONDA}${FILE_SEP}bin${FILE_SEP}activate\n"
 SOURCE+="source activate ${MAIN_DIR}\n"
 
 printf %b "${SOURCE}" >> "source_venv.txt"
