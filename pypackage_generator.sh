@@ -8,7 +8,6 @@ fi
 
 AUTHOR="EnterAuthorName"
 EMAIL="EnterAuthorEmail"
-YEAR="2018"
 PYTHON_VERSION="3.6"
 PKG_VERSION="0.1.0"
 
@@ -22,6 +21,7 @@ NOTEBOOK_DIR="notebooks"
 SOURCE_DIR=$1
 TEST_DIR="tests"
 WHEEL_DIR="wheels"
+YEAR=`date +%Y`
 
 
 ###############################################################################
@@ -233,7 +233,7 @@ license() {
 makefile() {
     txt="PROJECT=${MAIN_DIR}\n"
     txt+="MOUNT_DIR=\$(shell pwd)\n"
-    txt+="SRC_DIR=/usr/src/\$(PROJECT)\n\n\n"
+    txt+="SRC_DIR=/usr/src/${MAIN_DIR}\n\n\n"
     txt+=".PHONY: docker docs\n\n"
     txt+="docker:\n"
     txt+="\t# Python Container\n"
@@ -253,7 +253,20 @@ makefile() {
     txt+="\t\t#-f docker/postgres-Dockerfile \\\\\n"
     txt+="\t\t#--squash .\n"
     txt+="\tdocker system prune -f\n\n"
-    # TODO docs_init
+    txt+="sphinx_quickstart:\n"
+    txt+="\tdocker container run \\\\\n"
+    txt+="\t\t-it --rm \\\\\n"
+    txt+="\t\t-v \$(MOUNT_DIR):/usr/src/\$(PROJECT) \\\\\n"
+    txt+="\t\t-w /usr/src/\$(PROJECT)/docs \\\\\n"
+    txt+="\t\tpython_\$(PROJECT) \\\\\n"
+    txt+="\t\tsphinx-quickstart -q \\\\\n"
+    txt+="\t\t\t-p \$(PROJECT) \\\\\n"
+    txt+="\t\t\t-a ${AUTHOR} \\\\\n"
+    txt+="\t\t\t-v ${PKG_VERSION} \\\\\n"
+    txt+="\t\t\t--ext-autodoc \\\\\n"
+    txt+="\t\t\t--ext-viewcode \\\\\n"
+    txt+="\t\t\t--makefile \\\\\\n"
+    txt+="\t\t\t--no-batchfile\n"
     txt+="docs:\n"
     txt+="\tdocker container run \\\\\n"
     txt+="\t\t-it --rm \\\\\n"
@@ -261,7 +274,8 @@ makefile() {
     txt+="\t\t-w /usr/src/\$(PROJECT)/docs \\\\\n"
     txt+="\t\tpython_\$(PROJECT) make html\n"
     txt+="\tdocker container rm -f nginx_\$(PROJECT) || true\n"
-    txt+="\tdocker container run -d \\\\\n"
+    txt+="\tdocker container run \\\\\n"
+    txt+="\t\t-d \\\\\n"
     txt+="\t\t-p 80:80 \\\\\n"
     txt+="\t\t-v \$(MOUNT_DIR)/docs/_build/html:/usr/share/nginx/html:ro \\\\\n"
     txt+="\t\t--name nginx_\$(PROJECT) \\\\\n"
@@ -297,14 +311,14 @@ nginx_conf() {
     txt+="    #tcp_nopush     on;\n\n"
     txt+="    keepalive_timeout  65;\n\n"
     txt+="    #gzip  on;\n\n"
-    txt+="    include /etc/nginx/conf.d/*.conf;\n"
-    txt+="}\n\n\n"
-    txt+="server {\n"
-    txt+="    listen 80 default_server;\n"
-    txt+="    listen [::]:80 default_server;\n"
-    txt+="    root /usr/share/nginx/html;\n"
-    txt+="    index index.html;\n"
-    txt+="}\n"
+    txt+="    include /etc/nginx/conf.d/*.conf;\n\n"
+    txt+="    server {\n"
+    txt+="        listen 80 default_server;\n"
+    txt+="        listen [::]:80 default_server;\n"
+    txt+="        root /usr/share/nginx/html;\n"
+    txt+="        index index.html;\n"
+    txt+="    }\n\n"
+    txt+="}\n\n"
 
     printf %b "${txt}" >> "${MAIN_DIR}${FILE_SEP}${NGINX_DIR}${FILE_SEP}nginx.conf"
 }
