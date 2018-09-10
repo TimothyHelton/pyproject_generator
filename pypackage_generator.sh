@@ -94,9 +94,9 @@ docker_python() {
     txt+="RUN apk add --update alpine-sdk\n\n"
     txt+="WORKDIR /usr/src/${MAIN_DIR}\n\n"
     txt+="COPY . .\n\n"
-    txt+="RUN pip install --upgrade pip\n\n"
-    txt+="RUN pip install --no-cache-dir -r requirements.txt\n\n"
-    txt+="RUN pip install -e .\n\n"
+    txt+="RUN pip3 install --upgrade pip\n\n"
+    txt+="RUN pip3 install --no-cache-dir -r requirements.txt\n\n"
+    txt+="RUN pip3 install -e .\n\n"
     txt+="CMD [ \"/bin/bash\" ]\n\n"
 
     printf %b "${txt}" >> "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}python-Dockerfile"
@@ -234,7 +234,8 @@ makefile() {
     txt="PROJECT=${MAIN_DIR}\n"
     txt+="MOUNT_DIR=\$(shell pwd)\n"
     txt+="SRC_DIR=/usr/src/${MAIN_DIR}\n\n\n"
-    txt+=".PHONY: docker docs update_requirements\n\n"
+    txt+=".PHONY: docker docs update_packages update_requirements\n\n"
+
     txt+="docker:\n"
     txt+="\t# Python Container\n"
     txt+="\tdocker image build \\\\\n"
@@ -253,6 +254,7 @@ makefile() {
     txt+="\t\t#-f docker/postgres-Dockerfile \\\\\n"
     txt+="\t\t#--squash .\n"
     txt+="\tdocker system prune -f\n\n"
+
     txt+="sphinx_quickstart:\n"
     txt+="\tdocker container run \\\\\n"
     txt+="\t\t-it --rm \\\\\n"
@@ -267,6 +269,7 @@ makefile() {
     txt+="\t\t\t--ext-viewcode \\\\\n"
     txt+="\t\t\t--makefile \\\\\\n"
     txt+="\t\t\t--no-batchfile\n\n"
+
     txt+="docs:\n"
     txt+="\tdocker container run \\\\\n"
     txt+="\t\t-it --rm \\\\\n"
@@ -280,12 +283,17 @@ makefile() {
     txt+="\t\t-v \$(MOUNT_DIR)/docs/_build/html:/usr/share/nginx/html:ro \\\\\n"
     txt+="\t\t--name nginx_\$(PROJECT) \\\\\n"
     txt+="\t\tnginx_\$(PROJECT)\n\n"
-    # TODO update packages
-    txt+="update_requirements:\n"
+
+    txt+="upgrade_packages: upgrade_requirements docker\n"
+
+    txt+="upgrade_requirements:\n"
     txt+="\tdocker container run \\\\\n"
     txt+="\t\t--rm \\\\\n"
     txt+="\t\t-v \$(MOUNT_DIR):/usr/src/\$(PROJECT) \\\\\n"
-    txt+="\t\tpython_\$(PROJECT) pip freeze > requirements.txt\n"
+    txt+="\t\tpython_\$(PROJECT) \\\\\n"
+    txt+="\t\t\tpip3 install -U pip && \\\\\n"
+    txt+="\t\t\tpip3 install -U \$(shell pip3 freeze | grep -v '\$(PROJECT)' | cut -d '=' -f 1) && \\\\\n"
+    txt+="\t\t\tpip3 freeze > requirements.txt\n\n"
 
     printf %b "${txt}" >> "${MAIN_DIR}${FILE_SEP}Makefile"
 }
