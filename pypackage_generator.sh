@@ -234,7 +234,7 @@ makefile() {
     txt="PROJECT=${MAIN_DIR}\n"
     txt+="MOUNT_DIR=\$(shell pwd)\n"
     txt+="SRC_DIR=/usr/src/${MAIN_DIR}\n\n\n"
-    txt+=".PHONY: docker docs\n\n"
+    txt+=".PHONY: docker docs update_requirements\n\n"
     txt+="docker:\n"
     txt+="\t# Python Container\n"
     txt+="\tdocker image build \\\\\n"
@@ -266,7 +266,7 @@ makefile() {
     txt+="\t\t\t--ext-autodoc \\\\\n"
     txt+="\t\t\t--ext-viewcode \\\\\n"
     txt+="\t\t\t--makefile \\\\\\n"
-    txt+="\t\t\t--no-batchfile\n"
+    txt+="\t\t\t--no-batchfile\n\n"
     txt+="docs:\n"
     txt+="\tdocker container run \\\\\n"
     txt+="\t\t-it --rm \\\\\n"
@@ -279,9 +279,13 @@ makefile() {
     txt+="\t\t-p 80:80 \\\\\n"
     txt+="\t\t-v \$(MOUNT_DIR)/docs/_build/html:/usr/share/nginx/html:ro \\\\\n"
     txt+="\t\t--name nginx_\$(PROJECT) \\\\\n"
-    txt+="\t\tnginx_\$(PROJECT)\n"
+    txt+="\t\tnginx_\$(PROJECT)\n\n"
     # TODO update packages
-    # TODO update requirements.txt
+    txt+="update_requirements:\n"
+    txt+="\tdocker container run \\\\\n"
+    txt+="\t\t--rm \\\\\n"
+    txt+="\t\t-v \$(MOUNT_DIR):/usr/src/\$(PROJECT) \\\\\n"
+    txt+="\t\tpython_\$(PROJECT) pip freeze > requirements.txt\n"
 
     printf %b "${txt}" >> "${MAIN_DIR}${FILE_SEP}Makefile"
 }
