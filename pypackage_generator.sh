@@ -16,7 +16,6 @@ DATA_DIR="data"
 DOCKER_DIR="docker"
 DOCS_DIR="docs"
 FILE_SEP="/"
-NGINX_DIR="nginx"
 NOTEBOOK_DIR="notebooks"
 SOURCE_DIR=$1
 TEST_DIR="tests"
@@ -30,7 +29,6 @@ YEAR=`date +%Y`
 SUB_DIRECTORIES=(${DATA_DIR} \
                  ${DOCKER_DIR} \
                  ${DOCS_DIR} \
-                 ${NGINX_DIR} \
                  ${NOTEBOOK_DIR} \
                  ${SOURCE_DIR} \
                  ${WHEEL_DIR})
@@ -80,18 +78,37 @@ constructor_test() {
 }
 
 
-docker_nginx() {
-    txt="FROM nginx:alpine\n\n"
-    txt+="RUN rm -v /etc/nginx/nginx.conf\n\n"
-    txt+="COPY nginx/nginx.conf /etc/nginx/nginx.conf\n\n"
+docker_compose() {
+    txt="version: '3'\n\n"
+    txt+="services:\n\n"
 
-    printf %b "${txt}" >> "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}nginx-Dockerfile"
+    txt+="  nginx:\n"
+    txt+="    container_name: ${MAIN_DIR}_nginx\n"
+    txt+="    image: nginx:alpine\n"
+    txt+="    ports:\n"
+    txt+="      - 8080:80\n"
+    txt+="    volumes:\n"
+    txt+="      - ../docs/_build/html:/usr/share/nginx/html:ro\n\n"
+
+    txt+="  python:\n"
+    txt+="    container_name: ${MAIN_DIR}_python\n"
+    txt+="    build:\n"
+    txt+="      context: ..\n"
+    txt+="      dockerfile: docker/python-Dockerfile\n"
+    txt+="    image: ${MAIN_DIR}_python\n"
+    txt+="    tty: true\n"
+    txt+="    volumes:\n"
+    txt+="      - ..:/usr/src/${MAIN_DIR}\n"
+
+    printf %b "${txt}" >> "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}docker-compose.yml"
 }
 
 
 docker_python() {
     txt="FROM python:3.6-alpine\n\n"
-    txt+="RUN apk add --update alpine-sdk\n\n"
+    txt+="RUN apk add --update \\\\\n"
+    txt+="\talpine-sdk \\\\\n"
+    txt+="\tbash\n\n"
     txt+="WORKDIR /usr/src/${MAIN_DIR}\n\n"
     txt+="COPY . .\n\n"
     txt+="RUN pip3 install --upgrade pip\n\n"
@@ -232,68 +249,44 @@ license() {
 
 makefile() {
     txt="PROJECT=${MAIN_DIR}\n"
+    txt+="VERSION=${PKG_VERSION}\n"
     txt+="MOUNT_DIR=\$(shell pwd)\n"
     txt+="SRC_DIR=/usr/src/${MAIN_DIR}\n\n\n"
-    txt+=".PHONY: docker docs update_packages update_requirements\n\n"
+    txt+=".PHONY: docker docs upgrade-packages\n\n"
 
-    txt+="docker:\n"
-    txt+="\t# Python Container\n"
-    txt+="\tdocker image build \\\\\n"
-    txt+="\t\t--tag python_\$(PROJECT) \\\\\n"
-    txt+="\t\t-f docker/python-Dockerfile \\\\\n"
-    txt+="\t\t--squash .\n"
-    txt+="\t# NGINX Container\n"
-    txt+="\tdocker image build \\\\\n"
-    txt+="\t\t--tag nginx_\$(PROJECT) \\\\\n"
-    txt+="\t\t-f docker/nginx-Dockerfile \\\\\n"
-    txt+="\t\t--squash .\n"
-    txt+="\t# Postgres Container\n"
-    txt+="\t# TODO create postgres-Dockerfile\n"
-    txt+="\t#docker image build \\\\\n"
-    txt+="\t\t#--tag postgres_\$(PROJECT) \\\\\n"
-    txt+="\t\t#-f docker/postgres-Dockerfile \\\\\n"
-    txt+="\t\t#--squash .\n"
-    txt+="\tdocker system prune -f\n\n"
+    txt+="docker-down:\n"
+    txt+="\tcd docker && docker-compose down\n"
 
-    txt+="sphinx_quickstart:\n"
-    txt+="\tdocker container run \\\\\n"
-    txt+="\t\t-it --rm \\\\\n"
-    txt+="\t\t-v \$(MOUNT_DIR):/usr/src/\$(PROJECT) \\\\\n"
-    txt+="\t\t-w /usr/src/\$(PROJECT)/docs \\\\\n"
-    txt+="\t\tpython_\$(PROJECT) \\\\\n"
-    txt+="\t\tsphinx-quickstart -q \\\\\n"
-    txt+="\t\t\t-p \$(PROJECT) \\\\\n"
-    txt+="\t\t\t-a ${AUTHOR} \\\\\n"
-    txt+="\t\t\t-v ${PKG_VERSION} \\\\\n"
-    txt+="\t\t\t--ext-autodoc \\\\\n"
-    txt+="\t\t\t--ext-viewcode \\\\\n"
-    txt+="\t\t\t--makefile \\\\\\n"
-    txt+="\t\t\t--no-batchfile\n\n"
+    txt+="\ndocker-up:\n"
+    txt+="\tcd docker && docker-compose up -d\n"
 
-    txt+="docs:\n"
-    txt+="\tdocker container run \\\\\n"
-    txt+="\t\t-it --rm \\\\\n"
-    txt+="\t\t-v \$(MOUNT_DIR):/usr/src/\$(PROJECT) \\\\\n"
-    txt+="\t\t-w /usr/src/\$(PROJECT)/docs \\\\\n"
-    txt+="\t\tpython_\$(PROJECT) make html\n"
-    txt+="\tdocker container rm -f nginx_\$(PROJECT) || true\n"
-    txt+="\tdocker container run \\\\\n"
-    txt+="\t\t-d \\\\\n"
-    txt+="\t\t-p 80:80 \\\\\n"
-    txt+="\t\t-v \$(MOUNT_DIR)/docs/_build/html:/usr/share/nginx/html:ro \\\\\n"
-    txt+="\t\t--name nginx_\$(PROJECT) \\\\\n"
-    txt+="\t\tnginx_\$(PROJECT)\n\n"
+    txt+="\ndocs: docker-up\n"
+    txt+="\tdocker container exec \$(PROJECT)_python \\\\\n"
+    txt+="\t\t/bin/bash -c \"cd docs && make html\"\n"
+    txt+="\topen http://localhost:8080\n"
 
-    txt+="upgrade_packages: upgrade_requirements docker\n"
+    txt+="\nview-docs: docker-up\n"
+    txt+="\topen http://localhost:8080\n\n"
 
-    txt+="upgrade_requirements:\n"
-    txt+="\tdocker container run \\\\\n"
-    txt+="\t\t--rm \\\\\n"
-    txt+="\t\t-v \$(MOUNT_DIR):/usr/src/\$(PROJECT) \\\\\n"
-    txt+="\t\tpython_\$(PROJECT) \\\\\n"
-    txt+="\t\t\tpip3 install -U pip && \\\\\n"
-    txt+="\t\t\tpip3 install -U \$(shell pip3 freeze | grep -v '\$(PROJECT)' | cut -d '=' -f 1) && \\\\\n"
-    txt+="\t\t\tpip3 freeze > requirements.txt\n\n"
+    txt+="sphinx-quickstart: docker-up\n"
+    txt+="\tdocker container exec \$(PROJECT)_python \\\\\n"
+    txt+="\t\t/bin/bash -c \\\\\n"
+    txt+="\t\t\t\"cd docs \\\\\n"
+    txt+="\t\t\t && sphinx-quickstart -q \\\\\n"
+    txt+="\t\t\t\t-p \$(PROJECT) \\\\\n"
+    txt+="\t\t\t\t-a ${AUTHOR} \\\\\n"
+    txt+="\t\t\t\t-v \$(VERSION) \\\\\n"
+    txt+="\t\t\t\t--ext-autodoc \\\\\n"
+    txt+="\t\t\t\t--ext-viewcode \\\\\n"
+    txt+="\t\t\t\t--makefile \\\\\\n"
+    txt+="\t\t\t\t--no-batchfile\"\n\n"
+
+    txt+="upgrade-packages: docker-up\n"
+    txt+="\tdocker container exec \$(PROJECT)_python \\\\\n"
+    txt+="\t\t/bin/bash -c \\\\\n"
+    txt+="\t\t\t\"pip3 install -U pip \\\\\n"
+    txt+="\t\t\t && pip3 install -U \$(shell pip3 freeze | grep -v '\$(PROJECT)' | cut -d '=' -f 1) \\\\\n"
+    txt+="\t\t\t && pip3 freeze > requirements.txt\"\n\n"
 
     printf %b "${txt}" >> "${MAIN_DIR}${FILE_SEP}Makefile"
 }
@@ -301,38 +294,6 @@ makefile() {
 
 manifest() {
     printf %b "include LICENSE.txt" >> "${MAIN_DIR}${FILE_SEP}MANIFEST.in"
-}
-
-
-nginx_conf() {
-    txt="user  nginx;\n"
-    txt+="worker_processes  1;\n\n"
-    txt+="error_log  /var/log/nginx/error.log warn;\n"
-    txt+="pid        /var/run/nginx.pid;\n\n\n"
-    txt+="events {\n"
-    txt+="    worker_connections  1024;\n"
-    txt+="}\n\n\n"
-    txt+="http {\n"
-    txt+="    include       /etc/nginx/mime.types;\n"
-    txt+="    default_type  application/octet-stream;\n\n"
-    txt+="    log_format  main  '\$remote_addr - \$remote_user [\$time_local] \"\$request\" '\n"
-    txt+="                      '\$status \$body_bytes_sent \"\$http_referer\" '\n"
-    txt+="                      '\"\$http_user_agent\" \"\$http_x_forwarded_for\"';\n\n"
-    txt+="    access_log  /var/log/nginx/access.log  main;\n\n"
-    txt+="    sendfile        on;\n"
-    txt+="    #tcp_nopush     on;\n\n"
-    txt+="    keepalive_timeout  65;\n\n"
-    txt+="    #gzip  on;\n\n"
-    txt+="    include /etc/nginx/conf.d/*.conf;\n\n"
-    txt+="    server {\n"
-    txt+="        listen 80 default_server;\n"
-    txt+="        listen [::]:80 default_server;\n"
-    txt+="        root /usr/share/nginx/html;\n"
-    txt+="        index index.html;\n"
-    txt+="    }\n\n"
-    txt+="}\n\n"
-
-    printf %b "${txt}" >> "${MAIN_DIR}${FILE_SEP}${NGINX_DIR}${FILE_SEP}nginx.conf"
 }
 
 
@@ -408,7 +369,7 @@ setup() {
 directories
 constructor_pkg
 constructor_test
-docker_nginx
+docker_compose
 docker_python
 git_attributes
 git_config
@@ -416,7 +377,6 @@ git_ignore
 license
 makefile
 manifest
-nginx_conf
 readme
 requirements
 setup
