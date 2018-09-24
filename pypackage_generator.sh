@@ -87,19 +87,22 @@ docker_compose() {
     txt+="    image: nginx:alpine\n"
     txt+="    ports:\n"
     txt+="      - 8080:80\n"
+    txt+="    restart: always\n"
     txt+="    volumes:\n"
     txt+="      - ../docs/_build/html:/usr/share/nginx/html:ro\n\n"
 
-    txt+="postgres:\n"
-    txt+="  container_name: ${MAIN_DIR}_postgres\n"
-    txt+="  image: postgres:alpine\n"
-    txt+="  environment:\n"
-    txt+="    POSTGRES_PASSWORD: \${POSTGRES_PASSWORD}\n"
-    txt+="    POSTGRES_DB: \${POSTGRES_DB}\n"
-    txt+="    POSTGRES_USER: \${POSTGRES_USER}\n"
-    txt+="  restart: always\n"
-    txt+="  volumes:\n"
-    txt+="    - ${MAIN_DIR}-db:/var/lib/postgresql/data\n\n"
+    txt+="  postgres:\n"
+    txt+="    container_name: ${MAIN_DIR}_postgres\n"
+    txt+="    image: postgres:alpine\n"
+    txt+="    environment:\n"
+    txt+="      POSTGRES_PASSWORD: \${POSTGRES_PASSWORD}\n"
+    txt+="      POSTGRES_DB: \${POSTGRES_DB}\n"
+    txt+="      POSTGRES_USER: \${POSTGRES_USER}\n"
+    txt+="    ports:\n"
+    txt+="      - 5432:5432\n"
+    txt+="    restart: always\n"
+    txt+="    volumes:\n"
+    txt+="      - ${MAIN_DIR}-db:/var/lib/postgresql/data\n\n"
 
     txt+="  python:\n"
     txt+="    container_name: ${MAIN_DIR}_python\n"
@@ -107,11 +110,12 @@ docker_compose() {
     txt+="      context: ..\n"
     txt+="      dockerfile: docker/python-Dockerfile\n"
     txt+="    image: ${MAIN_DIR}_python\n"
+    txt+="    restart: always\n"
     txt+="    tty: true\n"
     txt+="    volumes:\n"
     txt+="      - ..:/usr/src/${MAIN_DIR}\n"
 
-    txt+="volumes:\n\n"
+    txt+="volumes:\n"
     txt+="  ${MAIN_DIR}-db:\n\n"
 
     printf %b "${txt}" >> "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}docker-compose.yml"
@@ -131,6 +135,15 @@ docker_python() {
     txt+="CMD [ \"/bin/bash\" ]\n\n"
 
     printf %b "${txt}" >> "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}python-Dockerfile"
+}
+
+
+envfile(){
+    txt="export POSTGRES_PASSWORD=<enter_password>\n"
+    txt+="export POSTGRES_DB=${MAIN_DIR}\n"
+    txt+="export POSTGRES_USER=<enter_user>\n\n"
+
+    printf %b "${txt}" >> "${MAIN_DIR}${FILE_SEP}envfile"
 }
 
 
@@ -172,12 +185,12 @@ git_ignore() {
     txt+="${NOTEBOOK_DIR}${FILE_SEP}.ipynb_checkpoints${FILE_SEP}*\n\n"
 
     txt+="# Logs and databases #\n"
-    txt+="keys\n"
     txt+="*.log\n"
     txt+="*.sql\n"
     txt+="*.sqlite\n\n"
 
-    txt+="# OS generatee files #\n"
+    txt+="# OS generated files #\n"
+    txt+="envfile\n"
     txt+=".DS_Store\n"
     txt+=".DS_store?\n"
     txt+="._*\n"
@@ -229,15 +242,6 @@ git_init() {
 }
 
 
-keys(){
-    txt="export POSTGRES_PASSWORD=<enter_password>\n"
-    txt+="export POSTGRES_DB=${MAIN_DIR}\n"
-    txt+="export POSTGRES_USER=<enter_user>\n\n"
-
-    printf %b "${txt}" >> "${MAIN_DIR}${FILE_SEP}.g"
-}
-
-
 license() {
     txt="Copyright (c) ${YEAR}, ${AUTHOR}.\n"
     txt+="All rights reserved.\n"
@@ -275,21 +279,21 @@ makefile() {
     txt="PROJECT=${MAIN_DIR}\n"
     txt+="VERSION=${PKG_VERSION}\n"
     txt+="MOUNT_DIR=\$(shell pwd)\n"
-    txt+="SRC_DIR=/usr/src/${MAIN_DIR}\n\n\n"
+    txt+="SRC_DIR=/usr/src/${MAIN_DIR}\n\n"
 
-    txt+=".PHONY: docker docs upgrade-packages\n\n"
+    txt+="include envfile\n"
+    txt+=".PHONY: docs upgrade-packages\n\n"
 
     txt+="docker-down:\n"
     txt+="\tdocker-compose -f docker/docker-compose.yml down\n"
 
     txt+="\ndocker-up:\n"
-    txt+="\t. keys\n"
     txt+="\tdocker-compose -f docker/docker-compose.yml up -d\n"
 
     txt+="\ndocs: docker-up\n"
     txt+="\tdocker container exec \$(PROJECT)_python \\\\\n"
     txt+="\t\t/bin/bash -c \"cd docs && make html\"\n"
-    txt+="\topen http://localhost:8080\n"
+    txt+="\topen http://localhost:8080\n\n"
 
     txt+="docs-init: docker-up\n"
     txt+="\tdocker container exec \$(PROJECT)_python \\\\\n"
@@ -305,11 +309,10 @@ makefile() {
     txt+="\t\t\t\t--no-batchfile\"\n\n"
 
     txt+="psql: docker-up\n"
-    txt+="\t. keys\n"
-    txt+="\tdocker container exec -it $(PROJECT)_postgres \\\\\n"
-    txt+="\t\tpsql -U \${POSTGRES_USER} $(PROJECT)\n\n"
+    txt+="\tdocker container exec -it \$(PROJECT)_postgres \\\\\n"
+    txt+="\t\tpsql -U \${POSTGRES_USER} \$(PROJECT)\n\n"
 
-    txt+="\nview-docs: docker-up\n"
+    txt+="view-docs: docker-up\n"
     txt+="\topen http://localhost:8080\n\n"
 
     txt+="upgrade-packages: docker-up\n"
@@ -402,10 +405,10 @@ constructor_pkg
 constructor_test
 docker_compose
 docker_python
+envfile
 git_attributes
 git_config
 git_ignore
-keys
 license
 makefile
 manifest
