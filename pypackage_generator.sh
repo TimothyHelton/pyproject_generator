@@ -87,8 +87,22 @@ docker_compose() {
     txt+="    image: nginx:alpine\n"
     txt+="    ports:\n"
     txt+="      - 8080:80\n"
+    txt+="    restart: always\n"
     txt+="    volumes:\n"
     txt+="      - ../docs/_build/html:/usr/share/nginx/html:ro\n\n"
+
+    txt+="  postgres:\n"
+    txt+="    container_name: ${MAIN_DIR}_postgres\n"
+    txt+="    image: postgres:alpine\n"
+    txt+="    environment:\n"
+    txt+="      POSTGRES_PASSWORD: \${POSTGRES_PASSWORD}\n"
+    txt+="      POSTGRES_DB: \${POSTGRES_DB}\n"
+    txt+="      POSTGRES_USER: \${POSTGRES_USER}\n"
+    txt+="    ports:\n"
+    txt+="      - 5432:5432\n"
+    txt+="    restart: always\n"
+    txt+="    volumes:\n"
+    txt+="      - ${MAIN_DIR}-db:/var/lib/postgresql/data\n\n"
 
     txt+="  python:\n"
     txt+="    container_name: ${MAIN_DIR}_python\n"
@@ -96,9 +110,13 @@ docker_compose() {
     txt+="      context: ..\n"
     txt+="      dockerfile: docker/python-Dockerfile\n"
     txt+="    image: ${MAIN_DIR}_python\n"
+    txt+="    restart: always\n"
     txt+="    tty: true\n"
     txt+="    volumes:\n"
     txt+="      - ..:/usr/src/${MAIN_DIR}\n"
+
+    txt+="volumes:\n"
+    txt+="  ${MAIN_DIR}-db:\n\n"
 
     printf %b "${txt}" >> "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}docker-compose.yml"
 }
@@ -117,6 +135,15 @@ docker_python() {
     txt+="CMD [ \"/bin/bash\" ]\n\n"
 
     printf %b "${txt}" >> "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}python-Dockerfile"
+}
+
+
+envfile(){
+    txt="export POSTGRES_PASSWORD=<enter_password>\n"
+    txt+="export POSTGRES_DB=${MAIN_DIR}\n"
+    txt+="export POSTGRES_USER=<enter_user>\n\n"
+
+    printf %b "${txt}" >> "${MAIN_DIR}${FILE_SEP}envfile"
 }
 
 
@@ -152,25 +179,26 @@ git_ignore() {
     txt+="*.o\n"
     txt+="*.pdf\n"
     txt+="*.pyc\n"
-    txt+="*.so\n"
-    txt+="\n"
+    txt+="*.so\n\n"
+
     txt+="# Ipython Files #\n"
-    txt+="${NOTEBOOK_DIR}${FILE_SEP}.ipynb_checkpoints${FILE_SEP}*\n"
-    txt+="\n"
+    txt+="${NOTEBOOK_DIR}${FILE_SEP}.ipynb_checkpoints${FILE_SEP}*\n\n"
+
     txt+="# Logs and databases #\n"
     txt+="*.log\n"
     txt+="*.sql\n"
-    txt+="*.sqlite\n"
-    txt+="\n"
-    txt+="# OS generatee files #\n"
+    txt+="*.sqlite\n\n"
+
+    txt+="# OS generated files #\n"
+    txt+="envfile\n"
     txt+=".DS_Store\n"
     txt+=".DS_store?\n"
     txt+="._*\n"
     txt+=".Spotlight-V100\n"
     txt+=".Trashes\n"
     txt+="ehthumbs.db\n"
-    txt+="Thumbs.db\n"
-    txt+="\n"
+    txt+="Thumbs.db\n\n"
+
     txt+="# Packages #\n"
     txt+="*.7z\n"
     txt+="*.dmg\n"
@@ -179,30 +207,30 @@ git_ignore() {
     txt+="*.jar\n"
     txt+="*.rar\n"
     txt+="*.tar\n"
-    txt+="*.zip\n"
-    txt+="\n"
+    txt+="*.zip\n\n"
+
     txt+="# Profile files #\n"
     txt+="*.coverage\n"
-    txt+="*.profile\n"
-    txt+="\n"
+    txt+="*.profile\n\n"
+
     txt+="# Project files #\n"
-    txt+="source_venv.sh\n"
-    txt+="\n"
+    txt+="source_venv.sh\n\n"
+
     txt+="# PyCharm files #\n"
     txt+=".idea${FILE_SEP}*\n"
-    txt+="${MAIN_DIR}${FILE_SEP}.idea${FILE_SEP}*\n"
-    txt+="\n"
+    txt+="${MAIN_DIR}${FILE_SEP}.idea${FILE_SEP}*\n\n"
+
     txt+="# pytest files #\n"
     txt+=".cache${FILE_SEP}*\n"
     txt+="\n"
     txt+="# Raw Data #\n"
-    txt+="${DATA_DIR}${FILE_SEP}*\n"
-    txt+="\n"
+    txt+="${DATA_DIR}${FILE_SEP}*\n\n"
+
     txt+="# Sphinx files #\n"
     txt+="docs/_build/*\n"
     txt+="docs/_static/*\n"
     txt+="docs/_templates/*\n"
-    txt+="docs/Makefile\n"
+    txt+="docs/Makefile\n\n"
 
     printf %b "${txt}" >> "${MAIN_DIR}${FILE_SEP}.gitignore"
 }
@@ -251,24 +279,23 @@ makefile() {
     txt="PROJECT=${MAIN_DIR}\n"
     txt+="VERSION=${PKG_VERSION}\n"
     txt+="MOUNT_DIR=\$(shell pwd)\n"
-    txt+="SRC_DIR=/usr/src/${MAIN_DIR}\n\n\n"
-    txt+=".PHONY: docker docs upgrade-packages\n\n"
+    txt+="SRC_DIR=/usr/src/${MAIN_DIR}\n\n"
+
+    txt+="include envfile\n"
+    txt+=".PHONY: docs upgrade-packages\n\n"
 
     txt+="docker-down:\n"
-    txt+="\tcd docker && docker-compose down\n"
+    txt+="\tdocker-compose -f docker/docker-compose.yml down\n"
 
     txt+="\ndocker-up:\n"
-    txt+="\tcd docker && docker-compose up -d\n"
+    txt+="\tdocker-compose -f docker/docker-compose.yml up -d\n"
 
     txt+="\ndocs: docker-up\n"
     txt+="\tdocker container exec \$(PROJECT)_python \\\\\n"
     txt+="\t\t/bin/bash -c \"cd docs && make html\"\n"
-    txt+="\topen http://localhost:8080\n"
-
-    txt+="\nview-docs: docker-up\n"
     txt+="\topen http://localhost:8080\n\n"
 
-    txt+="sphinx-quickstart: docker-up\n"
+    txt+="docs-init: docker-up\n"
     txt+="\tdocker container exec \$(PROJECT)_python \\\\\n"
     txt+="\t\t/bin/bash -c \\\\\n"
     txt+="\t\t\t\"cd docs \\\\\n"
@@ -280,6 +307,13 @@ makefile() {
     txt+="\t\t\t\t--ext-viewcode \\\\\n"
     txt+="\t\t\t\t--makefile \\\\\\n"
     txt+="\t\t\t\t--no-batchfile\"\n\n"
+
+    txt+="psql: docker-up\n"
+    txt+="\tdocker container exec -it \$(PROJECT)_postgres \\\\\n"
+    txt+="\t\tpsql -U \${POSTGRES_USER} \$(PROJECT)\n\n"
+
+    txt+="view-docs: docker-up\n"
+    txt+="\topen http://localhost:8080\n\n"
 
     txt+="upgrade-packages: docker-up\n"
     txt+="\tdocker container exec \$(PROJECT)_python \\\\\n"
@@ -371,6 +405,7 @@ constructor_pkg
 constructor_test
 docker_compose
 docker_python
+envfile
 git_attributes
 git_config
 git_ignore
