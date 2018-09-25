@@ -279,7 +279,9 @@ makefile() {
     txt="PROJECT=${MAIN_DIR}\n"
     txt+="VERSION=${PKG_VERSION}\n"
     txt+="MOUNT_DIR=\$(shell pwd)\n"
-    txt+="SRC_DIR=/usr/src/${MAIN_DIR}\n\n"
+    txt+="SRC_DIR=/usr/src/${MAIN_DIR}\n"
+    txt+="VERSION=\$(shell docker container run --rm \$(PROJECT)_python \\\\\n"
+    txt+="\tpython -c \"import \$(PROJECT); print(\$(PROJECT).__version__)\")\n\n"
 
     txt+="include envfile\n"
     txt+=".PHONY: docs upgrade-packages\n\n"
