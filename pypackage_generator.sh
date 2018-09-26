@@ -277,11 +277,13 @@ license() {
 
 makefile() {
     txt="PROJECT=${MAIN_DIR}\n"
-    txt+="VERSION=${PKG_VERSION}\n"
     txt+="MOUNT_DIR=\$(shell pwd)\n"
     txt+="SRC_DIR=/usr/src/${MAIN_DIR}\n"
-    txt+="VERSION=\$(shell docker container run --rm \$(PROJECT)_python \\\\\n"
-    txt+="\tpython -c \"import \$(PROJECT); print(\$(PROJECT).__version__)\")\n\n"
+    txt+="VERSION=\$(shell echo \$(shell cat \$(PROJECT)/__init__.py | \\\\\n"
+    txt+="\t\t\tgrep \"^__version__\" | \\\\\n"
+    txt+="\t\t\trev | \\\\\n"
+    txt+="\t\t\tcut -d = -f 1 | \\\\\n"
+    txt+="\t\t\trev))\n\n"
 
     txt+="include envfile\n"
     txt+=".PHONY: docs upgrade-packages\n\n"
@@ -321,7 +323,9 @@ makefile() {
     txt+="\tdocker container exec \$(PROJECT)_python \\\\\n"
     txt+="\t\t/bin/bash -c \\\\\n"
     txt+="\t\t\t\"pip3 install -U pip \\\\\n"
-    txt+="\t\t\t && pip3 install -U \$(shell pip3 freeze | grep -v '\$(PROJECT)' | cut -d '=' -f 1) \\\\\n"
+    txt+="\t\t\t && pip3 install -U \$(shell pip3 freeze | \\\\\n"
+    txt+="\t\t\t\t\t\tgrep -v '\$(PROJECT)' | \\\\\n"
+    txt+="\t\t\t\t\t\tcut -d = -f 1) \\\\\n"
     txt+="\t\t\t && pip3 freeze > requirements.txt\"\n\n"
 
     printf %b "${txt}" >> "${MAIN_DIR}${FILE_SEP}Makefile"
