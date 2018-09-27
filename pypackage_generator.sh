@@ -281,9 +281,7 @@ makefile() {
     txt+="SRC_DIR=/usr/src/${MAIN_DIR}\n"
     txt+="VERSION=\$(shell echo \$(shell cat \$(PROJECT)/__init__.py | \\\\\n"
     txt+="\t\t\tgrep \"^__version__\" | \\\\\n"
-    txt+="\t\t\trev | \\\\\n"
-    txt+="\t\t\tcut -d = -f 1 | \\\\\n"
-    txt+="\t\t\trev))\n\n"
+    txt+="\t\t\tcut -d = -f 2))\n\n"
 
     txt+="include envfile\n"
     txt+=".PHONY: docs upgrade-packages\n\n"
