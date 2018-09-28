@@ -104,6 +104,17 @@ docker_compose() {
     txt+="    volumes:\n"
     txt+="      - ${MAIN_DIR}-db:/var/lib/postgresql/data\n\n"
 
+    txt+="  pgadmin:\n"
+    txt+="    container_name: chrysalis_pgadmin\n"
+    txt+="    image: dpage/pgadmin4\n"
+    txt+="    environment:\n"
+    txt+="      PGADMIN_DEFAULT_EMAIL: \${PGADMIN_DEFAULT_EMAIL}\n"
+    txt+="      PGADMIN_DEFAULT_PASSWORD: \${PGADMIN_DEFAULT_PASSWORD}\n"
+    txt+="    external_links:\n"
+    txt+="      - chrysalis_postgres:chrysalis_postgres\n"
+    txt+="    ports:\n"
+    txt+="      - 5000:80\n\n"
+
     txt+="  python:\n"
     txt+="    container_name: ${MAIN_DIR}_python\n"
     txt+="    build:\n"
@@ -139,7 +150,12 @@ docker_python() {
 
 
 envfile(){
-    txt="export POSTGRES_PASSWORD=<enter_password>\n"
+    txt="# PGAdmin\n"
+    txt+="export PGADMIN_DEFAULT_EMAIL=<enter_user>@${MAIN_DIR}.com\n"
+    txt+="export PGADMIN_DEFAULT_PASSWORD=<enter_password>\n\n"
+
+    txt+="# Postgres\n"
+    txt+="export POSTGRES_PASSWORD=<enter_password>\n"
     txt+="export POSTGRES_DB=${MAIN_DIR}\n"
     txt+="export POSTGRES_USER=<enter_user>\n\n"
 
@@ -310,6 +326,9 @@ makefile() {
     txt+="\t\t\t\t--makefile \\\\\\n"
     txt+="\t\t\t\t--no-batchfile\"\n\n"
 
+    txt+="pgadmin: docker-up\n"
+    txt+="\topen http://localhost:5000\n\n"
+
     txt+="psql: docker-up\n"
     txt+="\tdocker container exec -it \$(PROJECT)_postgres \\\\\n"
     txt+="\t\tpsql -U \${POSTGRES_USER} \$(PROJECT)\n\n"
@@ -336,7 +355,17 @@ manifest() {
 
 
 readme() {
-    touch "${MAIN_DIR}${FILE_SEP}README.md"
+    txt="# PGAdmin Setup\n"
+    txt+="1. From the main directory call \`make pgadmin\`\n"
+    txt+="    - The default browser will open to \`localhost:5000\`\n"
+    txt+="1. Enter the **PGAdmin** default user and password.\n"
+    txt+="    - These variable are set in the \`envfile\`.\n"
+    txt+="1. Click \`Add New Server\`.\n"
+    txt+="    - General Name: Enter the <project_name>\n"
+    txt+="    - Connection Host: Enter <project_name>_postgres\n"
+    txt+="    - Connection Username and Password: Enter **Postgres** username and password from the \`envfile\`.\n\n"
+
+    printf %b "${txt}" >> "${MAIN_DIR}${FILE_SEP}README.md"
 }
 
 
