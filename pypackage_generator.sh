@@ -326,6 +326,9 @@ makefile() {
     txt+="\t\t\t\t--makefile \\\\\\n"
     txt+="\t\t\t\t--no-batchfile\"\n\n"
 
+    txt+="pgadmin: docker-up\n"
+    txt+="\topen http://localhost:5000\n\n"
+
     txt+="psql: docker-up\n"
     txt+="\tdocker container exec -it \$(PROJECT)_postgres \\\\\n"
     txt+="\t\tpsql -U \${POSTGRES_USER} \$(PROJECT)\n\n"
