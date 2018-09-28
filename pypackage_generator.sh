@@ -104,6 +104,17 @@ docker_compose() {
     txt+="    volumes:\n"
     txt+="      - ${MAIN_DIR}-db:/var/lib/postgresql/data\n\n"
 
+    txt+="  pgadmin:\n"
+    txt+="    container_name: chrysalis_pgadmin\n"
+    txt+="    image: dpage/pgadmin4\n"
+    txt+="    environment:\n"
+    txt+="      PGADMIN_DEFAULT_EMAIL: \${PGADMIN_DEFAULT_EMAIL}\n"
+    txt+="      PGADMIN_DEFAULT_PASSWORD: \${PGADMIN_DEFAULT_PASSWORD}\n"
+    txt+="    external_links:\n"
+    txt+="      - chrysalis_postgres:chrysalis_postgres\n"
+    txt+="    ports:\n"
+    txt+="      - 5000:80\n\n"
+
     txt+="  python:\n"
     txt+="    container_name: ${MAIN_DIR}_python\n"
     txt+="    build:\n"
