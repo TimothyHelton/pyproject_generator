@@ -139,7 +139,12 @@ docker_python() {
 
 
 envfile(){
-    txt="export POSTGRES_PASSWORD=<enter_password>\n"
+    txt="# PGAdmin\n"
+    txt+="export PGADMIN_DEFAULT_EMAIL=<enter_user>@${MAIN_DIR}.com\n"
+    txt+="export PGADMIN_DEFAULT_PASSWORD=<enter_password>\n\n"
+
+    txt+="# Postgres\n"
+    txt+="export POSTGRES_PASSWORD=<enter_password>\n"
     txt+="export POSTGRES_DB=${MAIN_DIR}\n"
     txt+="export POSTGRES_USER=<enter_user>\n\n"
 
