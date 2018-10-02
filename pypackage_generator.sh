@@ -51,6 +51,15 @@ directories() {
 }
 
 
+conftest() {
+    txt=${PY_HEADER}
+    txt+="\"\"\" Test Configuration File\n\n\"\"\"\n"
+    txt+="import pytest\n\n"
+
+    printf %b "${txt}" >> "${SRC_PATH}${FILE_SEP}${TEST_DIR}${FILE_SEP}conftest.py"
+}
+
+
 constructor_pkg() {
     txt=${PY_HEADER}
     txt+="from pkg_resources import get_distribution, DistributionNotFound\n"
@@ -434,6 +443,7 @@ setup() {
 
 
 directories
+conftest
 constructor_pkg
 constructor_test
 docker_compose
