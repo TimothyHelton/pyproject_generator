@@ -6,7 +6,7 @@
 
 
 ## Installation
-All you need is the for **pypackage_generator.sh**.
+All you need is the file **pypackage_generator.sh**.
 
 1. go to [source file](https://github.com/TimothyHelton/pyproject_generator/blob/master/pypackage_generator.sh)
 1. Save as...
@@ -29,54 +29,66 @@ All you need is the for **pypackage_generator.sh**.
     ```
 1. Enter the current year
     ```bash
-    YEAR="2017"
+    YEAR="2018"
     ```
 ### Execution
 The script has a single required argument, which is the name of the package.
 ```bash
 ./pypackage_generator example_package
 ```
-A new repository will be generated and initialized in Git. 
+A new repository will be generated in the current directory and initialized
+with Git version control.
 
 ## What will the script generate?
 - Package Main Directory
-- License File
-    - The default license is based off the open source license used by NumPy.
+    - License File (based off the open source license used by NumPy)
 - Manifest File
+- Make File
 - Readme File
+- Data Directory
+- Docker Directory
+    - Docker Python File
+    - Docker Compose File
+- Documentation Directory
+- Environment Variable File
+- Source Directory
+    - Source Constructor
+    - Tests Directory
+        - Tests Constructor
+        - Tests Fixture
+- Git Attributes File
+- Git Configuration File
+- Git Ignore File
+- Notebook Directory
 - Requirements File
 - Python Setup File
-- .gitignore File
-- Data Directory
-- Documentation Directory
-- Source Directory
-- Source Constructor
-- Tests Directory
-- Tests Constructor
-- Virtual Envronment based from Anaconda
-- .git Directory
+- Wheel Directory
 
 #### The Package hierarchy
 ```bash
 ├── example_package
 │   ├── LICENSE.txt
 │   ├── MANIFEST.in
+│   ├── Makefile
 │   ├── README.md
-│   ├── data/
-│   ├── docs/
-│   │   ├── _build
-│   │   ├── _static
-│   │   └── _templates
-│   ├── example_package/
+│   ├── data
+│   ├── docker
+│   │   ├── docker-compose.yml
+│   │   └── python-Dockerfile
+│   ├── docs
+│   ├── envfile
+│   ├── example_package
 │   │   ├── __init__.py
-│   │   └── tests/
-│   │       └── __init__.py
+│   │   └── tests
+│   │       ├── __init__.py
+│   │       └── conftest.py
+│   ├── .gitattributes
+│   ├── .gitconfig
+│   ├── .gitignore
 │   ├── notebooks
-│   ├── requirements
+│   ├── requirements.txt
 │   ├── setup.py
-│   ├── .env/
-│   ├── .git/
-│   └── .gitignore
+│   └── wheels
 ```
 
 ## Background
