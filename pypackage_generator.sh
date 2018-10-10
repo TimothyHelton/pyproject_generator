@@ -312,10 +312,11 @@ makefile() {
 
     txt+="\ndocs: docker-up\n"
     txt+="\tdocker container exec \$(PROJECT)_python \\\\\n"
-    txt+="\t\t/bin/bash -c \"cd docs && make html\"\n"
+    txt+="\t\t/bin/bash -c \"pip install -e . && cd docs && make html\"\n"
     txt+="\topen http://localhost:8080\n\n"
 
     txt+="docs-init: docker-up\n"
+    txt+="\trm -rf docs/*\n"
     txt+="\tdocker container exec \$(PROJECT)_python \\\\\n"
     txt+="\t\t/bin/bash -c \\\\\n"
     txt+="\t\t\t\"cd docs \\\\\n"
@@ -326,7 +327,9 @@ makefile() {
     txt+="\t\t\t\t--ext-autodoc \\\\\n"
     txt+="\t\t\t\t--ext-viewcode \\\\\n"
     txt+="\t\t\t\t--makefile \\\\\\n"
-    txt+="\t\t\t\t--no-batchfile\"\n\n"
+    txt+="\t\t\t\t--no-batchfile\"\n"
+    txt+="\tgit fetch\n"
+    txt+="\tgit checkout origin/master -- docs/\n\n"
 
     txt+="pgadmin: docker-up\n"
     txt+="\topen http://localhost:5000\n\n"
