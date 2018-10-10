@@ -151,6 +151,42 @@ docker_python() {
 }
 
 
+docker_tensorflow() {
+    txt="FROM python:3.6\n"
+
+    txt+="\nRUN apt-get update \\\\\n"
+    txt+="\t&& apt-get install -y \\\\\n"
+    txt+="\t\tprotobuf-compiler \\\\\n"
+    txt+="\t&& rm -rf /var/lib/apt/lists/*\n"
+
+    txt+="\nWORKDIR /opt\n"
+
+    txt+="\nRUN git clone \\\\\n"
+    txt+="\t\t--branch master \\\\\n"
+    txt+="\t\t--single-branch \\\\\\n"
+    txt+="\t\t--depth 1 \\\\\\n"
+    txt+="\t\thttps://github.com/tensorflow/models.git\n"
+
+    txt+="\nWORKDIR /opt/models/research\n"
+
+    txt+="\nRUN protoc object_detection/protos/*.proto --python_out=.\n"
+
+    txt+="\nENV PYTHONPATH $PYTHONPATH:/opt/models/research:/opt/models/research/slim:/opt/models/research/object_detection\n"
+
+    txt+="\nWORKDIR /usr/src/${MAIN_DIR}/\n"
+
+    txt+="\nCOPY . .\n"
+
+    txt+="\nRUN pip install --upgrade pip \\\\\n"
+    txt+="\t&& pip install --no-cache-dir -r requirements.txt \\\\\n"
+    txt+="\t&& pip install -e .[tf_cpu]\n"
+
+    txt+="\nCMD [ "/bin/bash" ]\n"
+
+    printf %b "${txt}" >> "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}tensorflow-Dockerfile"
+}
+
+
 envfile(){
     txt="# PGAdmin\n"
     txt+="export PGADMIN_DEFAULT_EMAIL=enter_user@${MAIN_DIR}.com\n"
@@ -345,6 +381,13 @@ makefile() {
     txt+="\tdocker container exec -it \$(PROJECT)_postgres \\\\\n"
     txt+="\t\tpsql -U \${POSTGRES_USER} \$(PROJECT)\n"
 
+    txt+="\ntensorflow:\n"
+    txt+="\tsed -i -e 's/python-Dockerfile/tensorflow-Dockerfile/g' docker/docker-compose.yml\n"
+    txt+="\tsed -i -e \"/    extras_require={/a \\\\\n"
+    txt+="\t\t\ \ \ \ \ \ \ \ 'tf-cpu': ['tensorflow'],\\\\\n"
+    txt+="\t\t\\\\n\ \ \ \ \ \ \ \ 'tf-gpu': ['tensorflow-gpu'],\" setup.py\n"
+    txt+="\techo \"tensorflow_gpu\" >> requirements.txt\n"
+
     txt+="\nupgrade-packages: docker-up\n"
     txt+="\tdocker container exec \$(PROJECT)_python \\\\\n"
     txt+="\t\t/bin/bash -c \\\\\n"
@@ -425,6 +468,8 @@ setup() {
     txt+="    install_requires=[\n"
     txt+="        'sphinx',\n"
     txt+="        ],\n"
+    txt+="    extras_require={\n"
+    txt+="    },\n"
     txt+="    package_dir={'${MAIN_DIR}': '${SOURCE_DIR}'},\n"
     txt+="    include_package_data=True,\n"
     txt+="    entry_points={\n"
@@ -448,6 +493,7 @@ constructor_pkg
 constructor_test
 docker_compose
 docker_python
+docker_tensorflow
 envfile
 git_attributes
 git_config
