@@ -6,35 +6,32 @@
 
 
 ## Installation
-All you need is the file **pypackage_generator.sh**.
+All you need is the file **new_pyproject.sh**.
 
-1. go to [source file](https://github.com/TimothyHelton/pyproject_generator/blob/master/pypackage_generator.sh)
+1. go to [source file](https://github.com/TimothyHelton/pyproject_generator/blob/master/new_pyproject.sh)
 1. Save as...
 1. Change permissions to make the file user executable
     ```bash
-    chmod u+x pypackage_generator.sh
+    chmod u+x new_pyproject.sh
     ```
 
 
 ## Quick Start Guide
 
-### Configuration
+### Configure envfile
 1. Enter your name in the author argument
     ```bash
-    AUTHOR="Timothy Helton"
+    export AUTHOR="Timothy Helton"
     ```
 1. Enter your email address in the email argument
     ```bash
-    EMAIL="timothy.j.helton@gmail.com"
+    export EMAIL="timothy.j.helton@gmail.com"
     ```
-1. Enter the current year
-    ```bash
-    YEAR="2018"
-    ```
+
 ### Execution
 The script has a single required argument, which is the name of the package.
 ```bash
-./pypackage_generator example_package
+./new_pyproject.sh example_package
 ```
 A new repository will be generated in the current directory and initialized
 with Git version control.
@@ -92,17 +89,18 @@ with Git version control.
 ```
 
 ## Background
-I found myself writing various pieces of code, primarily in Python, for the 
-[K2 Data Science Bootcamp](http://www.k2datascience.com/data-science) 
-(which I highly recommend), and wanted to make them easy to share with the 
-community.
+I found myself writing various pieces of code and wanted to make them easy to
+share with the community.
 
 As long as everything is in the right place creating Python packages and 
 hosting them on PIP is a piece of cake. 
 
 The bash script **pypackage_generator.sh** will automate the setup process 
 for creating a Python package, which uses
-[SPHINX](http://www.sphinx-doc.org/en/stable/#)
-for documentation and [Git](https://git-scm.com/) for version control.
+[SPHINX](http://www.sphinx-doc.org/en/stable/#) for documentation,
+[PostgreSQL](https://www.postgresql.org/) for persistent data storage,
+[PGAdmin](https://www.pgadmin.org/) for database interactions,
+[Git](https://git-scm.com/) for version control,
+and is contained in [Docker](https://www.docker.com/) containers.
 
 #### Thanks for looking around and enjoy the day!
