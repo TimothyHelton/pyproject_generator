@@ -1,2 +1,2 @@
-export AUTHOR:=EnterAuthorName
-export EMAIL:=EnterAuthorEmail
+export AUTHOR:="EnterAuthorName"
+export EMAIL:="EnterAuthorEmail"
