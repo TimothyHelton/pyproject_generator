@@ -171,7 +171,7 @@ docker_tensorflow() {
 
     txt+="\nRUN protoc object_detection/protos/*.proto --python_out=.\n"
 
-    txt+="\nENV PYTHONPATH $PYTHONPATH:/opt/models/research:/opt/models/research/slim:/opt/models/research/object_detection\n"
+    txt+="\nENV PYTHONPATH \$PYTHONPATH:/opt/models/research:/opt/models/research/slim:/opt/models/research/object_detection\n"
 
     txt+="\nWORKDIR /usr/src/${MAIN_DIR}/\n"
 
