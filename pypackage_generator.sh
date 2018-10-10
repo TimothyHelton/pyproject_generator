@@ -1,30 +1,23 @@
 #! /bin/bash
 
-# Exit if name argument is not given
-if [ -z "$*" ]; then
-    echo "A package name argument must be provided."
-    exit 0
-fi
-
-AUTHOR="EnterAuthorName"
-EMAIL="EnterAuthorEmail"
-PYTHON_VERSION="3.6"
-PKG_VERSION="0.1.0"
-
-MAIN_DIR=$1
-DATA_DIR="data"
-DOCKER_DIR="docker"
-DOCS_DIR="docs"
-FILE_SEP="/"
-NOTEBOOK_DIR="notebooks"
-SOURCE_DIR=$1
-TEST_DIR="tests"
-WHEEL_DIR="wheels"
-YEAR=`date +%Y`
-
+: "${AUTHOR:=EnterAuthorName}"
+: "${EMAIL:=EnterAuthorEmail}"
+: "${PYTHON_VERSION:=3.6}"
+: "${PKG_VERSION:=0.1.0}"
 
 ###############################################################################
 
+MAIN_DIR=${1:?"Specify a package name"}
+: "${DATA_DIR:=data}"
+: "${DOCKER_DIR:=docker}"
+: "${DOCS_DIR:=docs}"
+: "${FILE_SEP:=/}"
+: "${NOTEBOOK_DIR:=notebooks}"
+: "${SOURCE_DIR:=$1}"
+: "${TEST_DIR:=tests}"
+: "${WHEEL_DIR:=wheels}"
+
+YEAR=`date +%Y`
 
 SUB_DIRECTORIES=(${DATA_DIR} \
                  ${DOCKER_DIR} \
@@ -160,13 +153,13 @@ docker_python() {
 
 envfile(){
     txt="# PGAdmin\n"
-    txt+="export PGADMIN_DEFAULT_EMAIL=<enter_user>@${MAIN_DIR}.com\n"
-    txt+="export PGADMIN_DEFAULT_PASSWORD=<enter_password>\n\n"
+    txt+="export PGADMIN_DEFAULT_EMAIL=enter_user@${MAIN_DIR}.com\n"
+    txt+="export PGADMIN_DEFAULT_PASSWORD=enter_password\n\n"
 
     txt+="# Postgres\n"
-    txt+="export POSTGRES_PASSWORD=<enter_password>\n"
+    txt+="export POSTGRES_PASSWORD=enter_password\n"
     txt+="export POSTGRES_DB=${MAIN_DIR}\n"
-    txt+="export POSTGRES_USER=<enter_user>\n\n"
+    txt+="export POSTGRES_USER=enter_user\n\n"
 
     printf %b "${txt}" >> "${MAIN_DIR}${FILE_SEP}envfile"
 }
