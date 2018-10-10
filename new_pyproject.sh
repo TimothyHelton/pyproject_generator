@@ -6,7 +6,7 @@ GENERATOR=pypackage_generator.sh
 ################################################################################
 
 # Download latest version of the build file
-curl -O https://github.com/TimothyHelton/pyproject_generator/blob/master/${GENERATOR}
+curl -O https://raw.githubusercontent.com/TimothyHelton/pyproject_generator/master/${GENERATOR}
 chmod u+x ${GENERATOR}
 
 # Source Environment Variables
@@ -19,3 +19,7 @@ fi
 
 # Create Project
 ./pypackage_generator.sh ${NAME}
+
+# Remove Generator
+rm ${GENERATOR}
+
