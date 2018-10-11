@@ -26,6 +26,11 @@ SUB_DIRECTORIES=(${DATA_DIR} \
                  ${SOURCE_DIR} \
                  ${WHEEL_DIR})
 
+case `uname -s` in
+    Linux*)     BROWSER=/usr/bin/firefox;;
+    Darwin*)    BROWSER=open;;
+esac
+
 PY_HEADER+="#! /usr/bin/env python3\n"
 PY_HEADER+="# -*- coding: utf-8 -*-\n\n"
 
@@ -349,7 +354,7 @@ makefile() {
     txt+="\ndocs: docker-up\n"
     txt+="\tdocker container exec \$(PROJECT)_python \\\\\n"
     txt+="\t\t/bin/bash -c \"pip install -e . && cd docs && make html\"\n"
-    txt+="\topen http://localhost:8080\n\n"
+    txt+="\t${BROWSER} http://localhost:8080\n\n"
 
     txt+="\ndocs-init: docker-up\n"
     txt+="\trm -rf docs/*\n"
@@ -389,10 +394,10 @@ makefile() {
     txt+="endif\n"
 
     txt+="\ndocs-view: docker-up\n"
-    txt+="\topen http://localhost:8080\n"
+    txt+="\t${BROWSER} http://localhost:8080\n"
 
     txt+="\npgadmin: docker-up\n"
-    txt+="\topen http://localhost:5000\n"
+    txt+="\t${BROWSER} http://localhost:5000\n"
 
     txt+="\npsql: docker-up\n"
     txt+="\tdocker container exec -it \$(PROJECT)_postgres \\\\\n"
