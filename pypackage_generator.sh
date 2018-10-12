@@ -8,14 +8,25 @@
 ###############################################################################
 
 MAIN_DIR=${1:?"Specify a package name"}
+SOURCE_DIR="${2:-$1}"
 : "${DATA_DIR:=data}"
 : "${DOCKER_DIR:=docker}"
 : "${DOCS_DIR:=docs}"
 : "${FILE_SEP:=/}"
 : "${NOTEBOOK_DIR:=notebooks}"
-: "${SOURCE_DIR:=$1}"
 : "${TEST_DIR:=tests}"
 : "${WHEEL_DIR:=wheels}"
+
+if [[ ${SOURCE_DIR} == *-* ]]; then
+    msg="\n\nBy Python convention the source directory name may not contain "
+    msg+="hyphens.\n"
+    msg+="This script uses the package name (mandatory first argument) for "
+    msg+="the source directory name if a second argument is not provided.\n"
+    msg+="\npypackage_generator.sh <package_name> <source_directory>\n"
+    msg+="\n\nPlease supply a source directory name without hyphens."
+    printf %b "${msg}"
+    exit 0
+fi
 
 YEAR=`date +%Y`
 
@@ -338,8 +349,8 @@ makefile() {
     txt+="endif\n"
     txt+="MOUNT_DIR=\$(shell pwd)\n"
     txt+="MODELS=/opt/models\n"
-    txt+="SRC_DIR=/usr/src/${MAIN_DIR}\n"
-    txt+="VERSION=\$(shell echo \$(shell cat \$(PROJECT)/__init__.py | \\\\\n"
+    txt+="SRC_DIR=/usr/src/${SOURCE_DIR}\n"
+    txt+="VERSION=\$(shell echo \$(shell cat ${SOURCE_DIR}/__init__.py | \\\\\n"
     txt+="\t\t\tgrep \"^__version__\" | \\\\\n"
     txt+="\t\t\tcut -d = -f 2))\n"
 
@@ -480,7 +491,7 @@ setup() {
     txt+="from setuptools import setup, find_packages\n"
     txt+="\n"
     txt+="\n"
-    txt+="with open('${MAIN_DIR}${FILE_SEP}__init__.py', 'r') as fd:\n"
+    txt+="with open('${SOURCE_DIR}${FILE_SEP}__init__.py', 'r') as fd:\n"
     txt+="    version = re.search(r'^__version__\s*=\s*[\'\"]([^\'\"]*)[\'\"]',\n"
     txt+="                        fd.read(), re.MULTILINE).group(1)\n"
     txt+="\n"
