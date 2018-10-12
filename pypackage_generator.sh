@@ -26,11 +26,6 @@ SUB_DIRECTORIES=(${DATA_DIR} \
                  ${SOURCE_DIR} \
                  ${WHEEL_DIR})
 
-case `uname -s` in
-    Linux*)     BROWSER=/usr/bin/firefox;;
-    Darwin*)    BROWSER=open;;
-esac
-
 PY_HEADER+="#! /usr/bin/env python3\n"
 PY_HEADER+="# -*- coding: utf-8 -*-\n\n"
 
@@ -336,6 +331,11 @@ license() {
 
 makefile() {
     txt="PROJECT=${MAIN_DIR}\n"
+    txt+="ifeq (\"\$(shell uname -s)\", \"Linux*\")\n"
+    txt+="\tBROWSER=/usr/bin/firefox\n"
+    txt+="else\n"
+    txt+="\tBROWSER=open\n"
+    txt+="endif\n"
     txt+="MOUNT_DIR=\$(shell pwd)\n"
     txt+="MODELS=/opt/models\n"
     txt+="SRC_DIR=/usr/src/${MAIN_DIR}\n"
@@ -355,7 +355,7 @@ makefile() {
     txt+="\ndocs: docker-up\n"
     txt+="\tdocker container exec \$(PROJECT)_python \\\\\n"
     txt+="\t\t/bin/bash -c \"pip install -e . && cd docs && make html\"\n"
-    txt+="\t${BROWSER} http://localhost:8080\n\n"
+    txt+="\t\${BROWSER} http://localhost:8080\n\n"
 
     txt+="\ndocs-init: docker-up\n"
     txt+="\trm -rf docs/*\n"
@@ -395,10 +395,10 @@ makefile() {
     txt+="endif\n"
 
     txt+="\ndocs-view: docker-up\n"
-    txt+="\t${BROWSER} http://localhost:8080\n"
+    txt+="\t\${BROWSER} http://localhost:8080\n"
 
     txt+="\npgadmin: docker-up\n"
-    txt+="\t${BROWSER} http://localhost:5000\n"
+    txt+="\t\${BROWSER} http://localhost:5000\n"
 
     txt+="\npsql: docker-up\n"
     txt+="\tdocker container exec -it \$(PROJECT)_postgres \\\\\n"
