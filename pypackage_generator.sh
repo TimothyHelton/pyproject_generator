@@ -184,7 +184,7 @@ docker_tensorflow() {
 
     txt+="\nRUN pip install --upgrade pip \\\\\n"
     txt+="\t&& pip install --no-cache-dir -r requirements.txt \\\\\n"
-    txt+="\t&& pip install -e .[tf_cpu]\n"
+    txt+="\t&& pip install -e .[tf-cpu]\n"
 
     txt+="\nCMD [ "/bin/bash" ]\n"
 
@@ -337,6 +337,7 @@ license() {
 makefile() {
     txt="PROJECT=${MAIN_DIR}\n"
     txt+="MOUNT_DIR=\$(shell pwd)\n"
+    txt+="MODELS=/opt/models\n"
     txt+="SRC_DIR=/usr/src/${MAIN_DIR}\n"
     txt+="VERSION=\$(shell echo \$(shell cat \$(PROJECT)/__init__.py | \\\\\n"
     txt+="\t\t\tgrep \"^__version__\" | \\\\\n"
@@ -413,9 +414,22 @@ makefile() {
     txt+="\t\t\t\tdocker/docker-compose.yml \\\\\n"
     txt+="\t\t\t && sed -i -e \\\\\"/    extras_require={/a \\\\\n"
     txt+="\t\t\t\t\\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ 'tf-cpu': ['tensorflow'],\\\\\n"
-    txt+="\t\t\t\t\\\\n\\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ 'tf-gpu': ['tensorflow-gpu],\\\\\" \\\\\n"
-    txt+="\t\t\t\tsetup.py \\\\\n"
-    txt+="\t\t\t && echo 'tensorflow_gpu' >> requirements.txt\"\n"
+    txt+="\t\t\t\t\\\\n\\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ 'tf-gpu': ['tensorflow-gpu'],\\\\\" \\\\\n"
+    txt+="\t\t\t\tsetup.py\"\n"
+
+    txt+="\ntensorflow-models: docker-down tensorflow\n"
+    txt+="\tdocker-compose -f docker/docker-compose.yml up -d --build\n"
+    txt+="ifneq (\$(wildcard \${MODELS}), )\n"
+    txt+="\techo \"Updating TensorFlow Models Repository\"\n"
+    txt+="\tcd \${MODELS} \\\\\n"
+    txt+="\t&& git checkout master \\\\\n"
+    txt+="\t&& git pull\n"
+    txt+="\tcd \${MOUNT_DIR}\n"
+    txt+="else\n"
+    txt+="\techo \"Cloning TensorFlow Models Repository to \${MODELS}\"\n"
+    txt+="\tmkdir -p \${MODELS}\n"
+    txt+="\tgit clone https://github.com/tensorflow/models.git \${MODELS}\n"
+    txt+="endif\n"
 
     txt+="\nupgrade-packages: docker-up\n"
     txt+="\tdocker container exec \$(PROJECT)_python \\\\\n"
