@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 NAME=${1:?"Specify a package name"}
+SOURCE_DIR="${2:-$1}"
 GENERATOR=pypackage_generator.sh
 
 ################################################################################
@@ -18,7 +19,7 @@ else
 fi
 
 # Create Project
-./pypackage_generator.sh ${NAME}
+./pypackage_generator.sh ${NAME} ${SOURCE_DIR}
 
 # Remove Generator
 rm ${GENERATOR}
