@@ -469,7 +469,8 @@ readme() {
     txt+="1. Click \`Add New Server\`.\n"
     txt+="    - General Name: Enter the <project_name>\n"
     txt+="    - Connection Host: Enter <project_name>_postgres\n"
-    txt+="    - Connection Username and Password: Enter **Postgres** username and password from the \`envfile\`.\n\n"
+    txt+="    - Connection Username and Password: Enter **Postgres** username and password "
+    txt+="      from the \`envfile\`.\n\n"
 
     printf %b "${txt}" >> "${MAIN_DIR}${FILE_SEP}README.md"
 }
