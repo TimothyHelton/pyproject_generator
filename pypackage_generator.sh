@@ -251,6 +251,7 @@ git_ignore() {
 
     txt+="# Logs and databases #\n"
     txt+="*.log\n"
+    txt+="*make.bat\n"
     txt+="*.sql\n"
     txt+="*.sqlite\n\n"
 
