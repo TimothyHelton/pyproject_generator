@@ -406,7 +406,10 @@ makefile() {
     txt+="\t\t\t && sed -i -e \\\\\"s/version = '0.1.0'/version = __version__/g\\\\\" \\\\\n"
     txt+="\t\t\t\tconf.py \\\\\n"
     txt+="\t\t\t && sed -i -e \\\\\"s/release = '0.1.0'/release = __version__/g\\\\\" \\\\\n"
-    txt+="\t\t\t\tconf.py\"\n"
+    txt+="\t\t\t\tconf.py \\\\\n"
+    txt+="\t\t\t && sed -i \\\\\"/   :caption: Contents:/a \\\\\n"
+    txt+="\t\t\t\t\\\\\\\\\\\\\\\\\\\\n   package\\\\\" \\\\\n"
+    txt+="\t\t\t\tindex.rst\"\n"
     txt+="endif\n"
 
     txt+="\ndocs-view: docker-up\n"
