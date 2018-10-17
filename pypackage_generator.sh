@@ -361,6 +361,9 @@ makefile() {
     txt+="\ndocker-down:\n"
     txt+="\tdocker-compose -f docker/docker-compose.yml down\n"
 
+    txt+="\ndocker-rebuild: setup.py\n"
+    txt+="\tdocker-compose -f docker/docker-compose.yml up -d --build\n"
+
     txt+="\ndocker-up:\n"
     txt+="\tdocker-compose -f docker/docker-compose.yml up -d\n"
 
