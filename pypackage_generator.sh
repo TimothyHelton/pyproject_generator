@@ -447,9 +447,10 @@ makefile() {
     txt+="\tdocker container exec \$(PROJECT)_python \\\\\n"
     txt+="\t\t/bin/bash -c \\\\\n"
     txt+="\t\t\t\"pip3 install -U pip \\\\\n"
-    txt+="\t\t\t && pip3 install -U \$(shell pip3 freeze | \\\\\n"
-    txt+="\t\t\t\t\t\tgrep -v '\$(PROJECT)' | \\\\\n"
-    txt+="\t\t\t\t\t\tcut -d = -f 1) \\\\\n"
+    txt+="\t\t\t && pip3 freeze | \\\\\n"
+    txt+="\t\t\t\tgrep -v \$(PROJECT) | \\\\\n"
+    txt+="\t\t\t\tcut -d = -f 1 > requirements.txt \\\\\n"
+    txt+="\t\t\t && pip3 install -U -r requirements.txt \\\\\n"
     txt+="\t\t\t && pip3 freeze > requirements.txt\"\n\n"
 
     printf %b "${txt}" >> "${MAIN_DIR}${FILE_SEP}Makefile"
