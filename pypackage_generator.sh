@@ -184,7 +184,7 @@ docker_tensorflow() {
 
     txt+="\nENV PYTHONPATH \$PYTHONPATH:/opt/models/research:/opt/models/research/slim:/opt/models/research/object_detection\n"
 
-    txt+="\nWORKDIR /usr/src/${MAIN_DIR}/\n"
+    txt+="\nWORKDIR /usr/src/${MAIN_DIR}\n"
 
     txt+="\nCOPY . .\n"
 
@@ -192,7 +192,7 @@ docker_tensorflow() {
     txt+="\t&& pip install --no-cache-dir -r requirements.txt \\\\\n"
     txt+="\t&& pip install -e .[tf-cpu]\n"
 
-    txt+="\nCMD [ "/bin/bash" ]\n"
+    txt+="\nCMD [ \"/bin/bash\" ]\n"
 
     printf %b "${txt}" >> "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}tensorflow-Dockerfile"
 }
@@ -515,8 +515,8 @@ setup() {
     txt+="        'License :: OSI Approved',\n"
     txt+="        'Natural Language :: English',\n"
     txt+="        'Operating System :: OS Independent',\n"
-    txt+="        'Programming Language :: Python :: 3',\n"
-    txt+="        'Programming Language :: Python :: 3.6',\n"
+    txt+="        'Programming Language :: Python :: ${PYTHON_VERSION%%.*}',\n"
+    txt+="        'Programming Language :: Python :: ${PYTHON_VERSION}',\n"
     txt+="        'Topic :: Software Development :: Build Tools',\n"
     txt+="        ],\n"
     txt+="    keywords='EnterKeywordsHere',\n"
@@ -530,7 +530,7 @@ setup() {
     txt+="    include_package_data=True,\n"
     txt+="    entry_points={\n"
     txt+="        'console_scripts': [\n"
-    txt+="            #'<EnterCommandName>=${MAIN_DIR}.cli:<EnterFunction>',\n"
+    txt+="            #'<EnterCommandName>=${SOURCE_DIR}.cli:<EnterFunction>',\n"
     txt+="        ]\n"
     txt+="    }\n"
     txt+=")\n"
