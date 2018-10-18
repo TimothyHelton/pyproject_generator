@@ -147,50 +147,47 @@ docker_compose() {
 
 
 docker_python() {
-    txt="FROM python:3.6-alpine\n\n"
-    txt+="RUN apk add --update \\\\\n"
-    txt+="\talpine-sdk \\\\\n"
-    txt+="\tbash\n\n"
-    txt+="WORKDIR /usr/src/${MAIN_DIR}\n\n"
-    txt+="COPY . .\n\n"
-    txt+="RUN pip3 install --upgrade pip\n\n"
-    txt+="RUN pip3 install --no-cache-dir -r requirements.txt\n\n"
-    txt+="RUN pip3 install -e .\n\n"
-    txt+="CMD [ \"/bin/bash\" ]\n\n"
+    txt="FROM python:3.6-alpine\n"
+    txt+="\nWORKDIR /usr/src/${MAIN_DIR}\n"
+    txt+="\nCOPY . .\n"
+    txt+="\nRUN apk add --update \\\\\n"
+    txt+="\t\talpine-sdk \\\\\n"
+    txt+="\t\tbash \\\\\n"
+    txt+="\t&& pip3 install --upgrade pip \\\\\n"
+    txt+="\t&& pip3 install --no-cache-dir -r requirements.txt \\\\\n"
+    txt+="\t&& pip3 install -e .\n"
+    txt+="\nCMD [ \"/bin/bash\" ]\n"
+    txt+="\n"
 
-    printf %b "${txt}" >> "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}python-Dockerfile"
+    printf %b "${txt}" > "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}python-Dockerfile"
 }
 
 
 docker_tensorflow() {
     txt="FROM python:3.6\n"
 
-    txt+="\nRUN apt-get update \\\\\n"
+    txt+="\nCOPY . .\n"
+
+    txt+="\nRUN cd \opt \\\\\n"
+    txt+="\t&& apt-get update \\\\\n"
     txt+="\t&& apt-get install -y \\\\\n"
     txt+="\t\tprotobuf-compiler \\\\\n"
-    txt+="\t&& rm -rf /var/lib/apt/lists/*\n"
-
-    txt+="\nWORKDIR /opt\n"
-
-    txt+="\nRUN git clone \\\\\n"
+    txt+="\t&& rm -rf /var/lib/apt/lists/* \\\\\n"
+    txt+="\t&& git clone \\\\\n"
     txt+="\t\t--branch master \\\\\n"
     txt+="\t\t--single-branch \\\\\\n"
     txt+="\t\t--depth 1 \\\\\\n"
-    txt+="\t\thttps://github.com/tensorflow/models.git\n"
-
-    txt+="\nWORKDIR /opt/models/research\n"
-
-    txt+="\nRUN protoc object_detection/protos/*.proto --python_out=.\n"
+    txt+="\t\thttps://github.com/tensorflow/models.git \\\\\n"
+    txt+="\t&& cd /opt/models/research \\\\\n"
+    txt+="\t&& protoc object_detection/protos/*.proto --python_out=. \\\\\n"
+    txt+="\t&& cd /usr/src/${MAIN_DIR} \\\\\n"
+    txt+="\t&& pip install --upgrade pip \\\\\n"
+    txt+="\t&& pip install --no-cache-dir -r requirements.txt \\\\\n"
+    txt+="\t&& pip install -e .[tf-cpu]\n"
 
     txt+="\nENV PYTHONPATH \$PYTHONPATH:/opt/models/research:/opt/models/research/slim:/opt/models/research/object_detection\n"
 
     txt+="\nWORKDIR /usr/src/${MAIN_DIR}\n"
-
-    txt+="\nCOPY . .\n"
-
-    txt+="\nRUN pip install --upgrade pip \\\\\n"
-    txt+="\t&& pip install --no-cache-dir -r requirements.txt \\\\\n"
-    txt+="\t&& pip install -e .[tf-cpu]\n"
 
     txt+="\nCMD [ \"/bin/bash\" ]\n"
 
