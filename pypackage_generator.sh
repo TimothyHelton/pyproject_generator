@@ -407,6 +407,23 @@ makefile() {
     txt+="\t\t\t && sed -i \\\\\"/   :caption: Contents:/a \\\\\n"
     txt+="\t\t\t\t\\\\\\\\\\\\\\\\\\\\n   package\\\\\" \\\\\n"
     txt+="\t\t\t\tindex.rst\"\n"
+
+    txt+="\tprintf \"%s\\\\n\" \\\\\n"
+    txt+="\t\t\"Package Modules\" \\\\\n"
+    txt+="\t\t\"===============\" \\\\\n"
+    txt+="\t\t\"\" \\\\\n"
+    txt+="\t\t\".. toctree::\" \\\\\n"
+    txt+="\t\t\"    :maxdepth: 2\" \\\\\n"
+    txt+="\t\t\"\" \\\\\n"
+    txt+="\t\t\"cli\" \\\\\n"
+    txt+="\t\t\"---\" \\\\\n"
+    txt+="\t\t\".. automodule:: cli\" \\\\\n"
+    txt+="\t\t\"    :members:\" \\\\\n"
+    txt+="\t\t\"    :show-inheritance:\" \\\\\n"
+    txt+="\t\t\"    :synopsis: Package commandline interface calls.\" \\\\\n"
+    txt+="\t\t\"\" \\\\\n"
+    txt+="\t> \"docs/package.rst\"\n"
+
     txt+="endif\n"
 
     txt+="\ndocs-view: docker-up\n"
