@@ -38,7 +38,7 @@ SUB_DIRECTORIES=(${DATA_DIR} \
                  ${WHEEL_DIR})
 
 PY_HEADER+="#! /usr/bin/env python3\n"
-PY_HEADER+="# -*- coding: utf-8 -*-\n\n"
+PY_HEADER+="# -*- coding: utf-8 -*-\n"
 
 SRC_PATH="${MAIN_DIR}${FILE_SEP}${SOURCE_DIR}${FILE_SEP}"
 
@@ -66,10 +66,10 @@ conftest() {
 
 constructor_pkg() {
     txt=${PY_HEADER}
-    txt+="from pkg_resources import get_distribution, DistributionNotFound\n"
+    txt+="\nfrom pkg_resources import get_distribution, DistributionNotFound\n"
     txt+="import os.path as osp\n\n"
-    txt+="#from . import cli\n"
-    txt+="#from . import EnterModuleNameHere\n\n"
+    txt+="# from . import cli\n"
+    txt+="# from . import EnterModuleNameHere\n\n"
     txt+="__version__ = '0.1.0'\n\n"
     txt+="try:\n"
     txt+="    _dist = get_distribution('${MAIN_DIR}')\n"
@@ -80,7 +80,7 @@ constructor_pkg() {
     txt+="except DistributionNotFound:\n"
     txt+="    __version__ = 'Please install this project with setup.py'\n"
     txt+="else:\n"
-    txt+="    __version__ = _dist.version\n\n"
+    txt+="    __version__ = _dist.version\n"
 
     printf %b "${txt}" >> "${SRC_PATH}__init__.py"
 }
@@ -155,7 +155,7 @@ docker_python() {
     txt+="\t\tbash \\\\\n"
     txt+="\t&& pip3 install --upgrade pip \\\\\n"
     txt+="\t&& pip3 install --no-cache-dir -r requirements.txt \\\\\n"
-    txt+="\t&& pip3 install -e .['docs']\n"
+    txt+="\t&& pip3 install -e .[docs,test]\n"
     txt+="\nCMD [ \"/bin/bash\" ]\n"
     txt+="\n"
 
@@ -183,7 +183,7 @@ docker_tensorflow() {
     txt+="\t&& cd /usr/src/${MAIN_DIR} \\\\\n"
     txt+="\t&& pip install --upgrade pip \\\\\n"
     txt+="\t&& pip install --no-cache-dir -r requirements.txt \\\\\n"
-    txt+="\t&& pip install -e .[tf-cpu]\n"
+    txt+="\t&& pip install -e .[tf-cpu,test]\n"
 
     txt+="\nENV PYTHONPATH \$PYTHONPATH:/opt/models/research:/opt/models/research/slim:/opt/models/research/object_detection\n"
 
@@ -451,8 +451,7 @@ makefile() {
     txt+="\t\t\t\t\\\\n\\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ 'tf-gpu': ['tensorflow-gpu'],\\\\\" \\\\\n"
     txt+="\t\t\t\tsetup.py\"\n"
 
-    txt+="\ntensorflow-models: docker-down tensorflow\n"
-    txt+="\tdocker-compose -f docker/docker-compose.yml up -d --build\n"
+    txt+="\ntensorflow-models: tensorflow docker-rebuild\n"
     txt+="ifneq (\$(wildcard \${MODELS}), )\n"
     txt+="\techo \"Updating TensorFlow Models Repository\"\n"
     txt+="\tcd \${MODELS} \\\\\n"
@@ -464,6 +463,16 @@ makefile() {
     txt+="\tmkdir -p \${MODELS}\n"
     txt+="\tgit clone https://github.com/tensorflow/models.git \${MODELS}\n"
     txt+="endif\n"
+
+    txt+="\ntest: docker-up\n"
+    txt+="\tdocker container exec \$(PROJECT)_python \\\\\n"
+    txt+="\t\t/bin/bash -c \"py.test\\\\\n"
+    txt+="\t\t\t\t--basetemp=pytest \\\\\n"
+    txt+="\t\t\t\t--doctest-modules \\\\\n"
+    txt+="\t\t\t\t--ff \\\\\n"
+    txt+="\t\t\t\t--pep8 \\\\\n"
+    txt+="\t\t\t\t-r all \\\\\n"
+    txt+="\t\t\t\t-vvv\"\n"
 
     txt+="\nupgrade-packages: docker-up\n"
     txt+="\tdocker container exec \$(PROJECT)_python \\\\\n"
@@ -549,12 +558,13 @@ setup() {
     txt+="    extras_require={\n"
     txt+="        'docs': ['sphinx', 'sphinx_rtd_theme'],\n"
     txt+="        'notebook': ['ipython', 'jupyter'],\n"
+    txt+="        'test': ['pytest', 'pytest-pep8'],\n"
     txt+="    },\n"
     txt+="    package_dir={'${MAIN_DIR}': '${SOURCE_DIR}'},\n"
     txt+="    include_package_data=True,\n"
     txt+="    entry_points={\n"
     txt+="        'console_scripts': [\n"
-    txt+="            #'<EnterCommandName>=${SOURCE_DIR}.cli:<EnterFunction>',\n"
+    txt+="            # '<EnterCommandName>=${SOURCE_DIR}.cli:<EnterFunction>',\n"
     txt+="        ]\n"
     txt+="    }\n"
     txt+=")\n"
