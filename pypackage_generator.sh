@@ -347,7 +347,9 @@ makefile() {
     txt+="endif\n"
     txt+="MOUNT_DIR=\$(shell pwd)\n"
     txt+="MODELS=/opt/models\n"
+    txt+="PORT:=\$(shell awk -v min=16384 -v max=32768 'BEGIN{srand(); print int(min+rand()*(max-min+1))}')\n"
     txt+="SRC_DIR=/usr/src/${SOURCE_DIR}\n"
+    txt+="USER=\$(shell echo \$\${USER%%@*})\n"
     txt+="VERSION=\$(shell echo \$(shell cat ${SOURCE_DIR}/__init__.py | \\\\\n"
     txt+="\t\t\tgrep \"^__version__\" | \\\\\n"
     txt+="\t\t\tcut -d = -f 2))\n"
@@ -434,6 +436,24 @@ makefile() {
     txt+="\nipython: docker-up\n"
     txt+="\tdocker container exec -it \$(PROJECT)_python ipython\n"
 
+    txt+="\nnotebook: notebook-server\n"
+    txt+="\tsleep 0.5\n"
+    txt+="\tdocker container exec \$(USER)_notebook_\$(PORT) jupyter notebook list\n"
+    txt+="\t\${BROWSER} http://localhost:\$(PORT)\n"
+
+    txt+="\nnotebook-remove:\n"
+    txt+="\tdocker container rm -f \$\$(docker container ls -f name=\$(USER)_notebook -q)\n"
+
+    txt+="\nnotebook-server:\n"
+    txt+="\tdocker container run -d --rm \\\\\n"
+    txt+="\t\t--name \$(USER)_notebook_\$(PORT) \\\\\n"
+    txt+="\t\t-p \$(PORT):\$(PORT) \\\\\n"
+    txt+="\t\t\$(PROJECT)_python \\\\\n"
+    txt+="\t\t/bin/bash -c \"jupyter notebook \\\\\n"
+    txt+="\t\t\t\t--allow-root \\\\\n"
+    txt+="\t\t\t\t--ip=0.0.0.0 \\\\\n"
+    txt+="\t\t\t\t--port=\$(PORT)\"\n"
+
     txt+="\npgadmin: docker-up\n"
     txt+="\t\${BROWSER} http://localhost:5000\n"
 
@@ -505,7 +525,7 @@ readme() {
     txt+="1. Click \`Add New Server\`.\n"
     txt+="    - General Name: Enter the <project_name>\n"
     txt+="    - Connection Host: Enter <project_name>_postgres\n"
-    txt+="    - Connection Username and Password: Enter **Postgres** username and password "
+    txt+="    - Connection Username and Password: Enter **Postgres** username and password\n"
     txt+="      from the \`envfile\`.\n\n"
 
     printf %b "${txt}" >> "${MAIN_DIR}${FILE_SEP}README.md"
