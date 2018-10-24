@@ -241,18 +241,18 @@ git_ignore() {
     txt+="*.o\n"
     txt+="*.pdf\n"
     txt+="*.pyc\n"
-    txt+="*.so\n\n"
+    txt+="*.so\n"
 
-    txt+="# Ipython Files #\n"
-    txt+="${NOTEBOOK_DIR}${FILE_SEP}.ipynb_checkpoints${FILE_SEP}*\n\n"
+    txt+="\n# Ipython Files #\n"
+    txt+="${NOTEBOOK_DIR}${FILE_SEP}.ipynb_checkpoints${FILE_SEP}*\n"
 
-    txt+="# Logs and databases #\n"
+    txt+="\n# Logs and databases #\n"
     txt+="*.log\n"
     txt+="*make.bat\n"
     txt+="*.sql\n"
-    txt+="*.sqlite\n\n"
+    txt+="*.sqlite\n"
 
-    txt+="# OS generated files #\n"
+    txt+="\n# OS generated files #\n"
     txt+="envfile\n"
     txt+=".DS_Store\n"
     txt+=".DS_store?\n"
@@ -260,9 +260,9 @@ git_ignore() {
     txt+=".Spotlight-V100\n"
     txt+=".Trashes\n"
     txt+="ehthumbs.db\n"
-    txt+="Thumbs.db\n\n"
+    txt+="Thumbs.db\n"
 
-    txt+="# Packages #\n"
+    txt+="\n# Packages #\n"
     txt+="*.7z\n"
     txt+="*.dmg\n"
     txt+="*.gz\n"
@@ -270,30 +270,31 @@ git_ignore() {
     txt+="*.jar\n"
     txt+="*.rar\n"
     txt+="*.tar\n"
-    txt+="*.zip\n\n"
+    txt+="*.zip\n"
 
-    txt+="# Profile files #\n"
+    txt+="\n# Profile files #\n"
     txt+="*.coverage\n"
-    txt+="*.profile\n\n"
+    txt+="*.profile\n"
 
-    txt+="# Project files #\n"
-    txt+="source_venv.sh\n\n"
+    txt+="\n# Project files #\n"
+    txt+="source_venv.sh\n"
+    txt+="*wheels\n"
 
-    txt+="# PyCharm files #\n"
+    txt+="\n# PyCharm files #\n"
     txt+=".idea${FILE_SEP}*\n"
-    txt+="${MAIN_DIR}${FILE_SEP}.idea${FILE_SEP}*\n\n"
+    txt+="${MAIN_DIR}${FILE_SEP}.idea${FILE_SEP}*\n"
 
-    txt+="# pytest files #\n"
+    txt+="\n# pytest files #\n"
     txt+=".cache${FILE_SEP}*\n"
     txt+="\n"
     txt+="# Raw Data #\n"
-    txt+="${DATA_DIR}${FILE_SEP}*\n\n"
+    txt+="${DATA_DIR}${FILE_SEP}*\n"
 
-    txt+="# Sphinx files #\n"
+    txt+="\n# Sphinx files #\n"
     txt+="docs/_build/*\n"
     txt+="docs/_static/*\n"
     txt+="docs/_templates/*\n"
-    txt+="docs/Makefile\n\n"
+    txt+="docs/Makefile\n"
 
     printf %b "${txt}" >> "${MAIN_DIR}${FILE_SEP}.gitignore"
 }
@@ -302,6 +303,8 @@ git_ignore() {
 git_init() {
     cd ${MAIN_DIR}
     git init
+    git add --all
+    git commit -m "Initial Commit"
 }
 
 
@@ -356,6 +359,15 @@ makefile() {
 
     txt+="\ninclude envfile\n"
     txt+=".PHONY: docs upgrade-packages\n"
+
+    txt+="\ndeploy: docker-up\n"
+    txt+="\tdocker container exec \$(PROJECT)_python \\\\\n"
+    txt+="\t\tpip3 wheel --wheel-dir=wheels .\n"
+    txt+="\tgit tag -a v\$(VERSION) -m \"Version \$(VERSION)\"\n"
+    txt+="\t@echo\n"
+    txt+="\t@echo\n"
+    txt+="\t@echo Enter the following to push this tag to the repository:\n"
+    txt+="\t@echo git push origin v\$(VERSION)\n"
 
     txt+="\ndocker-down:\n"
     txt+="\tdocker-compose -f docker/docker-compose.yml down\n"
