@@ -155,7 +155,7 @@ docker_python() {
     txt+="\t\tbash \\\\\n"
     txt+="\t&& pip3 install --upgrade pip \\\\\n"
     txt+="\t&& pip3 install --no-cache-dir -r requirements.txt \\\\\n"
-    txt+="\t&& pip3 install -e .[docs,test]\n"
+    txt+="\t&& pip3 install -e .[docs,notebook,test]\n"
     txt+="\nCMD [ \"/bin/bash\" ]\n"
     txt+="\n"
 
@@ -183,7 +183,7 @@ docker_tensorflow() {
     txt+="\t&& cd /usr/src/${MAIN_DIR} \\\\\n"
     txt+="\t&& pip install --upgrade pip \\\\\n"
     txt+="\t&& pip install --no-cache-dir -r requirements.txt \\\\\n"
-    txt+="\t&& pip install -e .[tf-cpu,test]\n"
+    txt+="\t&& pip install -e .[docs,notebook,tf-cpu,test]\n"
 
     txt+="\nENV PYTHONPATH \$PYTHONPATH:/opt/models/research:/opt/models/research/slim:/opt/models/research/object_detection\n"
 
@@ -241,18 +241,18 @@ git_ignore() {
     txt+="*.o\n"
     txt+="*.pdf\n"
     txt+="*.pyc\n"
-    txt+="*.so\n\n"
+    txt+="*.so\n"
 
-    txt+="# Ipython Files #\n"
-    txt+="${NOTEBOOK_DIR}${FILE_SEP}.ipynb_checkpoints${FILE_SEP}*\n\n"
+    txt+="\n# Ipython Files #\n"
+    txt+="${NOTEBOOK_DIR}${FILE_SEP}.ipynb_checkpoints${FILE_SEP}*\n"
 
-    txt+="# Logs and databases #\n"
+    txt+="\n# Logs and databases #\n"
     txt+="*.log\n"
     txt+="*make.bat\n"
     txt+="*.sql\n"
-    txt+="*.sqlite\n\n"
+    txt+="*.sqlite\n"
 
-    txt+="# OS generated files #\n"
+    txt+="\n# OS generated files #\n"
     txt+="envfile\n"
     txt+=".DS_Store\n"
     txt+=".DS_store?\n"
@@ -260,9 +260,9 @@ git_ignore() {
     txt+=".Spotlight-V100\n"
     txt+=".Trashes\n"
     txt+="ehthumbs.db\n"
-    txt+="Thumbs.db\n\n"
+    txt+="Thumbs.db\n"
 
-    txt+="# Packages #\n"
+    txt+="\n# Packages #\n"
     txt+="*.7z\n"
     txt+="*.dmg\n"
     txt+="*.gz\n"
@@ -270,30 +270,31 @@ git_ignore() {
     txt+="*.jar\n"
     txt+="*.rar\n"
     txt+="*.tar\n"
-    txt+="*.zip\n\n"
+    txt+="*.zip\n"
 
-    txt+="# Profile files #\n"
+    txt+="\n# Profile files #\n"
     txt+="*.coverage\n"
-    txt+="*.profile\n\n"
+    txt+="*.profile\n"
 
-    txt+="# Project files #\n"
-    txt+="source_venv.sh\n\n"
+    txt+="\n# Project files #\n"
+    txt+="source_venv.sh\n"
+    txt+="*wheels\n"
 
-    txt+="# PyCharm files #\n"
+    txt+="\n# PyCharm files #\n"
     txt+=".idea${FILE_SEP}*\n"
-    txt+="${MAIN_DIR}${FILE_SEP}.idea${FILE_SEP}*\n\n"
+    txt+="${MAIN_DIR}${FILE_SEP}.idea${FILE_SEP}*\n"
 
-    txt+="# pytest files #\n"
+    txt+="\n# pytest files #\n"
     txt+=".cache${FILE_SEP}*\n"
     txt+="\n"
     txt+="# Raw Data #\n"
-    txt+="${DATA_DIR}${FILE_SEP}*\n\n"
+    txt+="${DATA_DIR}${FILE_SEP}*\n"
 
-    txt+="# Sphinx files #\n"
+    txt+="\n# Sphinx files #\n"
     txt+="docs/_build/*\n"
     txt+="docs/_static/*\n"
     txt+="docs/_templates/*\n"
-    txt+="docs/Makefile\n\n"
+    txt+="docs/Makefile\n"
 
     printf %b "${txt}" >> "${MAIN_DIR}${FILE_SEP}.gitignore"
 }
@@ -302,6 +303,8 @@ git_ignore() {
 git_init() {
     cd ${MAIN_DIR}
     git init
+    git add --all
+    git commit -m "Initial Commit"
 }
 
 
@@ -347,13 +350,24 @@ makefile() {
     txt+="endif\n"
     txt+="MOUNT_DIR=\$(shell pwd)\n"
     txt+="MODELS=/opt/models\n"
+    txt+="PORT:=\$(shell awk -v min=16384 -v max=32768 'BEGIN{srand(); print int(min+rand()*(max-min+1))}')\n"
     txt+="SRC_DIR=/usr/src/${SOURCE_DIR}\n"
+    txt+="USER=\$(shell echo \$\${USER%%@*})\n"
     txt+="VERSION=\$(shell echo \$(shell cat ${SOURCE_DIR}/__init__.py | \\\\\n"
     txt+="\t\t\tgrep \"^__version__\" | \\\\\n"
     txt+="\t\t\tcut -d = -f 2))\n"
 
     txt+="\ninclude envfile\n"
     txt+=".PHONY: docs upgrade-packages\n"
+
+    txt+="\ndeploy: docker-up\n"
+    txt+="\tdocker container exec \$(PROJECT)_python \\\\\n"
+    txt+="\t\tpip3 wheel --wheel-dir=wheels .\n"
+    txt+="\tgit tag -a v\$(VERSION) -m \"Version \$(VERSION)\"\n"
+    txt+="\t@echo\n"
+    txt+="\t@echo\n"
+    txt+="\t@echo Enter the following to push this tag to the repository:\n"
+    txt+="\t@echo git push origin v\$(VERSION)\n"
 
     txt+="\ndocker-down:\n"
     txt+="\tdocker-compose -f docker/docker-compose.yml down\n"
@@ -431,6 +445,27 @@ makefile() {
     txt+="\ndocs-view: docker-up\n"
     txt+="\t\${BROWSER} http://localhost:8080\n"
 
+    txt+="\nipython: docker-up\n"
+    txt+="\tdocker container exec -it \$(PROJECT)_python ipython\n"
+
+    txt+="\nnotebook: notebook-server\n"
+    txt+="\tsleep 0.5\n"
+    txt+="\tdocker container exec \$(USER)_notebook_\$(PORT) jupyter notebook list\n"
+    txt+="\t\${BROWSER} http://localhost:\$(PORT)\n"
+
+    txt+="\nnotebook-remove:\n"
+    txt+="\tdocker container rm -f \$\$(docker container ls -f name=\$(USER)_notebook -q)\n"
+
+    txt+="\nnotebook-server:\n"
+    txt+="\tdocker container run -d --rm \\\\\n"
+    txt+="\t\t--name \$(USER)_notebook_\$(PORT) \\\\\n"
+    txt+="\t\t-p \$(PORT):\$(PORT) \\\\\n"
+    txt+="\t\t\$(PROJECT)_python \\\\\n"
+    txt+="\t\t/bin/bash -c \"jupyter notebook \\\\\n"
+    txt+="\t\t\t\t--allow-root \\\\\n"
+    txt+="\t\t\t\t--ip=0.0.0.0 \\\\\n"
+    txt+="\t\t\t\t--port=\$(PORT)\"\n"
+
     txt+="\npgadmin: docker-up\n"
     txt+="\t\${BROWSER} http://localhost:5000\n"
 
@@ -446,7 +481,7 @@ makefile() {
     txt+="\t\t/bin/bash -c \\\\\n"
     txt+="\t\t\t\"sed -i -e 's/python-Dockerfile/tensorflow-Dockerfile/g' \\\\\n"
     txt+="\t\t\t\tdocker/docker-compose.yml \\\\\n"
-    txt+="\t\t\t && sed -i -e \\\\\"/'notebook': \['ipython', 'jupyter'\],/a \\\\\n"
+    txt+="\t\t\t && sed -i -e \\\\\"/'notebook': \['jupyter'\],/a \\\\\n"
     txt+="\t\t\t\t\\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ 'tf-cpu': ['tensorflow'],\\\\\n"
     txt+="\t\t\t\t\\\\n\\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ 'tf-gpu': ['tensorflow-gpu'],\\\\\" \\\\\n"
     txt+="\t\t\t\tsetup.py\"\n"
@@ -502,7 +537,7 @@ readme() {
     txt+="1. Click \`Add New Server\`.\n"
     txt+="    - General Name: Enter the <project_name>\n"
     txt+="    - Connection Host: Enter <project_name>_postgres\n"
-    txt+="    - Connection Username and Password: Enter **Postgres** username and password "
+    txt+="    - Connection Username and Password: Enter **Postgres** username and password\n"
     txt+="      from the \`envfile\`.\n\n"
 
     printf %b "${txt}" >> "${MAIN_DIR}${FILE_SEP}README.md"
@@ -557,7 +592,7 @@ setup() {
     txt+="        ],\n"
     txt+="    extras_require={\n"
     txt+="        'docs': ['sphinx', 'sphinx_rtd_theme'],\n"
-    txt+="        'notebook': ['ipython', 'jupyter'],\n"
+    txt+="        'notebook': ['jupyter'],\n"
     txt+="        'test': ['pytest', 'pytest-pep8'],\n"
     txt+="    },\n"
     txt+="    package_dir={'${MAIN_DIR}': '${SOURCE_DIR}'},\n"
