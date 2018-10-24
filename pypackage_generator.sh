@@ -155,7 +155,7 @@ docker_python() {
     txt+="\t\tbash \\\\\n"
     txt+="\t&& pip3 install --upgrade pip \\\\\n"
     txt+="\t&& pip3 install --no-cache-dir -r requirements.txt \\\\\n"
-    txt+="\t&& pip3 install -e .[docs,test]\n"
+    txt+="\t&& pip3 install -e .[docs,notebook,test]\n"
     txt+="\nCMD [ \"/bin/bash\" ]\n"
     txt+="\n"
 
@@ -183,7 +183,7 @@ docker_tensorflow() {
     txt+="\t&& cd /usr/src/${MAIN_DIR} \\\\\n"
     txt+="\t&& pip install --upgrade pip \\\\\n"
     txt+="\t&& pip install --no-cache-dir -r requirements.txt \\\\\n"
-    txt+="\t&& pip install -e .[tf-cpu,test]\n"
+    txt+="\t&& pip install -e .[docs,notebook,tf-cpu,test]\n"
 
     txt+="\nENV PYTHONPATH \$PYTHONPATH:/opt/models/research:/opt/models/research/slim:/opt/models/research/object_detection\n"
 
@@ -431,6 +431,9 @@ makefile() {
     txt+="\ndocs-view: docker-up\n"
     txt+="\t\${BROWSER} http://localhost:8080\n"
 
+    txt+="\nipython: docker-up\n"
+    txt+="\tdocker container exec -it \$(PROJECT)_python ipython\n"
+
     txt+="\npgadmin: docker-up\n"
     txt+="\t\${BROWSER} http://localhost:5000\n"
 
@@ -446,7 +449,7 @@ makefile() {
     txt+="\t\t/bin/bash -c \\\\\n"
     txt+="\t\t\t\"sed -i -e 's/python-Dockerfile/tensorflow-Dockerfile/g' \\\\\n"
     txt+="\t\t\t\tdocker/docker-compose.yml \\\\\n"
-    txt+="\t\t\t && sed -i -e \\\\\"/'notebook': \['ipython', 'jupyter'\],/a \\\\\n"
+    txt+="\t\t\t && sed -i -e \\\\\"/'notebook': \['jupyter'\],/a \\\\\n"
     txt+="\t\t\t\t\\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ 'tf-cpu': ['tensorflow'],\\\\\n"
     txt+="\t\t\t\t\\\\n\\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ 'tf-gpu': ['tensorflow-gpu'],\\\\\" \\\\\n"
     txt+="\t\t\t\tsetup.py\"\n"
@@ -557,7 +560,7 @@ setup() {
     txt+="        ],\n"
     txt+="    extras_require={\n"
     txt+="        'docs': ['sphinx', 'sphinx_rtd_theme'],\n"
-    txt+="        'notebook': ['ipython', 'jupyter'],\n"
+    txt+="        'notebook': ['jupyter'],\n"
     txt+="        'test': ['pytest', 'pytest-pep8'],\n"
     txt+="    },\n"
     txt+="    package_dir={'${MAIN_DIR}': '${SOURCE_DIR}'},\n"
