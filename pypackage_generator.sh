@@ -166,9 +166,11 @@ docker_python() {
 docker_tensorflow() {
     txt="FROM python:3.6\n"
 
+    txt+="\nWORKDIR /usr/src/${MAIN_DIR}\n"
+
     txt+="\nCOPY . .\n"
 
-    txt+="\nRUN cd \opt \\\\\n"
+    txt+="\nRUN cd /opt \\\\\n"
     txt+="\t&& apt-get update \\\\\n"
     txt+="\t&& apt-get install -y \\\\\n"
     txt+="\t\tprotobuf-compiler \\\\\n"
@@ -186,8 +188,6 @@ docker_tensorflow() {
     txt+="\t&& pip install -e .[docs,notebook,tf-cpu,test]\n"
 
     txt+="\nENV PYTHONPATH \$PYTHONPATH:/opt/models/research:/opt/models/research/slim:/opt/models/research/object_detection\n"
-
-    txt+="\nWORKDIR /usr/src/${MAIN_DIR}\n"
 
     txt+="\nCMD [ \"/bin/bash\" ]\n"
 
