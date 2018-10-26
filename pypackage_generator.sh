@@ -450,8 +450,9 @@ makefile() {
 
     txt+="\nnotebook: notebook-server\n"
     txt+="\tsleep 0.5\n"
-    txt+="\tdocker container exec \$(USER)_notebook_\$(PORT) jupyter notebook list\n"
-    txt+="\t\${BROWSER} http://localhost:\$(PORT)\n"
+    txt+="\t\${BROWSER} \$\$(docker container exec \\\\\n"
+    txt+="\t\t\$(USER)_notebook_\$(PORT) \\\\\n"
+    txt+="\t\tjupyter notebook list | grep -o '^http\S*')\n"
 
     txt+="\nnotebook-remove:\n"
     txt+="\tdocker container rm -f \$\$(docker container ls -f name=\$(USER)_notebook -q)\n"
