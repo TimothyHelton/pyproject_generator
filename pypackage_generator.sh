@@ -518,7 +518,8 @@ makefile() {
     txt+="\t\t\t\tgrep -v \$(PROJECT) | \\\\\n"
     txt+="\t\t\t\tcut -d = -f 1 > requirements.txt \\\\\n"
     txt+="\t\t\t && pip3 install -U -r requirements.txt \\\\\n"
-    txt+="\t\t\t && pip3 freeze > requirements.txt\"\n\n"
+    txt+="\t\t\t && pip3 freeze > requirements.txt \\\\\n"
+    txt+="\t\t\t && sed -i -e '/^-e/d' requirements.txt\"\n"
 
     printf %b "${txt}" >> "${MAIN_DIR}${FILE_SEP}Makefile"
 }
