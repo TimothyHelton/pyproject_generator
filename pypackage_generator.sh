@@ -212,16 +212,17 @@ docker_tensorflow() {
 
 
 envfile(){
-    txt="# PGAdmin\n"
-    txt+="export PGADMIN_DEFAULT_EMAIL=enter_user@${MAIN_DIR}.com\n"
-    txt+="export PGADMIN_DEFAULT_PASSWORD=enter_password\n\n"
-
-    txt+="# Postgres\n"
-    txt+="export POSTGRES_PASSWORD=enter_password\n"
-    txt+="export POSTGRES_DB=${MAIN_DIR}\n"
-    txt+="export POSTGRES_USER=enter_user\n\n"
-
-    printf %b "${txt}" >> "${MAIN_DIR}${FILE_SEP}envfile"
+    printf "%s\n" \
+        "# PGAdmin" \
+        "export PGADMIN_DEFAULT_EMAIL=enter_user@${MAIN_DIR}.com" \
+        "export PGADMIN_DEFAULT_PASSWORD=enter_password" \
+        "" \
+        "# Postgres" \
+        "export POSTGRES_PASSWORD=enter_password" \
+        "export POSTGRES_DB=${MAIN_DIR}" \
+        "export POSTGRES_USER=enter_user" \
+        "" \
+        > "${MAIN_DIR}${FILE_SEP}envfile"
 }
 
 
