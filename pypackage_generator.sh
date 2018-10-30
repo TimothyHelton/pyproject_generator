@@ -71,24 +71,29 @@ conftest() {
 
 
 constructor_pkg() {
-    txt=${PY_HEADER}
-    txt+="\nfrom pkg_resources import get_distribution, DistributionNotFound\n"
-    txt+="import os.path as osp\n\n"
-    txt+="# from . import cli\n"
-    txt+="# from . import EnterModuleNameHere\n\n"
-    txt+="__version__ = '0.1.0'\n\n"
-    txt+="try:\n"
-    txt+="    _dist = get_distribution('${MAIN_DIR}')\n"
-    txt+="    dist_loc = osp.normcase(_dist.location)\n"
-    txt+="    here = osp.normcase(__file__)\n"
-    txt+="    if not here.startswith(osp.join(dist_loc, '${MAIN_DIR}')):\n"
-    txt+="        raise DistributionNotFound\n"
-    txt+="except DistributionNotFound:\n"
-    txt+="    __version__ = 'Please install this project with setup.py'\n"
-    txt+="else:\n"
-    txt+="    __version__ = _dist.version\n"
-
-    printf %b "${txt}" >> "${SRC_PATH}__init__.py"
+    printf "%s\n" \
+        "${PY_SHEBANG}" \
+        "${PY_ENCODING}" \
+        "" \
+        "from pkg_resources import get_distribution, DistributionNotFound" \
+        "import os.path as osp" \
+        "" \
+        "# from . import cli" \
+        "# from . import EnterModuleNameHere" \
+        "" \
+        "__version__ = '0.1.0'" \
+        "" \
+        "try:" \
+        "    _dist = get_distribution('${MAIN_DIR}')" \
+        "    dist_loc = osp.normcase(_dist.location)" \
+        "    here = osp.normcase(__file__)" \
+        "    if not here.startswith(osp.join(dist_loc, '${MAIN_DIR}')):" \
+        "        raise DistributionNotFound" \
+        "except DistributionNotFound:" \
+        "    __version__ = 'Please install this project with setup.py'" \
+        "else:" \
+        "    __version__ = _dist.version" \
+        > "${SRC_PATH}__init__.py"
 }
 
 
