@@ -40,6 +40,9 @@ SUB_DIRECTORIES=(${DATA_DIR} \
 PY_HEADER+="#! /usr/bin/env python3\n"
 PY_HEADER+="# -*- coding: utf-8 -*-\n"
 
+PY_SHEBANG="#! /usr/bin/env python3"
+PY_ENCODING="# -*- coding: utf-8 -*-"
+
 SRC_PATH="${MAIN_DIR}${FILE_SEP}${SOURCE_DIR}${FILE_SEP}"
 
 
@@ -56,11 +59,14 @@ directories() {
 
 
 conftest() {
-    txt=${PY_HEADER}
-    txt+="\"\"\" Test Configuration File\n\n\"\"\"\n"
-    txt+="import pytest\n\n"
-
-    printf %b "${txt}" >> "${SRC_PATH}${FILE_SEP}${TEST_DIR}${FILE_SEP}conftest.py"
+    printf "%s\n" \
+        "${PY_SHEBANG}" \
+        "${PY_ENCODING}" \
+        '""" Test Configuration File' \
+        '"""' \
+        "import pytest" \
+        "" \
+        > "${SRC_PATH}${FILE_SEP}${TEST_DIR}${FILE_SEP}conftest.py"
 }
 
 
