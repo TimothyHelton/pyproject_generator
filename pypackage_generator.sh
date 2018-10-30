@@ -98,7 +98,10 @@ constructor_pkg() {
 
 
 constructor_test() {
-    printf %b "${PY_HEADER}" >> "${SRC_PATH}${FILE_SEP}${TEST_DIR}${FILE_SEP}__init__.py"
+    printf "%s\n" \
+        "${PY_SHEBANG}" \
+        "${PY_ENCODING}" \
+        > "${SRC_PATH}${FILE_SEP}${TEST_DIR}${FILE_SEP}__init__.py"
 }
 
 
