@@ -106,57 +106,59 @@ constructor_test() {
 
 
 docker_compose() {
-    txt="version: '3'\n\n"
-    txt+="services:\n\n"
-
-    txt+="  nginx:\n"
-    txt+="    container_name: ${MAIN_DIR}_nginx\n"
-    txt+="    image: nginx:alpine\n"
-    txt+="    ports:\n"
-    txt+="      - 8080:80\n"
-    txt+="    restart: always\n"
-    txt+="    volumes:\n"
-    txt+="      - ../docs/_build/html:/usr/share/nginx/html:ro\n\n"
-
-    txt+="  postgres:\n"
-    txt+="    container_name: ${MAIN_DIR}_postgres\n"
-    txt+="    image: postgres:alpine\n"
-    txt+="    environment:\n"
-    txt+="      POSTGRES_PASSWORD: \${POSTGRES_PASSWORD}\n"
-    txt+="      POSTGRES_DB: \${POSTGRES_DB}\n"
-    txt+="      POSTGRES_USER: \${POSTGRES_USER}\n"
-    txt+="    ports:\n"
-    txt+="      - 5432:5432\n"
-    txt+="    restart: always\n"
-    txt+="    volumes:\n"
-    txt+="      - ${MAIN_DIR}-db:/var/lib/postgresql/data\n\n"
-
-    txt+="  pgadmin:\n"
-    txt+="    container_name: ${MAIN_DIR}_pgadmin\n"
-    txt+="    image: dpage/pgadmin4\n"
-    txt+="    environment:\n"
-    txt+="      PGADMIN_DEFAULT_EMAIL: \${PGADMIN_DEFAULT_EMAIL}\n"
-    txt+="      PGADMIN_DEFAULT_PASSWORD: \${PGADMIN_DEFAULT_PASSWORD}\n"
-    txt+="    external_links:\n"
-    txt+="      - ${MAIN_DIR}_postgres:${MAIN_DIR}_postgres\n"
-    txt+="    ports:\n"
-    txt+="      - 5000:80\n\n"
-
-    txt+="  python:\n"
-    txt+="    container_name: ${MAIN_DIR}_python\n"
-    txt+="    build:\n"
-    txt+="      context: ..\n"
-    txt+="      dockerfile: docker/python-Dockerfile\n"
-    txt+="    image: ${MAIN_DIR}_python\n"
-    txt+="    restart: always\n"
-    txt+="    tty: true\n"
-    txt+="    volumes:\n"
-    txt+="      - ..:/usr/src/${MAIN_DIR}\n"
-
-    txt+="volumes:\n"
-    txt+="  ${MAIN_DIR}-db:\n\n"
-
-    printf %b "${txt}" >> "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}docker-compose.yml"
+    printf "%s\n" \
+        "version: '3'" \
+        "" \
+        "services:" \
+        "" \
+        "  nginx:" \
+        "    container_name: ${MAIN_DIR}_nginx" \
+        "    image: nginx:alpine" \
+        "    ports:" \
+        "      - 8080:80" \
+        "    restart: always" \
+        "    volumes:" \
+        "      - ../docs/_build/html:/usr/share/nginx/html:ro" \
+        "" \
+        "  postgres:" \
+        "    container_name: ${MAIN_DIR}_postgres" \
+        "    image: postgres:alpine" \
+        "    environment:" \
+        "      POSTGRES_PASSWORD: \${POSTGRES_PASSWORD}" \
+        "      POSTGRES_DB: \${POSTGRES_DB}" \
+        "      POSTGRES_USER: \${POSTGRES_USER}" \
+        "    ports:" \
+        "      - 5432:5432" \
+        "    restart: always" \
+        "    volumes:" \
+        "      - ${MAIN_DIR}-db:/var/lib/postgresql/data" \
+        "" \
+        "  pgadmin:" \
+        "    container_name: ${MAIN_DIR}_pgadmin" \
+        "    image: dpage/pgadmin4" \
+        "    environment:" \
+        "      PGADMIN_DEFAULT_EMAIL: \${PGADMIN_DEFAULT_EMAIL}" \
+        "      PGADMIN_DEFAULT_PASSWORD: \${PGADMIN_DEFAULT_PASSWORD}" \
+        "    external_links:" \
+        "      - ${MAIN_DIR}_postgres:${MAIN_DIR}_postgres" \
+        "    ports:" \
+        "      - 5000:80" \
+        "" \
+        "  python:" \
+        "    container_name: ${MAIN_DIR}_python" \
+        "    build:" \
+        "      context: .." \
+        "      dockerfile: docker/python-Dockerfile" \
+        "    image: ${MAIN_DIR}_python" \
+        "    restart: always" \
+        "    tty: true" \
+        "    volumes:" \
+        "      - ..:/usr/src/${MAIN_DIR}" \
+        "" \
+        "volumes:" \
+        "  ${MAIN_DIR}-db:" \
+        "" \
+        > "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}docker-compose.yml"
 }
 
 
