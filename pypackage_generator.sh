@@ -181,34 +181,34 @@ docker_python() {
 
 
 docker_tensorflow() {
-    txt="FROM python:3.6\n"
-
-    txt+="\nWORKDIR /usr/src/${MAIN_DIR}\n"
-
-    txt+="\nCOPY . .\n"
-
-    txt+="\nRUN cd /opt \\\\\n"
-    txt+="\t&& apt-get update \\\\\n"
-    txt+="\t&& apt-get install -y \\\\\n"
-    txt+="\t\tprotobuf-compiler \\\\\n"
-    txt+="\t&& rm -rf /var/lib/apt/lists/* \\\\\n"
-    txt+="\t&& git clone \\\\\n"
-    txt+="\t\t--branch master \\\\\n"
-    txt+="\t\t--single-branch \\\\\\n"
-    txt+="\t\t--depth 1 \\\\\\n"
-    txt+="\t\thttps://github.com/tensorflow/models.git \\\\\n"
-    txt+="\t&& cd /opt/models/research \\\\\n"
-    txt+="\t&& protoc object_detection/protos/*.proto --python_out=. \\\\\n"
-    txt+="\t&& cd /usr/src/${MAIN_DIR} \\\\\n"
-    txt+="\t&& pip install --upgrade pip \\\\\n"
-    txt+="\t&& pip install --no-cache-dir -r requirements.txt \\\\\n"
-    txt+="\t&& pip install -e .[docs,notebook,tf-cpu,test]\n"
-
-    txt+="\nENV PYTHONPATH \$PYTHONPATH:/opt/models/research:/opt/models/research/slim:/opt/models/research/object_detection\n"
-
-    txt+="\nCMD [ \"/bin/bash\" ]\n"
-
-    printf %b "${txt}" >> "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}tensorflow-Dockerfile"
+    printf "%b\n" \
+        "FROM python:3.6" \
+        "" \
+        "WORKDIR /usr/src/${MAIN_DIR}" \
+        "" \
+        "COPY . ." \
+        "" \
+        "RUN cd /opt \\\\" \
+        "\t&& apt-get update \\\\" \
+        "\t&& apt-get install -y \\\\" \
+        "\t\tprotobuf-compiler \\\\" \
+        "\t&& rm -rf /var/lib/apt/lists/* \\\\" \
+        "\t&& git clone \\\\" \
+        "\t\t--branch master \\\\" \
+        "\t\t--single-branch \\\\" \
+        "\t\t--depth 1 \\\\" \
+        "\t\thttps://github.com/tensorflow/models.git \\\\" \
+        "\t&& cd /opt/models/research \\\\" \
+        "\t&& protoc object_detection/protos/*.proto --python_out=. \\\\" \
+        "\t&& cd /usr/src/${MAIN_DIR} \\\\" \
+        "\t&& pip install --upgrade pip \\\\" \
+        "\t&& pip install --no-cache-dir -r requirements.txt \\\\" \
+        "\t&& pip install -e .[docs,notebook,tf-cpu,test]" \
+        "" \
+        "ENV PYTHONPATH \$PYTHONPATH:/opt/models/research:/opt/models/research/slim:/opt/models/research/object_detection" \
+        "" \
+        "CMD [ \"/bin/bash\" ]" \
+        > "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}tensorflow-Dockerfile"
 }
 
 
