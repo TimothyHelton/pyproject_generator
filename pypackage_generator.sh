@@ -235,14 +235,14 @@ git_attributes() {
 
 git_config() {
     # Setup Git to ignore Jupyter Notebook Outputs
-    txt="[filter \"jupyter_clear_output\"]\n"
-    txt+="    clean = \"jupyter nbconvert --stdin --stdout \ \n"
-    txt+="             --log-level=ERROR --to notebook \ \n"
-    txt+="             --ClearOutputPreprocessor.enabled=True\"\n"
-    txt+="    smudge = cat\n"
-    txt+="    required = true"
-
-    printf %b "${txt}" >> "${MAIN_DIR}${FILE_SEP}.gitconfig"
+    printf "%s\n" \
+        "[filter \"jupyter_clear_output\"]" \
+        "    clean = \"jupyter nbconvert --stdin --stdout \ " \
+        "             --log-level=ERROR --to notebook \ " \
+        "             --ClearOutputPreprocessor.enabled=True\"" \
+        "    smudge = cat" \
+        "    required = true" \
+        > "${MAIN_DIR}${FILE_SEP}.gitconfig"
 }
 
 
