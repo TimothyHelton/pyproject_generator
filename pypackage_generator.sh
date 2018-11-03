@@ -572,73 +572,73 @@ requirements() {
 
 
 setup() {
-    txt="#!/usr/bin/env python3\n"
-    txt+="# -*- coding: utf-8 -*-\n"
-    txt+="\n"
-    txt+="from codecs import open\n"
-    txt+="import os.path as osp\n"
-    txt+="import re\n"
-    txt+="\n"
-    txt+="from setuptools import setup, find_packages\n"
-    txt+="\n"
-    txt+="\n"
-    txt+="with open('${SOURCE_DIR}${FILE_SEP}__init__.py', 'r') as fd:\n"
-    txt+="    version = re.search(r'^__version__\s*=\s*[\'\"]([^\'\"]*)[\'\"]',\n"
-    txt+="                        fd.read(), re.MULTILINE).group(1)\n"
-    txt+="\n"
-    txt+="here = osp.abspath(osp.dirname(__file__))\n"
-    txt+="with open(osp.join(here, 'README.md'), encoding='utf-8') as f:\n"
-    txt+="    long_description = f.read()\n"
-    txt+="\n"
-    txt+="setup(\n"
-    txt+="    name='${MAIN_DIR}',\n"
-    txt+="    version=version,\n"
-    txt+="    description='Modules related to EnterDescriptionHere',\n"
-    txt+="    author='${AUTHOR}',\n"
-    txt+="    author_email='${EMAIL}',\n"
-    txt+="    license='BSD',\n"
-    txt+="    classifiers=[\n"
-    txt+="        'Development Status :: 1 - Planning',\n"
-    txt+="        'Environment :: Console',\n"
-    txt+="        'Intended Audience :: Developers',\n"
-    txt+="        'License :: OSI Approved',\n"
-    txt+="        'Natural Language :: English',\n"
-    txt+="        'Operating System :: OS Independent',\n"
-    txt+="        'Programming Language :: Python :: ${PYTHON_VERSION%%.*}',\n"
-    txt+="        'Programming Language :: Python :: ${PYTHON_VERSION}',\n"
-    txt+="        'Topic :: Software Development :: Build Tools',\n"
-    txt+="        ],\n"
-    txt+="    keywords='EnterKeywordsHere',\n"
-    txt+="    packages=find_packages(exclude=[\n"
-    txt+="        'data',\n"
-    txt+="        'docker',\n"
-    txt+="        'docs',\n"
-    txt+="        'notebooks',\n"
-    txt+="        'wheels',\n"
-    txt+="        '*tests',\n"
-    txt+="        ]\n"
-    txt+="    ),\n"
-    txt+="    install_requires=[\n"
-    txt+="        ],\n"
-    txt+="    extras_require={\n"
-    txt+="        'docs': ['sphinx', 'sphinx_rtd_theme'],\n"
-    txt+="        'notebook': ['jupyter'],\n"
-    txt+="        'test': ['pytest', 'pytest-pep8'],\n"
-    txt+="    },\n"
-    txt+="    package_dir={'${MAIN_DIR}': '${SOURCE_DIR}'},\n"
-    txt+="    include_package_data=True,\n"
-    txt+="    entry_points={\n"
-    txt+="        'console_scripts': [\n"
-    txt+="            # '<EnterCommandName>=${SOURCE_DIR}.cli:<EnterFunction>',\n"
-    txt+="        ]\n"
-    txt+="    }\n"
-    txt+=")\n"
-    txt+="\n"
-    txt+="\n"
-    txt+="if __name__ == '__main__':\n"
-    txt+="    pass\n"
-
-    printf %b "${txt}" >> "${MAIN_DIR}${FILE_SEP}setup.py"
+    printf "%s\n" \
+        "#!/usr/bin/env python3" \
+        "# -*- coding: utf-8 -*-" \
+        "" \
+        "from codecs import open" \
+        "import os.path as osp" \
+        "import re" \
+        "" \
+        "from setuptools import setup, find_packages" \
+        "" \
+        "" \
+        "with open('${SOURCE_DIR}${FILE_SEP}__init__.py', 'r') as fd:" \
+        "    version = re.search(r'^__version__\s*=\s*[\'\"]([^\'\"]*)[\'\"]'," \
+        "                        fd.read(), re.MULTILINE).group(1)" \
+        "" \
+        "here = osp.abspath(osp.dirname(__file__))" \
+        "with open(osp.join(here, 'README.md'), encoding='utf-8') as f:" \
+        "    long_description = f.read()" \
+        "" \
+        "setup(" \
+        "    name='${MAIN_DIR}'," \
+        "    version=version," \
+        "    description='Modules related to EnterDescriptionHere'," \
+        "    author='${AUTHOR}'," \
+        "    author_email='${EMAIL}'," \
+        "    license='BSD'," \
+        "    classifiers=[" \
+        "        'Development Status :: 1 - Planning'," \
+        "        'Environment :: Console'," \
+        "        'Intended Audience :: Developers'," \
+        "        'License :: OSI Approved'," \
+        "        'Natural Language :: English'," \
+        "        'Operating System :: OS Independent'," \
+        "        'Programming Language :: Python :: ${PYTHON_VERSION%%.*}'," \
+        "        'Programming Language :: Python :: ${PYTHON_VERSION}'," \
+        "        'Topic :: Software Development :: Build Tools'," \
+        "        ]," \
+        "    keywords='EnterKeywordsHere'," \
+        "    packages=find_packages(exclude=[" \
+        "        'data'," \
+        "        'docker'," \
+        "        'docs'," \
+        "        'notebooks'," \
+        "        'wheels'," \
+        "        '*tests'," \
+        "        ]" \
+        "    )," \
+        "    install_requires=[" \
+        "        ]," \
+        "    extras_require={" \
+        "        'docs': ['sphinx', 'sphinx_rtd_theme']," \
+        "        'notebook': ['jupyter']," \
+        "        'test': ['pytest', 'pytest-pep8']," \
+        "    }," \
+        "    package_dir={'${MAIN_DIR}': '${SOURCE_DIR}'}," \
+        "    include_package_data=True," \
+        "    entry_points={" \
+        "        'console_scripts': [" \
+        "            # '<EnterCommandName>=${SOURCE_DIR}.cli:<EnterFunction>'," \
+        "        ]" \
+        "    }" \
+        ")" \
+        "" \
+        "" \
+        "if __name__ == '__main__':" \
+        "    pass" \
+        > "${MAIN_DIR}${FILE_SEP}setup.py"
 }
 
 
