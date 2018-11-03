@@ -550,18 +550,19 @@ manifest() {
 
 
 readme() {
-    txt="# PGAdmin Setup\n"
-    txt+="1. From the main directory call \`make pgadmin\`\n"
-    txt+="    - The default browser will open to \`localhost:5000\`\n"
-    txt+="1. Enter the **PGAdmin** default user and password.\n"
-    txt+="    - These variable are set in the \`envfile\`.\n"
-    txt+="1. Click \`Add New Server\`.\n"
-    txt+="    - General Name: Enter the <project_name>\n"
-    txt+="    - Connection Host: Enter <project_name>_postgres\n"
-    txt+="    - Connection Username and Password: Enter **Postgres** username and password\n"
-    txt+="      from the \`envfile\`.\n\n"
-
-    printf %b "${txt}" >> "${MAIN_DIR}${FILE_SEP}README.md"
+    printf "%s\n" \
+        "# PGAdmin Setup" \
+        "1. From the main directory call \`make pgadmin\`" \
+        "    - The default browser will open to \`localhost:5000\`" \
+        "1. Enter the **PGAdmin** default user and password." \
+        "    - These variable are set in the \`envfile\`." \
+        "1. Click \`Add New Server\`." \
+        "    - General Name: Enter the <project_name>" \
+        "    - Connection Host: Enter <project_name>_postgres" \
+        "    - Connection Username and Password: Enter **Postgres** username and password" \
+        "      from the \`envfile\`." \
+        "" \
+        > "${MAIN_DIR}${FILE_SEP}README.md"
 }
 
 
