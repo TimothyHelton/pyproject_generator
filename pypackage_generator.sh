@@ -247,73 +247,73 @@ git_config() {
 
 
 git_ignore() {
-    txt="# Compiled source #\n"
-    txt+="build${FILE_SEP}*\n"
-    txt+="*.com\n"
-    txt+="dist${FILE_SEP}*\n"
-    txt+="*.egg-info${FILE_SEP}*\n"
-    txt+="*.class\n"
-    txt+="*.dll\n"
-    txt+="*.exe\n"
-    txt+="*.o\n"
-    txt+="*.pdf\n"
-    txt+="*.pyc\n"
-    txt+="*.so\n"
-
-    txt+="\n# Ipython Files #\n"
-    txt+="${NOTEBOOK_DIR}${FILE_SEP}.ipynb_checkpoints${FILE_SEP}*\n"
-
-    txt+="\n# Logs and databases #\n"
-    txt+="*.log\n"
-    txt+="*make.bat\n"
-    txt+="*.sql\n"
-    txt+="*.sqlite\n"
-
-    txt+="\n# OS generated files #\n"
-    txt+="envfile\n"
-    txt+=".DS_Store\n"
-    txt+=".DS_store?\n"
-    txt+="._*\n"
-    txt+=".Spotlight-V100\n"
-    txt+=".Trashes\n"
-    txt+="ehthumbs.db\n"
-    txt+="Thumbs.db\n"
-
-    txt+="\n# Packages #\n"
-    txt+="*.7z\n"
-    txt+="*.dmg\n"
-    txt+="*.gz\n"
-    txt+="*.iso\n"
-    txt+="*.jar\n"
-    txt+="*.rar\n"
-    txt+="*.tar\n"
-    txt+="*.zip\n"
-
-    txt+="\n# Profile files #\n"
-    txt+="*.coverage\n"
-    txt+="*.profile\n"
-
-    txt+="\n# Project files #\n"
-    txt+="source_venv.sh\n"
-    txt+="*wheels\n"
-
-    txt+="\n# PyCharm files #\n"
-    txt+=".idea${FILE_SEP}*\n"
-    txt+="${MAIN_DIR}${FILE_SEP}.idea${FILE_SEP}*\n"
-
-    txt+="\n# pytest files #\n"
-    txt+=".cache${FILE_SEP}*\n"
-    txt+="\n"
-    txt+="# Raw Data #\n"
-    txt+="${DATA_DIR}${FILE_SEP}*\n"
-
-    txt+="\n# Sphinx files #\n"
-    txt+="docs/_build/*\n"
-    txt+="docs/_static/*\n"
-    txt+="docs/_templates/*\n"
-    txt+="docs/Makefile\n"
-
-    printf %b "${txt}" >> "${MAIN_DIR}${FILE_SEP}.gitignore"
+    printf "%s\n" \
+        "# Compiled source" \
+        "build${FILE_SEP}*" \
+        "*.com" \
+        "dist${FILE_SEP}*" \
+        "*.egg-info${FILE_SEP}*" \
+        "*.class" \
+        "*.dll" \
+        "*.exe" \
+        "*.o" \
+        "*.pdf" \
+        "*.pyc" \
+        "*.so" \
+        "" \
+        "# Ipython Files" \
+        "${NOTEBOOK_DIR}${FILE_SEP}.ipynb_checkpoints${FILE_SEP}*" \
+        "" \
+        "# Logs and databases" \
+        "*.log" \
+        "*make.bat" \
+        "*.sql" \
+        "*.sqlite" \
+        "" \
+        "# OS generated files" \
+        "envfile" \
+        ".DS_Store" \
+        ".DS_store?" \
+        "._*" \
+        ".Spotlight-V100" \
+        ".Trashes" \
+        "ehthumbs.db" \
+        "Thumbs.db" \
+        "" \
+        "# Packages" \
+        "*.7z" \
+        "*.dmg" \
+        "*.gz" \
+        "*.iso" \
+        "*.jar" \
+        "*.rar" \
+        "*.tar" \
+        "*.zip" \
+        "" \
+        "# Profile files" \
+        "*.coverage" \
+        "*.profile" \
+        "" \
+        "# Project files" \
+        "source_venv.sh" \
+        "*wheels" \
+        "" \
+        "# PyCharm files" \
+        ".idea${FILE_SEP}*" \
+        "${MAIN_DIR}${FILE_SEP}.idea${FILE_SEP}*" \
+        "" \
+        "# pytest files" \
+        ".cache${FILE_SEP}*" \
+        "" \
+        "# Raw Data" \
+        "${DATA_DIR}${FILE_SEP}*" \
+        "" \
+        "# Sphinx files" \
+        "docs/_build/*" \
+        "docs/_static/*" \
+        "docs/_templates/*" \
+        "docs/Makefile" \
+        > "${MAIN_DIR}${FILE_SEP}.gitignore"
 }
 
 
