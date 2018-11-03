@@ -360,186 +360,184 @@ license() {
 
 
 makefile() {
-    txt="PROJECT=${MAIN_DIR}\n"
-    txt+="ifeq (\"\$(shell uname -s)\", \"Linux*\")\n"
-    txt+="\tBROWSER=/usr/bin/firefox\n"
-    txt+="else\n"
-    txt+="\tBROWSER=open\n"
-    txt+="endif\n"
-    txt+="MOUNT_DIR=\$(shell pwd)\n"
-    txt+="MODELS=/opt/models\n"
-    txt+="PORT:=\$(shell awk -v min=16384 -v max=32768 'BEGIN{srand(); print int(min+rand()*(max-min+1))}')\n"
-    txt+="SRC_DIR=/usr/src/${SOURCE_DIR}\n"
-    txt+="USER=\$(shell echo \$\${USER%%@*})\n"
-    txt+="VERSION=\$(shell echo \$(shell cat ${SOURCE_DIR}/__init__.py | \\\\\n"
-    txt+="\t\t\tgrep \"^__version__\" | \\\\\n"
-    txt+="\t\t\tcut -d = -f 2))\n"
-
-    txt+="\ninclude envfile\n"
-    txt+=".PHONY: docs upgrade-packages\n"
-
-    txt+="\ndeploy: docker-up\n"
-    txt+="\tdocker container exec \$(PROJECT)_python \\\\\n"
-    txt+="\t\tpip3 wheel --wheel-dir=wheels .\n"
-    txt+="\tgit tag -a v\$(VERSION) -m \"Version \$(VERSION)\"\n"
-    txt+="\t@echo\n"
-    txt+="\t@echo\n"
-    txt+="\t@echo Enter the following to push this tag to the repository:\n"
-    txt+="\t@echo git push origin v\$(VERSION)\n"
-
-    txt+="\ndocker-down:\n"
-    txt+="\tdocker-compose -f docker/docker-compose.yml down\n"
-
-    txt+="\ndocker-rebuild: setup.py\n"
-    txt+="\tdocker-compose -f docker/docker-compose.yml up -d --build\n"
-
-    txt+="\ndocker-up:\n"
-    txt+="\tdocker-compose -f docker/docker-compose.yml up -d\n"
-
-    txt+="\ndocs: docker-up\n"
-    txt+="\tdocker container exec \$(PROJECT)_python \\\\\n"
-    txt+="\t\t/bin/bash -c \"pip install -e . && cd docs && make html\"\n"
-    txt+="\t\${BROWSER} http://localhost:8080\n\n"
-
-    txt+="\ndocs-init: docker-up\n"
-    txt+="\trm -rf docs/*\n"
-    txt+="\tdocker container exec \$(PROJECT)_python \\\\\n"
-    txt+="\t\t/bin/bash -c \\\\\n"
-    txt+="\t\t\t\"cd docs \\\\\n"
-    txt+="\t\t\t && sphinx-quickstart -q \\\\\n"
-    txt+="\t\t\t\t-p \$(PROJECT) \\\\\n"
-    txt+="\t\t\t\t-a \"${AUTHOR}\" \\\\\n"
-    txt+="\t\t\t\t-v \$(VERSION) \\\\\n"
-    txt+="\t\t\t\t--ext-autodoc \\\\\n"
-    txt+="\t\t\t\t--ext-viewcode \\\\\n"
-    txt+="\t\t\t\t--makefile \\\\\\n"
-    txt+="\t\t\t\t--no-batchfile\"\n"
-    txt+="\tdocker-compose -f docker/docker-compose.yml restart nginx\n"
-    txt+="ifeq (\"\$(shell git remote)\", \"origin\")\n"
-    txt+="\tgit fetch\n"
-    txt+="\tgit checkout origin/master -- docs/\n"
-    txt+="else\n"
-    txt+="\tdocker container run --rm \\\\\n"
-    txt+="\t\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\\n"
-    txt+="\t\t-w /usr/src/\$(PROJECT)/docs \\\\\n"
-    txt+="\t\tubuntu \\\\\n"
-    txt+="\t\t/bin/bash -c \\\\\n"
-    txt+="\t\t\t\"sed -i -e 's/# import os/import os/g' conf.py \\\\\n"
-    txt+="\t\t\t && sed -i -e 's/# import sys/import sys/g' conf.py \\\\\n"
-    txt+="\t\t\t && sed -i \\\\\"/# sys.path.insert(0, os.path.abspath('.'))/d\\\\\" \\\\\n"
-    txt+="\t\t\t\tconf.py \\\\\n"
-    txt+="\t\t\t && sed -i -e \\\\\"/import sys/a \\\\\n"
-    txt+="\t\t\t\tsys.path.insert(0, os.path.abspath('../${SOURCE_DIR}')) \\\\\n"
-    txt+="\t\t\t\t\\\\n\\\\nfrom ${SOURCE_DIR} import __version__\\\\\" \\\\\n"
-    txt+="\t\t\t\tconf.py \\\\\n"
-    txt+="\t\t\t && sed -i -e \\\\\"s/version = '0.1.0'/version = __version__/g\\\\\" \\\\\n"
-    txt+="\t\t\t\tconf.py \\\\\n"
-    txt+="\t\t\t && sed -i -e \\\\\"s/release = '0.1.0'/release = __version__/g\\\\\" \\\\\n"
-    txt+="\t\t\t\tconf.py \\\\\n"
-    txt+="\t\t\t && sed -i -e \\\\\"s/alabaster/sphinx_rtd_theme/g\\\\\" \\\\\n"
-    txt+="\t\t\t\tconf.py \\\\\n"
-    txt+="\t\t\t && sed -i \\\\\"/   :caption: Contents:/a \\\\\n"
-    txt+="\t\t\t\t\\\\\\\\\\\\\\\\\\\\n   package\\\\\" \\\\\n"
-    txt+="\t\t\t\tindex.rst\"\n"
-
-    txt+="\tprintf \"%s\\\\n\" \\\\\n"
-    txt+="\t\t\"Package Modules\" \\\\\n"
-    txt+="\t\t\"===============\" \\\\\n"
-    txt+="\t\t\"\" \\\\\n"
-    txt+="\t\t\".. toctree::\" \\\\\n"
-    txt+="\t\t\"    :maxdepth: 2\" \\\\\n"
-    txt+="\t\t\"\" \\\\\n"
-    txt+="\t\t\"cli\" \\\\\n"
-    txt+="\t\t\"---\" \\\\\n"
-    txt+="\t\t\".. automodule:: cli\" \\\\\n"
-    txt+="\t\t\"    :members:\" \\\\\n"
-    txt+="\t\t\"    :show-inheritance:\" \\\\\n"
-    txt+="\t\t\"    :synopsis: Package commandline interface calls.\" \\\\\n"
-    txt+="\t\t\"\" \\\\\n"
-    txt+="\t> \"docs/package.rst\"\n"
-
-    txt+="endif\n"
-
-    txt+="\ndocs-view: docker-up\n"
-    txt+="\t\${BROWSER} http://localhost:8080\n"
-
-    txt+="\nipython: docker-up\n"
-    txt+="\tdocker container exec -it \$(PROJECT)_python ipython\n"
-
-    txt+="\nnotebook: notebook-server\n"
-    txt+="\tsleep 0.5\n"
-    txt+="\t\${BROWSER} \$\$(docker container exec \\\\\n"
-    txt+="\t\t\$(USER)_notebook_\$(PORT) \\\\\n"
-    txt+="\t\tjupyter notebook list | grep -o '^http\S*')\n"
-
-    txt+="\nnotebook-remove:\n"
-    txt+="\tdocker container rm -f \$\$(docker container ls -f name=\$(USER)_notebook -q)\n"
-
-    txt+="\nnotebook-server:\n"
-    txt+="\tdocker container run -d --rm \\\\\n"
-    txt+="\t\t--name \$(USER)_notebook_\$(PORT) \\\\\n"
-    txt+="\t\t-p \$(PORT):\$(PORT) \\\\\n"
-    txt+="\t\t\$(PROJECT)_python \\\\\n"
-    txt+="\t\t/bin/bash -c \"jupyter notebook \\\\\n"
-    txt+="\t\t\t\t--allow-root \\\\\n"
-    txt+="\t\t\t\t--ip=0.0.0.0 \\\\\n"
-    txt+="\t\t\t\t--port=\$(PORT)\"\n"
-
-    txt+="\npgadmin: docker-up\n"
-    txt+="\t\${BROWSER} http://localhost:5000\n"
-
-    txt+="\npsql: docker-up\n"
-    txt+="\tdocker container exec -it \$(PROJECT)_postgres \\\\\n"
-    txt+="\t\tpsql -U \${POSTGRES_USER} \$(PROJECT)\n"
-
-    txt+="\ntensorflow:\n"
-    txt+="\tdocker container run --rm \\\\\n"
-    txt+="\t\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\\n"
-    txt+="\t\t-w /usr/src/\$(PROJECT) \\\\\n"
-    txt+="\t\tubuntu \\\\\n"
-    txt+="\t\t/bin/bash -c \\\\\n"
-    txt+="\t\t\t\"sed -i -e 's/python-Dockerfile/tensorflow-Dockerfile/g' \\\\\n"
-    txt+="\t\t\t\tdocker/docker-compose.yml \\\\\n"
-    txt+="\t\t\t && sed -i -e \\\\\"/'notebook': \['jupyter'\],/a \\\\\n"
-    txt+="\t\t\t\t\\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ 'tf-cpu': ['tensorflow'],\\\\\n"
-    txt+="\t\t\t\t\\\\n\\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ 'tf-gpu': ['tensorflow-gpu'],\\\\\" \\\\\n"
-    txt+="\t\t\t\tsetup.py\"\n"
-
-    txt+="\ntensorflow-models: tensorflow docker-rebuild\n"
-    txt+="ifneq (\$(wildcard \${MODELS}), )\n"
-    txt+="\techo \"Updating TensorFlow Models Repository\"\n"
-    txt+="\tcd \${MODELS} \\\\\n"
-    txt+="\t&& git checkout master \\\\\n"
-    txt+="\t&& git pull\n"
-    txt+="\tcd \${MOUNT_DIR}\n"
-    txt+="else\n"
-    txt+="\techo \"Cloning TensorFlow Models Repository to \${MODELS}\"\n"
-    txt+="\tmkdir -p \${MODELS}\n"
-    txt+="\tgit clone https://github.com/tensorflow/models.git \${MODELS}\n"
-    txt+="endif\n"
-
-    txt+="\ntest: docker-up\n"
-    txt+="\tdocker container exec \$(PROJECT)_python \\\\\n"
-    txt+="\t\t/bin/bash -c \"py.test\\\\\n"
-    txt+="\t\t\t\t--basetemp=pytest \\\\\n"
-    txt+="\t\t\t\t--doctest-modules \\\\\n"
-    txt+="\t\t\t\t--ff \\\\\n"
-    txt+="\t\t\t\t--pep8 \\\\\n"
-    txt+="\t\t\t\t-r all \\\\\n"
-    txt+="\t\t\t\t-vvv\"\n"
-
-    txt+="\nupgrade-packages: docker-up\n"
-    txt+="\tdocker container exec \$(PROJECT)_python \\\\\n"
-    txt+="\t\t/bin/bash -c \\\\\n"
-    txt+="\t\t\t\"pip3 install -U pip \\\\\n"
-    txt+="\t\t\t && pip3 freeze | \\\\\n"
-    txt+="\t\t\t\tgrep -v \$(PROJECT) | \\\\\n"
-    txt+="\t\t\t\tcut -d = -f 1 > requirements.txt \\\\\n"
-    txt+="\t\t\t && pip3 install -U -r requirements.txt \\\\\n"
-    txt+="\t\t\t && pip3 freeze > requirements.txt \\\\\n"
-    txt+="\t\t\t && sed -i -e '/^-e/d' requirements.txt\"\n"
-
-    printf %b "${txt}" >> "${MAIN_DIR}${FILE_SEP}Makefile"
+    printf "%b\n" \
+        "PROJECT=${MAIN_DIR}" \
+        "ifeq (\"\$(shell uname -s)\", \"Linux*\")" \
+        "\tBROWSER=/usr/bin/firefox" \
+        "else" \
+        "\tBROWSER=open" \
+        "endif" \
+        "MOUNT_DIR=\$(shell pwd)" \
+        "MODELS=/opt/models" \
+        "PORT:=\$(shell awk -v min=16384 -v max=32768 'BEGIN{srand(); print int(min+rand()*(max-min+1))}')" \
+        "SRC_DIR=/usr/src/${SOURCE_DIR}" \
+        "USER=\$(shell echo \$\${USER%%@*})" \
+        "VERSION=\$(shell echo \$(shell cat ${SOURCE_DIR}/__init__.py | \\\\" \
+        "\t\t\tgrep \"^__version__\" | \\\\" \
+        "\t\t\tcut -d = -f 2))" \
+        "" \
+        "include envfile" \
+        ".PHONY: docs upgrade-packages" \
+        "" \
+        "deploy: docker-up" \
+        "\tdocker container exec \$(PROJECT)_python \\\\" \
+        "\t\tpip3 wheel --wheel-dir=wheels ." \
+        "\tgit tag -a v\$(VERSION) -m \"Version \$(VERSION)\"" \
+        "\t@echo" \
+        "\t@echo" \
+        "\t@echo Enter the following to push this tag to the repository:" \
+        "\t@echo git push origin v\$(VERSION)" \
+        "" \
+        "docker-down:" \
+        "\tdocker-compose -f docker/docker-compose.yml down" \
+        "" \
+        "docker-rebuild: setup.py" \
+        "\tdocker-compose -f docker/docker-compose.yml up -d --build" \
+        "" \
+        "docker-up:" \
+        "\tdocker-compose -f docker/docker-compose.yml up -d" \
+        "" \
+        "docs: docker-up" \
+        "\tdocker container exec \$(PROJECT)_python \\\\" \
+        "\t\t/bin/bash -c \"pip install -e . && cd docs && make html\"" \
+        "\t\${BROWSER} http://localhost:8080\n" \
+        "" \
+        "docs-init: docker-up" \
+        "\trm -rf docs/*" \
+        "\tdocker container exec \$(PROJECT)_python \\\\" \
+        "\t\t/bin/bash -c \\\\" \
+        "\t\t\t\"cd docs \\\\" \
+        "\t\t\t && sphinx-quickstart -q \\\\" \
+        "\t\t\t\t-p \$(PROJECT) \\\\" \
+        "\t\t\t\t-a \"${AUTHOR}\" \\\\" \
+        "\t\t\t\t-v \$(VERSION) \\\\" \
+        "\t\t\t\t--ext-autodoc \\\\" \
+        "\t\t\t\t--ext-viewcode \\\\" \
+        "\t\t\t\t--makefile \\\\" \
+        "\t\t\t\t--no-batchfile\"" \
+        "\tdocker-compose -f docker/docker-compose.yml restart nginx" \
+        "ifeq (\"\$(shell git remote)\", \"origin\")" \
+        "\tgit fetch" \
+        "\tgit checkout origin/master -- docs/" \
+        "else" \
+        "\tdocker container run --rm \\\\" \
+        "\t\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\" \
+        "\t\t-w /usr/src/\$(PROJECT)/docs \\\\" \
+        "\t\tubuntu \\\\" \
+        "\t\t/bin/bash -c \\\\" \
+        "\t\t\t\"sed -i -e 's/# import os/import os/g' conf.py \\\\" \
+        "\t\t\t && sed -i -e 's/# import sys/import sys/g' conf.py \\\\" \
+        "\t\t\t && sed -i \\\\\"/# sys.path.insert(0, os.path.abspath('.'))/d\\\\\" \\\\" \
+        "\t\t\t\tconf.py \\\\" \
+        "\t\t\t && sed -i -e \\\\\"/import sys/a \\\\" \
+        "\t\t\t\tsys.path.insert(0, os.path.abspath('../${SOURCE_DIR}')) \\\\" \
+        "\t\t\t\t\\\\n\\\\nfrom ${SOURCE_DIR} import __version__\\\\\" \\\\" \
+        "\t\t\t\tconf.py \\\\" \
+        "\t\t\t && sed -i -e \\\\\"s/version = '0.1.0'/version = __version__/g\\\\\" \\\\" \
+        "\t\t\t\tconf.py \\\\" \
+        "\t\t\t && sed -i -e \\\\\"s/release = '0.1.0'/release = __version__/g\\\\\" \\\\" \
+        "\t\t\t\tconf.py \\\\" \
+        "\t\t\t && sed -i -e \\\\\"s/alabaster/sphinx_rtd_theme/g\\\\\" \\\\" \
+        "\t\t\t\tconf.py \\\\" \
+        "\t\t\t && sed -i \\\\\"/   :caption: Contents:/a \\\\" \
+        "\t\t\t\t\\\\\\\\\\\\\\\\\\\\n   package\\\\\" \\\\" \
+        "\t\t\t\tindex.rst\"" \
+        "\tprintf \"%s\\\\n\" \\\\" \
+        "\t\t\"Package Modules\" \\\\" \
+        "\t\t\"===============\" \\\\" \
+        "\t\t\"\" \\\\" \
+        "\t\t\".. toctree::\" \\\\" \
+        "\t\t\"    :maxdepth: 2\" \\\\" \
+        "\t\t\"\" \\\\" \
+        "\t\t\"cli\" \\\\" \
+        "\t\t\"---\" \\\\" \
+        "\t\t\".. automodule:: cli\" \\\\" \
+        "\t\t\"    :members:\" \\\\" \
+        "\t\t\"    :show-inheritance:\" \\\\" \
+        "\t\t\"    :synopsis: Package commandline interface calls.\" \\\\" \
+        "\t\t\"\" \\\\" \
+        "\t> \"docs/package.rst\"" \
+        "endif" \
+        "" \
+        "docs-view: docker-up" \
+        "\t\${BROWSER} http://localhost:8080" \
+        "" \
+        "ipython: docker-up" \
+        "\tdocker container exec -it \$(PROJECT)_python ipython" \
+        "" \
+        "notebook: notebook-server" \
+        "\tsleep 0.5" \
+        "\t\${BROWSER} \$\$(docker container exec \\\\" \
+        "\t\t\$(USER)_notebook_\$(PORT) \\\\" \
+        "\t\tjupyter notebook list | grep -o '^http\S*')" \
+        "" \
+        "notebook-remove:" \
+        "\tdocker container rm -f \$\$(docker container ls -f name=\$(USER)_notebook -q)" \
+        "" \
+        "notebook-server:" \
+        "\tdocker container run -d --rm \\\\" \
+        "\t\t--name \$(USER)_notebook_\$(PORT) \\\\" \
+        "\t\t-p \$(PORT):\$(PORT) \\\\" \
+        "\t\t\$(PROJECT)_python \\\\" \
+        "\t\t/bin/bash -c \"jupyter notebook \\\\" \
+        "\t\t\t\t--allow-root \\\\" \
+        "\t\t\t\t--ip=0.0.0.0 \\\\" \
+        "\t\t\t\t--port=\$(PORT)\"" \
+        "" \
+        "pgadmin: docker-up" \
+        "\t\${BROWSER} http://localhost:5000" \
+        "" \
+        "psql: docker-up" \
+        "\tdocker container exec -it \$(PROJECT)_postgres \\\\" \
+        "\t\tpsql -U \${POSTGRES_USER} \$(PROJECT)" \
+        "" \
+        "tensorflow:" \
+        "\tdocker container run --rm \\\\" \
+        "\t\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\" \
+        "\t\t-w /usr/src/\$(PROJECT) \\\\" \
+        "\t\tubuntu \\\\" \
+        "\t\t/bin/bash -c \\\\" \
+        "\t\t\t\"sed -i -e 's/python-Dockerfile/tensorflow-Dockerfile/g' \\\\" \
+        "\t\t\t\tdocker/docker-compose.yml \\\\" \
+        "\t\t\t && sed -i -e \\\\\"/'notebook': \['jupyter'\],/a \\\\" \
+        "\t\t\t\t\\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ 'tf-cpu': ['tensorflow'],\\\\" \
+        "\t\t\t\t\\\\n\\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ 'tf-gpu': ['tensorflow-gpu'],\\\\\" \\\\" \
+        "\t\t\t\tsetup.py\"" \
+        "" \
+        "tensorflow-models: tensorflow docker-rebuild" \
+        "ifneq (\$(wildcard \${MODELS}), )" \
+        "\techo \"Updating TensorFlow Models Repository\"" \
+        "\tcd \${MODELS} \\\\" \
+        "\t&& git checkout master \\\\" \
+        "\t&& git pull" \
+        "\tcd \${MOUNT_DIR}" \
+        "else" \
+        "\techo \"Cloning TensorFlow Models Repository to \${MODELS}\"" \
+        "\tmkdir -p \${MODELS}" \
+        "\tgit clone https://github.com/tensorflow/models.git \${MODELS}" \
+        "endif" \
+        "" \
+        "test: docker-up" \
+        "\tdocker container exec \$(PROJECT)_python \\\\" \
+        "\t\t/bin/bash -c \"py.test\\\\" \
+        "\t\t\t\t--basetemp=pytest \\\\" \
+        "\t\t\t\t--doctest-modules \\\\" \
+        "\t\t\t\t--ff \\\\" \
+        "\t\t\t\t--pep8 \\\\" \
+        "\t\t\t\t-r all \\\\" \
+        "\t\t\t\t-vvv\"" \
+        "" \
+        "upgrade-packages: docker-up" \
+        "\tdocker container exec \$(PROJECT)_python \\\\" \
+        "\t\t/bin/bash -c \\\\" \
+        "\t\t\t\"pip3 install -U pip \\\\" \
+        "\t\t\t && pip3 freeze | \\\\" \
+        "\t\t\t\tgrep -v \$(PROJECT) | \\\\" \
+        "\t\t\t\tcut -d = -f 1 > requirements.txt \\\\" \
+        "\t\t\t && pip3 install -U -r requirements.txt \\\\" \
+        "\t\t\t && pip3 freeze > requirements.txt \\\\" \
+        "\t\t\t && sed -i -e '/^-e/d' requirements.txt\"" \
+        > "${MAIN_DIR}${FILE_SEP}Makefile"
 }
 
 
