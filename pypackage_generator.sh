@@ -227,9 +227,9 @@ envfile(){
 
 
 git_attributes() {
-    txt="*.ipynb    filter=jupyter_clear_output"
-
-    printf %b "${txt}" >> "${MAIN_DIR}${FILE_SEP}.gitattributes"
+    printf "%s\n" \
+        "*.ipynb    filter=jupyter_clear_output" \
+        > "${MAIN_DIR}${FILE_SEP}.gitattributes"
 }
 
 
