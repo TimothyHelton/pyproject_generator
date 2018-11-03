@@ -543,7 +543,9 @@ makefile() {
 
 
 manifest() {
-    printf %b "include LICENSE.txt" >> "${MAIN_DIR}${FILE_SEP}MANIFEST.in"
+    printf "%s\n" \
+        "include LICENSE.txt" \
+        > "${MAIN_DIR}${FILE_SEP}MANIFEST.in"
 }
 
 
