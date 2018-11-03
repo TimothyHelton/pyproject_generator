@@ -160,19 +160,23 @@ docker_compose() {
 
 
 docker_python() {
-    txt="FROM python:3.6-alpine\n"
-    txt+="\nWORKDIR /usr/src/${MAIN_DIR}\n"
-    txt+="\nCOPY . .\n"
-    txt+="\nRUN apk add --update \\\\\n"
-    txt+="\t\talpine-sdk \\\\\n"
-    txt+="\t\tbash \\\\\n"
-    txt+="\t&& pip3 install --upgrade pip \\\\\n"
-    txt+="\t&& pip3 install --no-cache-dir -r requirements.txt \\\\\n"
-    txt+="\t&& pip3 install -e .[docs,notebook,test]\n"
-    txt+="\nCMD [ \"/bin/bash\" ]\n"
-    txt+="\n"
-
-    printf %b "${txt}" > "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}python-Dockerfile"
+    printf "%b\n" \
+        "FROM python:3.6-alpine" \
+        "" \
+        "WORKDIR /usr/src/${MAIN_DIR}" \
+        "" \
+        "COPY . ." \
+        "" \
+        "RUN apk add --update \\\\" \
+        "\t\talpine-sdk \\\\" \
+        "\t\tbash \\\\" \
+        "\t&& pip3 install --upgrade pip \\\\" \
+        "\t&& pip3 install --no-cache-dir -r requirements.txt \\\\" \
+        "\t&& pip3 install -e .[docs,notebook,test]" \
+        "" \
+        "CMD [ \"/bin/bash\" ]" \
+        "" \
+        > "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}python-Dockerfile"
 }
 
 
