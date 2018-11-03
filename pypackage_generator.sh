@@ -37,9 +37,6 @@ SUB_DIRECTORIES=(${DATA_DIR} \
                  ${SOURCE_DIR} \
                  ${WHEEL_DIR})
 
-PY_HEADER+="#! /usr/bin/env python3\n"
-PY_HEADER+="# -*- coding: utf-8 -*-\n"
-
 PY_SHEBANG="#! /usr/bin/env python3"
 PY_ENCODING="# -*- coding: utf-8 -*-"
 
