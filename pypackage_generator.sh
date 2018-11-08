@@ -43,18 +43,6 @@ PY_ENCODING="# -*- coding: utf-8 -*-"
 SRC_PATH="${MAIN_DIR}${FILE_SEP}${SOURCE_DIR}${FILE_SEP}"
 
 
-directories() {
-    # Main directory
-    mkdir "${MAIN_DIR}"
-    # Subdirectories
-    for dir in "${SUB_DIRECTORIES[@]}"; do
-        mkdir "${MAIN_DIR}${FILE_SEP}${dir}"
-    done
-    # Test directory
-    mkdir "${MAIN_DIR}${FILE_SEP}${SOURCE_DIR}${FILE_SEP}${TEST_DIR}"
-}
-
-
 conftest() {
     printf "%s\n" \
         "${PY_SHEBANG}" \
@@ -99,6 +87,18 @@ constructor_test() {
         "${PY_SHEBANG}" \
         "${PY_ENCODING}" \
         > "${SRC_PATH}${FILE_SEP}${TEST_DIR}${FILE_SEP}__init__.py"
+}
+
+
+directories() {
+    # Main directory
+    mkdir "${MAIN_DIR}"
+    # Subdirectories
+    for dir in "${SUB_DIRECTORIES[@]}"; do
+        mkdir "${MAIN_DIR}${FILE_SEP}${dir}"
+    done
+    # Test directory
+    mkdir "${MAIN_DIR}${FILE_SEP}${SOURCE_DIR}${FILE_SEP}${TEST_DIR}"
 }
 
 
