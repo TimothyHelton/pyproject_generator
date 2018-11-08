@@ -43,6 +43,46 @@ PY_ENCODING="# -*- coding: utf-8 -*-"
 SRC_PATH="${MAIN_DIR}${FILE_SEP}${SOURCE_DIR}${FILE_SEP}"
 
 
+cli() {
+    printf "%s\n" \
+        "${PY_SHEBANG}" \
+        "${PY_ENCODING}" \
+        "" \
+        '""" Commandline Interface Module' \
+        "" \
+        '"""' \
+        "import logging" \
+        "import time" \
+        "" \
+        "import click" \
+        "" \
+        "" \
+        "@click.command()" \
+        "@click.argument('number')" \
+        "@click.option('-q', '--quiet', is_flag=True, multiple=True," \
+        "              help='Decrease output level one (-q) or multiple times (-qqq).')" \
+        "@click.option('-v', '--verbose', is_flag=True, multiple=True," \
+        "              help='Increase output level one (-v) or multiple times (-vvv).')" \
+        "def count(number: int, quiet, verbose):" \
+        '    """' \
+        "    Display progressbar while counting to the user provided integer NUMBER." \
+        '    """' \
+        "    click.clear()" \
+        "    logging_level = logging.INFO + 10 * len(quiet) - 10 * len(verbose)" \
+        "    logging.basicConfig(level=logging_level)" \
+        "    with click.progressbar(range(int(number)), label='Counting') as bar:" \
+        "        for n in bar:" \
+        "            click.secho(f'\n\nProcessing: {n}', fg='green')" \
+        "            time.sleep(0.5)" \
+        "" \
+        "" \
+        "if __name__ == '__main__':" \
+        "    pass" \
+        "" \
+        > "${SRC_PATH}${FILE_SEP}cli.py"
+}
+
+
 conftest() {
     printf "%s\n" \
         "${PY_SHEBANG}" \
@@ -619,17 +659,18 @@ setup() {
         "        ]" \
         "    )," \
         "    install_requires=[" \
+        "        'click'," \
         "        ]," \
         "    extras_require={" \
         "        'docs': ['sphinx', 'sphinx_rtd_theme']," \
         "        'notebook': ['jupyter']," \
         "        'test': ['pytest', 'pytest-pep8']," \
-        "    }," \
+        "        }," \
         "    package_dir={'${MAIN_DIR}': '${SOURCE_DIR}'}," \
         "    include_package_data=True," \
         "    entry_points={" \
         "        'console_scripts': [" \
-        "            # '<EnterCommandName>=${SOURCE_DIR}.cli:<EnterFunction>'," \
+        "            'count=${SOURCE_DIR}.cli:count'," \
         "        ]" \
         "    }" \
         ")" \
@@ -642,6 +683,7 @@ setup() {
 
 
 directories
+cli
 conftest
 constructor_pkg
 constructor_test
