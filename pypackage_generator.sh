@@ -230,6 +230,7 @@ docker_pytorch() {
         "" \
         "RUN pip install --upgrade pip \\\\" \
         "\t&& pip install --no-cache-dir -r requirements.txt \\\\" \
+        "\t&& pip install cython \\\\" \
         "\t&& pip install -e .[docs,notebook,test]" \
         "" \
         "CMD [ \"/bin/bash\" ]" \
@@ -549,22 +550,30 @@ makefile() {
         "\tdocker container exec -it \$(PROJECT)_postgres \\\\" \
         "\t\tpsql -U \${POSTGRES_USER} \$(PROJECT)" \
         "" \
-        "pytorch:" \
+        "pytorch: pytorch-docker docker-rebuild" \
+        "" \
+        "pytorch-docker:" \
         "\tdocker container run --rm \\\\" \
         "\t\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\" \
         "\t\t-w /usr/src/\$(PROJECT) \\\\" \
         "\t\tubuntu \\\\" \
         "\t\t/bin/bash -c \\\\" \
         "\t\t\t\"sed -i -e 's/python-Dockerfile/pytorch-Dockerfile/g' \\\\" \
+        "\t\t\t\tdocker/docker-compose.yml \\\\" \
+        "\t\t\t && sed -i -e 's/tensorflow-Dockerfile/pytorch-Dockerfile/g' \\\\" \
         "\t\t\t\tdocker/docker-compose.yml\"" \
         "" \
-        "tensorflow:" \
+        "tensorflow: tensorflow-docker docker-rebuild" \
+        "" \
+        "tensorflow-docker:" \
         "\tdocker container run --rm \\\\" \
         "\t\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\" \
         "\t\t-w /usr/src/\$(PROJECT) \\\\" \
         "\t\tubuntu \\\\" \
         "\t\t/bin/bash -c \\\\" \
         "\t\t\t\"sed -i -e 's/python-Dockerfile/tensorflow-Dockerfile/g' \\\\" \
+        "\t\t\t\tdocker/docker-compose.yml \\\\" \
+        "\t\t\t && sed -i -e 's/pytorch-Dockerfile/tensorflow-Dockerfile/g' \\\\" \
         "\t\t\t\tdocker/docker-compose.yml \\\\" \
         "\t\t\t && sed -i -e \\\\\"/'notebook': \['jupyter'\],/a \\\\" \
         "\t\t\t\t\\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ 'tf-cpu': ['tensorflow'],\\\\" \
