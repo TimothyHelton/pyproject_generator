@@ -201,7 +201,7 @@ docker_compose() {
 
 docker_python() {
     printf "%b\n" \
-        "FROM python:3.6-alpine" \
+        "FROM python:alpine" \
         "" \
         "WORKDIR /usr/src/${MAIN_DIR}" \
         "" \
@@ -222,15 +222,16 @@ docker_python() {
 
 docker_pytorch() {
     printf "%b\n" \
-        "FROM pytorch/pytorch:latest" \
+        "FROM continuumio/anaconda3" \
         "" \
         "WORKDIR /usr/src/${MAIN_DIR}" \
         "" \
         "COPY . ." \
         "" \
-        "RUN pip install --upgrade pip \\\\" \
-        "\t&& pip install --no-cache-dir -r requirements.txt \\\\" \
-        "\t&& pip install cython \\\\" \
+        "RUN conda update -y conda \\\\" \
+        "\t&& conda update -y --all \\\\" \
+        "\t&& while read requirement; do conda install --yes \${requirement}; done < requirements.txt \\\\" \
+        "\t&& conda install -y pytorch torchvision -c pytorch \\\\" \
         "\t&& pip install -e .[docs,notebook,test]" \
         "" \
         "CMD [ \"/bin/bash\" ]" \
@@ -241,7 +242,7 @@ docker_pytorch() {
 
 docker_tensorflow() {
     printf "%b\n" \
-        "FROM python:3.6" \
+        "FROM python:latest" \
         "" \
         "WORKDIR /usr/src/${MAIN_DIR}" \
         "" \
@@ -428,6 +429,7 @@ makefile() {
         "endif" \
         "MOUNT_DIR=\$(shell pwd)" \
         "MODELS=/opt/models" \
+        "PKG_MANAGER=pip" \
         "PORT:=\$(shell awk -v min=16384 -v max=32768 'BEGIN{srand(); print int(min+rand()*(max-min+1))}')" \
         "SRC_DIR=/usr/src/${SOURCE_DIR}" \
         "USER=\$(shell echo \$\${USER%%@*})" \
@@ -561,7 +563,9 @@ makefile() {
         "\t\t\t\"sed -i -e 's/python-Dockerfile/pytorch-Dockerfile/g' \\\\" \
         "\t\t\t\tdocker/docker-compose.yml \\\\" \
         "\t\t\t && sed -i -e 's/tensorflow-Dockerfile/pytorch-Dockerfile/g' \\\\" \
-        "\t\t\t\tdocker/docker-compose.yml\"" \
+        "\t\t\t\tdocker/docker-compose.yml \\\\" \
+        "\t\t\t && sed -i -e 's/PKG_MANAGER=pip/PKG_MANAGER=conda/g' \\\\" \
+        "\t\t\t\tMakefile\"" \
         "" \
         "tensorflow: tensorflow-docker docker-rebuild" \
         "" \
@@ -575,6 +579,7 @@ makefile() {
         "\t\t\t\tdocker/docker-compose.yml \\\\" \
         "\t\t\t && sed -i -e 's/pytorch-Dockerfile/tensorflow-Dockerfile/g' \\\\" \
         "\t\t\t\tdocker/docker-compose.yml \\\\" \
+        "\t\t\t && sed -i -e 's/PKG_MANAGER=conda/PKG_MANAGER=pip/g' \\\\" \
         "\t\t\t && sed -i -e \\\\\"/'notebook': \['jupyter'\],/a \\\\" \
         "\t\t\t\t\\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ 'tf-cpu': ['tensorflow'],\\\\" \
         "\t\t\t\t\\\\n\\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ 'tf-gpu': ['tensorflow-gpu'],\\\\\" \\\\" \
@@ -604,6 +609,7 @@ makefile() {
         "\t\t\t\t-vvv\"" \
         "" \
         "upgrade-packages: docker-up" \
+        "ifeq (\"\${PKG_MANAGER}\", \"pip\")" \
         "\tdocker container exec \$(PROJECT)_python \\\\" \
         "\t\t/bin/bash -c \\\\" \
         "\t\t\t\"pip3 install -U pip \\\\" \
@@ -613,6 +619,14 @@ makefile() {
         "\t\t\t && pip3 install -U -r requirements.txt \\\\" \
         "\t\t\t && pip3 freeze > requirements.txt \\\\" \
         "\t\t\t && sed -i -e '/^-e/d' requirements.txt\"" \
+        "else ifeq (\"\${PKG_MANAGER}\", \"conda\")" \
+        "\tdocker container exec \$(PROJECT)_python \\\\" \
+        "\t\t/bin/bash -c \\\\" \
+        "\t\t\t\"conda update conda \\\\" \
+        "\t\t\t && conda update --all \\\\" \
+        "\t\t\t && pip freeze > requirements.txt \\\\" \
+        "\t\t\t && sed -i -e '/^-e/d' requirements.txt\"" \
+        "endif" \
         > "${MAIN_DIR}${FILE_SEP}Makefile"
 }
 
