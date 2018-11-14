@@ -220,6 +220,24 @@ docker_python() {
 }
 
 
+docker_pytorch() {
+    printf "%b\n" \
+        "FROM pytorch/pytorch:latest" \
+        "" \
+        "WORKDIR /usr/src/${MAIN_DIR}" \
+        "" \
+        "COPY . ." \
+        "" \
+        "RUN pip install --upgrade pip \\\\" \
+        "\t&& pip install --no-cache-dir -r requirements.txt \\\\" \
+        "\t&& pip install -e .[docs,notebook,test]" \
+        "" \
+        "CMD [ \"/bin/bash\" ]" \
+        "" \
+        > "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}pytorch-Dockerfile"
+}
+
+
 docker_tensorflow() {
     printf "%b\n" \
         "FROM python:3.6" \
@@ -531,6 +549,15 @@ makefile() {
         "\tdocker container exec -it \$(PROJECT)_postgres \\\\" \
         "\t\tpsql -U \${POSTGRES_USER} \$(PROJECT)" \
         "" \
+        "pytorch:" \
+        "\tdocker container run --rm \\\\" \
+        "\t\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\" \
+        "\t\t-w /usr/src/\$(PROJECT) \\\\" \
+        "\t\tubuntu \\\\" \
+        "\t\t/bin/bash -c \\\\" \
+        "\t\t\t\"sed -i -e 's/python-Dockerfile/pytorch-Dockerfile/g' \\\\" \
+        "\t\t\t\tdocker/docker-compose.yml\"" \
+        "" \
         "tensorflow:" \
         "\tdocker container run --rm \\\\" \
         "\t\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\" \
@@ -689,6 +716,7 @@ constructor_pkg
 constructor_test
 docker_compose
 docker_python
+docker_pytorch
 docker_tensorflow
 envfile
 git_attributes
