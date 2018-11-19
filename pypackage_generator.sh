@@ -201,18 +201,15 @@ docker_compose() {
 
 docker_python() {
     printf "%b\n" \
-        "FROM python:alpine" \
+        "FROM python:latest" \
         "" \
         "WORKDIR /usr/src/${MAIN_DIR}" \
         "" \
         "COPY . ." \
         "" \
-        "RUN apk add --update \\\\" \
-        "\t\talpine-sdk \\\\" \
-        "\t\tbash \\\\" \
-        "\t&& pip3 install --upgrade pip \\\\" \
+        "RUN pip3 install --upgrade pip \\\\" \
         "\t&& pip3 install --no-cache-dir -r requirements.txt \\\\" \
-        "\t&& pip3 install -e .[docs,notebook,test]" \
+        "\t&& pip3 install -e .[database,docs,notebook,test]" \
         "" \
         "CMD [ \"/bin/bash\" ]" \
         "" \
@@ -232,7 +229,7 @@ docker_pytorch() {
         "\t&& conda update -y --all \\\\" \
         "\t&& while read requirement; do conda install --yes \${requirement}; done < requirements.txt \\\\" \
         "\t&& conda install -y pytorch torchvision -c pytorch \\\\" \
-        "\t&& pip install -e .[docs,notebook,test]" \
+        "\t&& pip install -e .[database,docs,notebook,test]" \
         "" \
         "CMD [ \"/bin/bash\" ]" \
         "" \
@@ -263,7 +260,7 @@ docker_tensorflow() {
         "\t&& cd /usr/src/${MAIN_DIR} \\\\" \
         "\t&& pip install --upgrade pip \\\\" \
         "\t&& pip install --no-cache-dir -r requirements.txt \\\\" \
-        "\t&& pip install -e .[docs,notebook,tf-cpu,test]" \
+        "\t&& pip install -e .[database,docs,notebook,tf-cpu,test]" \
         "" \
         "ENV PYTHONPATH \$PYTHONPATH:/opt/models/research:/opt/models/research/slim:/opt/models/research/object_detection" \
         "" \
@@ -713,6 +710,7 @@ setup() {
         "        'click'," \
         "        ]," \
         "    extras_require={" \
+        "        'database': ['psycopg2', 'sqlalchemy']," \
         "        'docs': ['sphinx', 'sphinx_rtd_theme']," \
         "        'notebook': ['jupyter']," \
         "        'test': ['pytest', 'pytest-pep8']," \
