@@ -526,7 +526,7 @@ makefile() {
         "ipython: docker-up" \
         "\tdocker container exec -it \$(PROJECT)_python ipython" \
         "" \
-        "notebook: notebook-server" \
+        "notebook: docker-up notebook-server" \
         "\tsleep 0.5" \
         "\t\${BROWSER} \$\$(docker container exec \\\\" \
         "\t\t\$(USER)_notebook_\$(PORT) \\\\" \
@@ -539,6 +539,7 @@ makefile() {
         "\tdocker container run -d --rm \\\\" \
         "\t\t--name \$(USER)_notebook_\$(PORT) \\\\" \
         "\t\t-p \$(PORT):\$(PORT) \\\\" \
+        "\t\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\" \
         "\t\t\$(PROJECT)_python \\\\" \
         "\t\t/bin/bash -c \"jupyter notebook \\\\" \
         "\t\t\t\t--allow-root \\\\" \
