@@ -449,6 +449,9 @@ makefile() {
         "docker-down:" \
         "\tdocker-compose -f docker/docker-compose.yml down" \
         "" \
+        "docker-images-update:" \
+        "\tdocker image ls | grep -v REPOSITORY | cut -d ' ' -f 1 | xargs -L1 docker pull" \
+        ""\
         "docker-rebuild: setup.py" \
         "\tdocker-compose -f docker/docker-compose.yml up -d --build" \
         "" \
