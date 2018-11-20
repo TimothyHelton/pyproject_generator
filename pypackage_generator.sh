@@ -144,13 +144,15 @@ directories() {
 
 docker_compose() {
     printf "%s\n" \
-        "version: '3'" \
+        "version: '3.7'" \
         "" \
         "services:" \
         "" \
         "  nginx:" \
         "    container_name: ${MAIN_DIR}_nginx" \
         "    image: nginx:alpine" \
+        "    networks:"\
+        "      - ${MAIN_DIR}-network" \
         "    ports:" \
         "      - 8080:80" \
         "    restart: always" \
@@ -164,6 +166,8 @@ docker_compose() {
         "      POSTGRES_PASSWORD: \${POSTGRES_PASSWORD}" \
         "      POSTGRES_DB: \${POSTGRES_DB}" \
         "      POSTGRES_USER: \${POSTGRES_USER}" \
+        "    networks:"\
+        "      - ${MAIN_DIR}-network" \
         "    ports:" \
         "      - 5432:5432" \
         "    restart: always" \
@@ -173,11 +177,15 @@ docker_compose() {
         "  pgadmin:" \
         "    container_name: ${MAIN_DIR}_pgadmin" \
         "    image: dpage/pgadmin4" \
+        "    depends_on:" \
+        "      - postgres" \
         "    environment:" \
         "      PGADMIN_DEFAULT_EMAIL: \${PGADMIN_DEFAULT_EMAIL}" \
         "      PGADMIN_DEFAULT_PASSWORD: \${PGADMIN_DEFAULT_PASSWORD}" \
         "    external_links:" \
         "      - ${MAIN_DIR}_postgres:${MAIN_DIR}_postgres" \
+        "    networks:"\
+        "      - ${MAIN_DIR}-network" \
         "    ports:" \
         "      - 5000:80" \
         "" \
@@ -186,11 +194,19 @@ docker_compose() {
         "    build:" \
         "      context: .." \
         "      dockerfile: docker/python-Dockerfile" \
+        "    depends_on:" \
+        "      - postgres" \
         "    image: ${MAIN_DIR}_python" \
+        "    networks:"\
+        "      - ${MAIN_DIR}-network" \
         "    restart: always" \
         "    tty: true" \
         "    volumes:" \
         "      - ..:/usr/src/${MAIN_DIR}" \
+        "" \
+        "networks:" \
+        "  ${MAIN_DIR}-network:" \
+        "    name: ${MAIN_DIR}" \
         "" \
         "volumes:" \
         "  ${MAIN_DIR}-db:" \
@@ -428,6 +444,7 @@ makefile() {
         "MODELS=/opt/models" \
         "PKG_MANAGER=pip" \
         "PORT:=\$(shell awk -v min=16384 -v max=32768 'BEGIN{srand(); print int(min+rand()*(max-min+1))}')" \
+        "NOTEBOOK_NAME=\$(USER)_notebook_\$(PORT)" \
         "SRC_DIR=/usr/src/${SOURCE_DIR}" \
         "USER=\$(shell echo \$\${USER%%@*})" \
         "VERSION=\$(shell echo \$(shell cat ${SOURCE_DIR}/__init__.py | \\\\" \
@@ -446,7 +463,7 @@ makefile() {
         "\t@echo Enter the following to push this tag to the repository:" \
         "\t@echo git push origin v\$(VERSION)" \
         "" \
-        "docker-down:" \
+        "docker-down: notebook-remove" \
         "\tdocker-compose -f docker/docker-compose.yml down" \
         "" \
         "docker-images-update:" \
@@ -537,7 +554,7 @@ makefile() {
         "" \
         "notebook-server:" \
         "\tdocker container run -d --rm \\\\" \
-        "\t\t--name \$(USER)_notebook_\$(PORT) \\\\" \
+        "\t\t--name \$(NOTEBOOK_NAME) \\\\" \
         "\t\t-p \$(PORT):\$(PORT) \\\\" \
         "\t\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\" \
         "\t\t\$(PROJECT)_python \\\\" \
@@ -545,6 +562,7 @@ makefile() {
         "\t\t\t\t--allow-root \\\\" \
         "\t\t\t\t--ip=0.0.0.0 \\\\" \
         "\t\t\t\t--port=\$(PORT)\"" \
+        "\tdocker network connect \$(PROJECT) \$(NOTEBOOK_NAME)" \
         "" \
         "pgadmin: docker-up" \
         "\t\${BROWSER} http://localhost:5000" \
