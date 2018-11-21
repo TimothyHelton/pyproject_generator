@@ -104,6 +104,8 @@ constructor_pkg() {
         "import os.path as osp" \
         "" \
         "# from . import cli" \
+        "# from . import db" \
+        "# from . import utils" \
         "# from . import EnterModuleNameHere" \
         "" \
         "__version__ = '0.1.0'" \
@@ -127,6 +129,78 @@ constructor_test() {
         "${PY_SHEBANG}" \
         "${PY_ENCODING}" \
         > "${SRC_PATH}${FILE_SEP}${TEST_DIR}${FILE_SEP}__init__.py"
+}
+
+
+db() {
+    printf "%s\n" \
+        "${PY_SHEBANG}" \
+        "${PY_ENCODING}" \
+        "" \
+        '""" Database Module' \
+        "" \
+        '"""' \
+        "import os" \
+        "" \
+        "from sqlalchemy import MetaData, Table, create_engine, select" \
+        "" \
+        "from .utils import format_logger, project_vars" \
+        "" \
+        "" \
+        "logger = format_logger" \
+        "" \
+        "" \
+        "class Connect:" \
+        '    """' \
+        "    Database Connection Class" \
+        "" \
+        "    :Attributes:" \
+        "" \
+        "    - **conn**: *Connection* SQLAlchemy connection object" \
+        "    - **db_name**: *str* database name" \
+        "    - **dialect**: *str* SQLAlchemy dialect" \
+        "    - **driver**: *str* SQLAlchemy driver \\" \
+        "        (if None the default value will be used)" \
+        "    - **engine**: *Engine* SQLAlchemy engine object" \
+        "    - **host**: *str* database host" \
+        "    - **meta**: *MetaData* A collection of *Table* objects and their \\" \
+        "        associated child objects" \
+        "    - **password**: *str* database password" \
+        "    - **port**: *int* database port" \
+        "    - **tables**: *list* tables in database" \
+        "    - **user**: *str* username" \
+        '    """' \
+        "    def __init__(self):" \
+        "        project_vars()" \
+        "        self.dialect = 'postgresql'" \
+        "        self.driver = None" \
+        "        self.db_name = os.environ['POSTGRES_DB']" \
+        "        self.host = '${MAIN_DIR}_postgres'" \
+        "        self.meta = MetaData()" \
+        "        self.password = os.environ['POSTGRES_PASSWORD']" \
+        "        self.port = 5432" \
+        "        self.user = os.environ['POSTGRES_USER']" \
+        "" \
+        "        self.dialect = (f'{self.dialect}+{self.driver}' if self.driver" \
+        "                        else self.dialect)" \
+        "        self.engine = create_engine(" \
+        "            f'{self.dialect}://{self.user}:{self.password}'" \
+        "            f'@{self.host}:{self.port}/{self.db_name}'" \
+        "        )" \
+        "        self.conn = self.engine.connect()" \
+        "        self.tables = self.engine.table_names()" \
+        "" \
+        "    def __repr__(self) -> str:" \
+        "        return (f'<{type(self).__name__}('" \
+        "                f'user={os.environ[\"POSTGRES_USER\"]}, '" \
+        "                f'database={os.environ[\"POSTGRES_DB\"]}'" \
+        "                f')')" \
+        "" \
+        "" \
+        "if __name__ == '__main__':" \
+        "    pass" \
+        "" \
+        > "${SRC_PATH}${FILE_SEP}db.py"
 }
 
 
@@ -765,9 +839,6 @@ utils() {
         "import re" \
         "" \
         "" \
-        "logger = logging.getLogger(__name__)" \
-        "" \
-        "" \
         "def format_logger() -> logging.Logger:" \
         '    """Format the logger."""' \
         "    log_format = ('%(asctime)s  %(levelname)8s  -> %(name)s <- '" \
@@ -782,8 +853,8 @@ utils() {
         '    """Load project specific environment variables."""' \
         "    with open(Path('envfile'), 'r') as f:" \
         "        txt = f.read()" \
-        "    vars = re.findall(r'export\s(.*)=(.*)', txt)" \
-        "    for name, value in vars:" \
+        "    env_vars = re.findall(r'export\s(.*)=(.*)', txt)" \
+        "    for name, value in env_vars:" \
         "        os.environ[name] = value" \
         "" \
         "" \
@@ -795,6 +866,7 @@ utils() {
 
 directories
 cli
+db
 utils
 conftest
 constructor_pkg
