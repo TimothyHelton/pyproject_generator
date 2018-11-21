@@ -607,6 +607,20 @@ makefile() {
         "\t\t\"    :show-inheritance:\" \\\\" \
         "\t\t\"    :synopsis: Package commandline interface calls.\" \\\\" \
         "\t\t\"\" \\\\" \
+        "\t\t\"db\" \\\\" \
+        "\t\t\"--\" \\\\" \
+        "\t\t\".. automodule:: db\" \\\\" \
+        "\t\t\"    :members:\" \\\\" \
+        "\t\t\"    :show-inheritance:\" \\\\" \
+        "\t\t\"    :synopsis: Package database module.\" \\\\" \
+        "\t\t\"\" \\\\" \
+        "\t\t\"utils\" \\\\" \
+        "\t\t\"-----\" \\\\" \
+        "\t\t\".. automodule:: utils\" \\\\" \
+        "\t\t\"    :members:\" \\\\" \
+        "\t\t\"    :show-inheritance:\" \\\\" \
+        "\t\t\"    :synopsis: Package utilities module.\" \\\\" \
+        "\t\t\"\" \\\\" \
         "\t> \"docs/package.rst\"" \
         "endif" \
         "" \
