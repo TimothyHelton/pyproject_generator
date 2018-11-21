@@ -681,8 +681,8 @@ requirements() {
 
 setup() {
     printf "%s\n" \
-        "#!/usr/bin/env python3" \
-        "# -*- coding: utf-8 -*-" \
+        "${PY_SHEBANG}" \
+        "${PY_ENCODING}" \
         "" \
         "from codecs import open" \
         "import os.path as osp" \
@@ -751,9 +751,42 @@ setup() {
         > "${MAIN_DIR}${FILE_SEP}setup.py"
 }
 
+utils() {
+    printf "%s\n" \
+        "${PY_SHEBANG}" \
+        "${PY_ENCODING}" \
+        "" \
+        '""" Package Utilities' \
+        "" \
+        '"""' \
+        "import json" \
+        "import logging" \
+        "from pathlib import Path" \
+        "from typing import Dict" \
+        "" \
+        "logger = logging.getLogger(__name__)" \
+        "keys_file = Path('~/.${SOURCE_DIR}_keys.json').expanduser()" \
+        "" \
+        "" \
+        "def format_logger() -> logging.Logger:" \
+        '    """Format the logger."""' \
+        "    log_format = ('%(asctime)s  %(levelname)8s  -> %(name)s <- '" \
+        "                  '(line: %(lineno)d) %(message)s\n')" \
+        "    date_format = '%m/%d/%Y %I:%M:%S'" \
+        "    logging.basicConfig(format=log_format, datefmt=date_format," \
+        "                        level=logging.INFO)" \
+        "    return logging.getLogger(__name__)" \
+        "" \
+        "" \
+        "if __name__ == '__main__':" \
+        "    pass" \
+        ""\
+        > "${SRC_PATH}${FILE_SEP}utils.py"
+}
 
 directories
 cli
+utils
 conftest
 constructor_pkg
 constructor_test
