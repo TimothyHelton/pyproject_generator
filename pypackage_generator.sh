@@ -101,18 +101,19 @@ constructor_pkg() {
         "${PY_ENCODING}" \
         "" \
         "from pkg_resources import get_distribution, DistributionNotFound" \
-        "import os.path as osp" \
+        "from os import path" \
         "" \
         "# from . import cli" \
-        "# from . import EnterModuleNameHere" \
+        "# from . import db" \
+        "# from . import utils" \
         "" \
         "__version__ = '0.1.0'" \
         "" \
         "try:" \
         "    _dist = get_distribution('${MAIN_DIR}')" \
-        "    dist_loc = osp.normcase(_dist.location)" \
-        "    here = osp.normcase(__file__)" \
-        "    if not here.startswith(osp.join(dist_loc, '${MAIN_DIR}')):" \
+        "    dist_loc = path.normcase(_dist.location)" \
+        "    here = path.normcase(__file__)" \
+        "    if not here.startswith(path.join(dist_loc, '${MAIN_DIR}')):" \
         "        raise DistributionNotFound" \
         "except DistributionNotFound:" \
         "    __version__ = 'Please install this project with setup.py'" \
@@ -130,6 +131,78 @@ constructor_test() {
 }
 
 
+db() {
+    printf "%s\n" \
+        "${PY_SHEBANG}" \
+        "${PY_ENCODING}" \
+        "" \
+        '""" Database Module' \
+        "" \
+        '"""' \
+        "import os" \
+        "" \
+        "from sqlalchemy import MetaData, Table, create_engine, select" \
+        "" \
+        "from .utils import format_logger, project_vars" \
+        "" \
+        "" \
+        "logger = format_logger" \
+        "" \
+        "" \
+        "class Connect:" \
+        '    """' \
+        "    Database Connection Class" \
+        "" \
+        "    :Attributes:" \
+        "" \
+        "    - **conn**: *Connection* SQLAlchemy connection object" \
+        "    - **db_name**: *str* database name" \
+        "    - **dialect**: *str* SQLAlchemy dialect" \
+        "    - **driver**: *str* SQLAlchemy driver \\" \
+        "        (if None the default value will be used)" \
+        "    - **engine**: *Engine* SQLAlchemy engine object" \
+        "    - **host**: *str* database host" \
+        "    - **meta**: *MetaData* A collection of *Table* objects and their \\" \
+        "        associated child objects" \
+        "    - **password**: *str* database password" \
+        "    - **port**: *int* database port" \
+        "    - **tables**: *list* tables in database" \
+        "    - **user**: *str* username" \
+        '    """' \
+        "    def __init__(self):" \
+        "        project_vars()" \
+        "        self.dialect = 'postgresql'" \
+        "        self.driver = None" \
+        "        self.db_name = os.environ['POSTGRES_DB']" \
+        "        self.host = '${MAIN_DIR}_postgres'" \
+        "        self.meta = MetaData()" \
+        "        self.password = os.environ['POSTGRES_PASSWORD']" \
+        "        self.port = 5432" \
+        "        self.user = os.environ['POSTGRES_USER']" \
+        "" \
+        "        self.dialect = (f'{self.dialect}+{self.driver}' if self.driver" \
+        "                        else self.dialect)" \
+        "        self.engine = create_engine(" \
+        "            f'{self.dialect}://{self.user}:{self.password}'" \
+        "            f'@{self.host}:{self.port}/{self.db_name}'" \
+        "        )" \
+        "        self.conn = self.engine.connect()" \
+        "        self.tables = self.engine.table_names()" \
+        "" \
+        "    def __repr__(self) -> str:" \
+        "        return (f'<{type(self).__name__}('" \
+        "                f'user={os.environ[\"POSTGRES_USER\"]}, '" \
+        "                f'database={os.environ[\"POSTGRES_DB\"]}'" \
+        "                f')')" \
+        "" \
+        "" \
+        "if __name__ == '__main__':" \
+        "    pass" \
+        "" \
+        > "${SRC_PATH}${FILE_SEP}db.py"
+}
+
+
 directories() {
     # Main directory
     mkdir "${MAIN_DIR}"
@@ -144,13 +217,15 @@ directories() {
 
 docker_compose() {
     printf "%s\n" \
-        "version: '3'" \
+        "version: '3.7'" \
         "" \
         "services:" \
         "" \
         "  nginx:" \
         "    container_name: ${MAIN_DIR}_nginx" \
         "    image: nginx:alpine" \
+        "    networks:"\
+        "      - ${MAIN_DIR}-network" \
         "    ports:" \
         "      - 8080:80" \
         "    restart: always" \
@@ -164,6 +239,8 @@ docker_compose() {
         "      POSTGRES_PASSWORD: \${POSTGRES_PASSWORD}" \
         "      POSTGRES_DB: \${POSTGRES_DB}" \
         "      POSTGRES_USER: \${POSTGRES_USER}" \
+        "    networks:"\
+        "      - ${MAIN_DIR}-network" \
         "    ports:" \
         "      - 5432:5432" \
         "    restart: always" \
@@ -173,11 +250,15 @@ docker_compose() {
         "  pgadmin:" \
         "    container_name: ${MAIN_DIR}_pgadmin" \
         "    image: dpage/pgadmin4" \
+        "    depends_on:" \
+        "      - postgres" \
         "    environment:" \
         "      PGADMIN_DEFAULT_EMAIL: \${PGADMIN_DEFAULT_EMAIL}" \
         "      PGADMIN_DEFAULT_PASSWORD: \${PGADMIN_DEFAULT_PASSWORD}" \
         "    external_links:" \
         "      - ${MAIN_DIR}_postgres:${MAIN_DIR}_postgres" \
+        "    networks:"\
+        "      - ${MAIN_DIR}-network" \
         "    ports:" \
         "      - 5000:80" \
         "" \
@@ -186,11 +267,19 @@ docker_compose() {
         "    build:" \
         "      context: .." \
         "      dockerfile: docker/python-Dockerfile" \
+        "    depends_on:" \
+        "      - postgres" \
         "    image: ${MAIN_DIR}_python" \
+        "    networks:"\
+        "      - ${MAIN_DIR}-network" \
         "    restart: always" \
         "    tty: true" \
         "    volumes:" \
         "      - ..:/usr/src/${MAIN_DIR}" \
+        "" \
+        "networks:" \
+        "  ${MAIN_DIR}-network:" \
+        "    name: ${MAIN_DIR}" \
         "" \
         "volumes:" \
         "  ${MAIN_DIR}-db:" \
@@ -201,18 +290,15 @@ docker_compose() {
 
 docker_python() {
     printf "%b\n" \
-        "FROM python:alpine" \
+        "FROM python:latest" \
         "" \
         "WORKDIR /usr/src/${MAIN_DIR}" \
         "" \
         "COPY . ." \
         "" \
-        "RUN apk add --update \\\\" \
-        "\t\talpine-sdk \\\\" \
-        "\t\tbash \\\\" \
-        "\t&& pip3 install --upgrade pip \\\\" \
+        "RUN pip3 install --upgrade pip \\\\" \
         "\t&& pip3 install --no-cache-dir -r requirements.txt \\\\" \
-        "\t&& pip3 install -e .[docs,notebook,test]" \
+        "\t&& pip3 install -e .[database,docs,notebook,test]" \
         "" \
         "CMD [ \"/bin/bash\" ]" \
         "" \
@@ -232,7 +318,7 @@ docker_pytorch() {
         "\t&& conda update -y --all \\\\" \
         "\t&& while read requirement; do conda install --yes \${requirement}; done < requirements.txt \\\\" \
         "\t&& conda install -y pytorch torchvision -c pytorch \\\\" \
-        "\t&& pip install -e .[docs,notebook,test]" \
+        "\t&& pip install -e .[database,docs,notebook,test]" \
         "" \
         "CMD [ \"/bin/bash\" ]" \
         "" \
@@ -263,7 +349,7 @@ docker_tensorflow() {
         "\t&& cd /usr/src/${MAIN_DIR} \\\\" \
         "\t&& pip install --upgrade pip \\\\" \
         "\t&& pip install --no-cache-dir -r requirements.txt \\\\" \
-        "\t&& pip install -e .[docs,notebook,tf-cpu,test]" \
+        "\t&& pip install -e .[database,docs,notebook,tf-cpu,test]" \
         "" \
         "ENV PYTHONPATH \$PYTHONPATH:/opt/models/research:/opt/models/research/slim:/opt/models/research/object_detection" \
         "" \
@@ -431,6 +517,7 @@ makefile() {
         "MODELS=/opt/models" \
         "PKG_MANAGER=pip" \
         "PORT:=\$(shell awk -v min=16384 -v max=32768 'BEGIN{srand(); print int(min+rand()*(max-min+1))}')" \
+        "NOTEBOOK_NAME=\$(USER)_notebook_\$(PORT)" \
         "SRC_DIR=/usr/src/${SOURCE_DIR}" \
         "USER=\$(shell echo \$\${USER%%@*})" \
         "VERSION=\$(shell echo \$(shell cat ${SOURCE_DIR}/__init__.py | \\\\" \
@@ -449,9 +536,12 @@ makefile() {
         "\t@echo Enter the following to push this tag to the repository:" \
         "\t@echo git push origin v\$(VERSION)" \
         "" \
-        "docker-down:" \
+        "docker-down: notebook-remove" \
         "\tdocker-compose -f docker/docker-compose.yml down" \
         "" \
+        "docker-images-update:" \
+        "\tdocker image ls | grep -v REPOSITORY | cut -d ' ' -f 1 | xargs -L1 docker pull" \
+        ""\
         "docker-rebuild: setup.py" \
         "\tdocker-compose -f docker/docker-compose.yml up -d --build" \
         "" \
@@ -517,6 +607,20 @@ makefile() {
         "\t\t\"    :show-inheritance:\" \\\\" \
         "\t\t\"    :synopsis: Package commandline interface calls.\" \\\\" \
         "\t\t\"\" \\\\" \
+        "\t\t\"db\" \\\\" \
+        "\t\t\"--\" \\\\" \
+        "\t\t\".. automodule:: db\" \\\\" \
+        "\t\t\"    :members:\" \\\\" \
+        "\t\t\"    :show-inheritance:\" \\\\" \
+        "\t\t\"    :synopsis: Package database module.\" \\\\" \
+        "\t\t\"\" \\\\" \
+        "\t\t\"utils\" \\\\" \
+        "\t\t\"-----\" \\\\" \
+        "\t\t\".. automodule:: utils\" \\\\" \
+        "\t\t\"    :members:\" \\\\" \
+        "\t\t\"    :show-inheritance:\" \\\\" \
+        "\t\t\"    :synopsis: Package utilities module.\" \\\\" \
+        "\t\t\"\" \\\\" \
         "\t> \"docs/package.rst\"" \
         "endif" \
         "" \
@@ -537,7 +641,7 @@ makefile() {
         "" \
         "notebook-server:" \
         "\tdocker container run -d --rm \\\\" \
-        "\t\t--name \$(USER)_notebook_\$(PORT) \\\\" \
+        "\t\t--name \$(NOTEBOOK_NAME) \\\\" \
         "\t\t-p \$(PORT):\$(PORT) \\\\" \
         "\t\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\" \
         "\t\t\$(PROJECT)_python \\\\" \
@@ -545,6 +649,7 @@ makefile() {
         "\t\t\t\t--allow-root \\\\" \
         "\t\t\t\t--ip=0.0.0.0 \\\\" \
         "\t\t\t\t--port=\$(PORT)\"" \
+        "\tdocker network connect \$(PROJECT) \$(NOTEBOOK_NAME)" \
         "" \
         "pgadmin: docker-up" \
         "\t\${BROWSER} http://localhost:5000" \
@@ -663,11 +768,11 @@ requirements() {
 
 setup() {
     printf "%s\n" \
-        "#!/usr/bin/env python3" \
-        "# -*- coding: utf-8 -*-" \
+        "${PY_SHEBANG}" \
+        "${PY_ENCODING}" \
         "" \
         "from codecs import open" \
-        "import os.path as osp" \
+        "from pathlib import Path" \
         "import re" \
         "" \
         "from setuptools import setup, find_packages" \
@@ -677,8 +782,8 @@ setup() {
         "    version = re.search(r'^__version__\s*=\s*[\'\"]([^\'\"]*)[\'\"]'," \
         "                        fd.read(), re.MULTILINE).group(1)" \
         "" \
-        "here = osp.abspath(osp.dirname(__file__))" \
-        "with open(osp.join(here, 'README.md'), encoding='utf-8') as f:" \
+        "here = Path(__file__).absolute().parent" \
+        "with open(here / 'README.md', encoding='utf-8') as f:" \
         "    long_description = f.read()" \
         "" \
         "setup(" \
@@ -713,6 +818,7 @@ setup() {
         "        'click'," \
         "        ]," \
         "    extras_require={" \
+        "        'database': ['psycopg2', 'sqlalchemy']," \
         "        'docs': ['sphinx', 'sphinx_rtd_theme']," \
         "        'notebook': ['jupyter']," \
         "        'test': ['pytest', 'pytest-pep8']," \
@@ -732,9 +838,49 @@ setup() {
         > "${MAIN_DIR}${FILE_SEP}setup.py"
 }
 
+utils() {
+    printf "%s\n" \
+        "${PY_SHEBANG}" \
+        "${PY_ENCODING}" \
+        "" \
+        '""" Package Utilities' \
+        "" \
+        '"""' \
+        "import logging" \
+        "import os" \
+        "from pathlib import Path" \
+        "import re" \
+        "" \
+        "" \
+        "def format_logger() -> logging.Logger:" \
+        '    """Format the logger."""' \
+        "    log_format = ('%(asctime)s  %(levelname)8s  -> %(name)s <- '" \
+        "                  '(line: %(lineno)d) %(message)s\n')" \
+        "    date_format = '%m/%d/%Y %I:%M:%S'" \
+        "    logging.basicConfig(format=log_format, datefmt=date_format," \
+        "                        level=logging.INFO)" \
+        "    return logging.getLogger(__name__)" \
+        "" \
+        "" \
+        "def project_vars():" \
+        '    """Load project specific environment variables."""' \
+        "    with open(Path('envfile'), 'r') as f:" \
+        "        txt = f.read()" \
+        "    env_vars = re.findall(r'export\s(.*)=(.*)', txt)" \
+        "    for name, value in env_vars:" \
+        "        os.environ[name] = value" \
+        "" \
+        "" \
+        "if __name__ == '__main__':" \
+        "    pass" \
+        ""\
+        > "${SRC_PATH}${FILE_SEP}utils.py"
+}
 
 directories
 cli
+db
+utils
 conftest
 constructor_pkg
 constructor_test
