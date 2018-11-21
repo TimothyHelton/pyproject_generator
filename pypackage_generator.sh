@@ -759,13 +759,13 @@ utils() {
         '""" Package Utilities' \
         "" \
         '"""' \
-        "import json" \
         "import logging" \
+        "import os" \
         "from pathlib import Path" \
-        "from typing import Dict" \
+        "import re" \
+        "" \
         "" \
         "logger = logging.getLogger(__name__)" \
-        "keys_file = Path('~/.${SOURCE_DIR}_keys.json').expanduser()" \
         "" \
         "" \
         "def format_logger() -> logging.Logger:" \
@@ -776,6 +776,15 @@ utils() {
         "    logging.basicConfig(format=log_format, datefmt=date_format," \
         "                        level=logging.INFO)" \
         "    return logging.getLogger(__name__)" \
+        "" \
+        "" \
+        "def project_vars():" \
+        '    """Load project specific environment variables."""' \
+        "    with open(Path('envfile'), 'r') as f:" \
+        "        txt = f.read()" \
+        "    vars = re.findall(r'export\s(.*)=(.*)', txt)" \
+        "    for name, value in vars:" \
+        "        os.environ[name] = value" \
         "" \
         "" \
         "if __name__ == '__main__':" \
