@@ -101,20 +101,19 @@ constructor_pkg() {
         "${PY_ENCODING}" \
         "" \
         "from pkg_resources import get_distribution, DistributionNotFound" \
-        "import os.path as osp" \
+        "from os import path" \
         "" \
         "# from . import cli" \
         "# from . import db" \
         "# from . import utils" \
-        "# from . import EnterModuleNameHere" \
         "" \
         "__version__ = '0.1.0'" \
         "" \
         "try:" \
         "    _dist = get_distribution('${MAIN_DIR}')" \
-        "    dist_loc = osp.normcase(_dist.location)" \
-        "    here = osp.normcase(__file__)" \
-        "    if not here.startswith(osp.join(dist_loc, '${MAIN_DIR}')):" \
+        "    dist_loc = path.normcase(_dist.location)" \
+        "    here = path.normcase(__file__)" \
+        "    if not here.startswith(path.join(dist_loc, '${MAIN_DIR}')):" \
         "        raise DistributionNotFound" \
         "except DistributionNotFound:" \
         "    __version__ = 'Please install this project with setup.py'" \
@@ -759,7 +758,7 @@ setup() {
         "${PY_ENCODING}" \
         "" \
         "from codecs import open" \
-        "import os.path as osp" \
+        "from pathlib import Path" \
         "import re" \
         "" \
         "from setuptools import setup, find_packages" \
@@ -769,8 +768,8 @@ setup() {
         "    version = re.search(r'^__version__\s*=\s*[\'\"]([^\'\"]*)[\'\"]'," \
         "                        fd.read(), re.MULTILINE).group(1)" \
         "" \
-        "here = osp.abspath(osp.dirname(__file__))" \
-        "with open(osp.join(here, 'README.md'), encoding='utf-8') as f:" \
+        "here = Path(__file__).absolute().parent" \
+        "with open(here / 'README.md', encoding='utf-8') as f:" \
         "    long_description = f.read()" \
         "" \
         "setup(" \
