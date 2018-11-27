@@ -298,7 +298,7 @@ docker_python() {
         "" \
         "RUN pip3 install --upgrade pip \\\\" \
         "\t&& pip3 install --no-cache-dir -r requirements.txt \\\\" \
-        "\t&& pip3 install -e .[database,docs,notebook,test]" \
+        "\t&& pip3 install -e .[build,database,docs,notebook,test]" \
         "" \
         "CMD [ \"/bin/bash\" ]" \
         "" \
@@ -318,7 +318,7 @@ docker_pytorch() {
         "\t&& conda update -y --all \\\\" \
         "\t&& while read requirement; do conda install --yes \${requirement}; done < requirements.txt \\\\" \
         "\t&& conda install -y pytorch torchvision -c pytorch \\\\" \
-        "\t&& pip install -e .[database,docs,notebook,test]" \
+        "\t&& pip install -e .[build,database,docs,notebook,test]" \
         "" \
         "CMD [ \"/bin/bash\" ]" \
         "" \
@@ -349,7 +349,7 @@ docker_tensorflow() {
         "\t&& cd /usr/src/${MAIN_DIR} \\\\" \
         "\t&& pip install --upgrade pip \\\\" \
         "\t&& pip install --no-cache-dir -r requirements.txt \\\\" \
-        "\t&& pip install -e .[database,docs,notebook,tf-cpu,test]" \
+        "\t&& pip install -e .[build,database,docs,notebook,tf-cpu,test]" \
         "" \
         "ENV PYTHONPATH \$PYTHONPATH:/opt/models/research:/opt/models/research/slim:/opt/models/research/object_detection" \
         "" \
@@ -550,7 +550,7 @@ makefile() {
         "" \
         "docs: docker-up" \
         "\tdocker container exec \$(PROJECT)_python \\\\" \
-        "\t\t/bin/bash -c \"pip install -e . && cd docs && make html\"" \
+        "\t\t/bin/bash -c \"pip install -e .[docs] && cd docs && make html\"" \
         "\t\${BROWSER} http://localhost:8080\n" \
         "" \
         "docs-init: docker-up" \
@@ -818,6 +818,7 @@ setup() {
         "        'click'," \
         "        ]," \
         "    extras_require={" \
+        "        'build': ['setuptools', 'wheel']," \
         "        'database': ['psycopg2', 'sqlalchemy']," \
         "        'docs': ['sphinx', 'sphinx_rtd_theme']," \
         "        'notebook': ['jupyter']," \
