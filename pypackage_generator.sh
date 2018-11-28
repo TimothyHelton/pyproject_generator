@@ -409,7 +409,7 @@ git_ignore() {
         "*.so" \
         "" \
         "# Ipython Files" \
-        "${NOTEBOOK_DIR}${FILE_SEP}.ipynb_checkpoints${FILE_SEP}*" \
+        ".ipynb_checkpoints" \
         "" \
         "# Logs and databases" \
         "*.log" \
