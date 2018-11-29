@@ -358,7 +358,7 @@ docker_tensorflow() {
 }
 
 
-envfile(){
+envfile() {
     printf "%s\n" \
         "# PGAdmin" \
         "export PGADMIN_DEFAULT_EMAIL=enter_user@${MAIN_DIR}.com" \
@@ -370,6 +370,37 @@ envfile(){
         "export POSTGRES_USER=enter_user" \
         "" \
         > "${MAIN_DIR}${FILE_SEP}envfile"
+}
+
+
+exceptions() {
+    printf "%s\n" \
+        "${PY_SHEBANG}" \
+        "${PY_ENCODING}" \
+        "" \
+        '""" Exception Module' \
+        "" \
+        '"""' \
+        "" \
+        "" \
+        "class Error(Exception):" \
+        '    """Base class for package exceptions.' \
+        "" \
+        "    :Attributes:"\
+        "" \
+        "    - **expression**: *str* input expression in which the error occurred" \
+        "    - **message**: *str* explanation of the error" \
+        '    """' \
+        "" \
+        "    def __init__(self, expression: str, message: str):" \
+        "        self.expression = expression" \
+        "        self.message = message" \
+        "" \
+        "" \
+        "class InputError(Error):" \
+        '    """Exception raised for errors in the input."""' \
+        "" \
+        > "${SRC_PATH}${FILE_SEP}exceptions.py"
 }
 
 
@@ -880,16 +911,16 @@ utils() {
 
 directories
 cli
-db
-utils
 conftest
 constructor_pkg
 constructor_test
+db
 docker_compose
 docker_python
 docker_pytorch
 docker_tensorflow
 envfile
+exceptions
 git_attributes
 git_config
 git_ignore
@@ -899,4 +930,5 @@ manifest
 readme
 requirements
 setup
+utils
 git_init
