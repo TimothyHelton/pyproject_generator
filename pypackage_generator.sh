@@ -141,7 +141,9 @@ db() {
         '"""' \
         "import os" \
         "" \
-        "from sqlalchemy import MetaData, Table, create_engine, select" \
+        "import pandas as pd" \
+        "import sqlalchemy as sa" \
+        "from sqlalchemy.sql import select" \
         "" \
         "from .utils import format_logger, project_vars" \
         "" \
@@ -175,14 +177,14 @@ db() {
         "        self.driver = None" \
         "        self.db_name = os.environ['POSTGRES_DB']" \
         "        self.host = '${MAIN_DIR}_postgres'" \
-        "        self.meta = MetaData()" \
+        "        self.meta = sa.MetaData()" \
         "        self.password = os.environ['POSTGRES_PASSWORD']" \
         "        self.port = 5432" \
         "        self.user = os.environ['POSTGRES_USER']" \
         "" \
         "        self.dialect = (f'{self.dialect}+{self.driver}' if self.driver" \
         "                        else self.dialect)" \
-        "        self.engine = create_engine(" \
+        "        self.engine = sa.create_engine(" \
         "            f'{self.dialect}://{self.user}:{self.password}'" \
         "            f'@{self.host}:{self.port}/{self.db_name}'" \
         "        )" \
@@ -196,9 +198,53 @@ db() {
         "                f')')" \
         "" \
         "" \
+        "class User(Connect):" \
+        '    """' \
+        "    User Tables" \
+        "" \
+        "    :Attributes:" \
+        "" \
+        "    - **df**: *DataFrame* table with all user data" \
+        "    - **user_df**: *DataFrame* table with base user information" \
+        "    - **pref_df**: *DataFrame* table with user preferences" \
+        '    """' \
+        "    def __init__(self):" \
+        "        super(User, self).__init__()" \
+        "        self._user = sa.Table(" \
+        "            'user', self.meta," \
+        "            sa.Column('user_id', sa.Integer, primary_key=True)," \
+        "            sa.Column('User_name', sa.String(16), nullable=False)," \
+        "            sa.Column('email_address', sa.String(60), key='email')," \
+        "            sa.Column('password', sa.String(20), nullable=False)" \
+        "        )" \
+        "        self._pref = sa.Table(" \
+        "            'user_pref', self.meta," \
+        "            sa.Column('pref_id', sa.Integer, primary_key=True)," \
+        "            sa.Column('user_id', sa.Integer, sa.ForeignKey(\"user.user_id\")," \
+        "                      nullable=False)," \
+        "            sa.Column('pref_name', sa.String(40), nullable=False)," \
+        "            sa.Column('pref_value', sa.String(100))" \
+        "        )" \
+        "        self.meta.create_all(self.engine)" \
+        "        " \
+        "        self._user_df = pd.read_sql(select([self._user]), self.engine)" \
+        "        self._pref_df = pd.read_sql(select([self._pref]), self.engine)" \
+        "" \
+        "    @property" \
+        "    def df(self):" \
+        "        return pd.merge(self._user_df, self._pref_df, on='user_id')" \
+        "" \
+        "    @property" \
+        "    def pref_df(self):" \
+        "        return self._pref_df" \
+        "" \
+        "    @property" \
+        "    def user_df(self):" \
+        "        return self._user_df" \
+        "" \
+        "" \
         "if __name__ == '__main__':" \
         "    pass" \
-        "" \
         > "${SRC_PATH}${FILE_SEP}db.py"
 }
 
@@ -298,7 +344,7 @@ docker_python() {
         "" \
         "RUN pip3 install --upgrade pip \\\\" \
         "\t&& pip3 install --no-cache-dir -r requirements.txt \\\\" \
-        "\t&& pip3 install -e .[build,database,docs,notebook,test]" \
+        "\t&& pip3 install -e .[build,data,database,docs,notebook,test]" \
         "" \
         "CMD [ \"/bin/bash\" ]" \
         "" \
@@ -318,7 +364,7 @@ docker_pytorch() {
         "\t&& conda update -y --all \\\\" \
         "\t&& while read requirement; do conda install --yes \${requirement}; done < requirements.txt \\\\" \
         "\t&& conda install -y pytorch torchvision -c pytorch \\\\" \
-        "\t&& pip install -e .[build,database,docs,notebook,test]" \
+        "\t&& pip install -e .[build,data,database,docs,notebook,test]" \
         "" \
         "CMD [ \"/bin/bash\" ]" \
         "" \
@@ -349,7 +395,7 @@ docker_tensorflow() {
         "\t&& cd /usr/src/${MAIN_DIR} \\\\" \
         "\t&& pip install --upgrade pip \\\\" \
         "\t&& pip install --no-cache-dir -r requirements.txt \\\\" \
-        "\t&& pip install -e .[build,database,docs,notebook,tf-cpu,test]" \
+        "\t&& pip install -e .[build,data,database,docs,notebook,tf-cpu,test]" \
         "" \
         "ENV PYTHONPATH \$PYTHONPATH:/opt/models/research:/opt/models/research/slim:/opt/models/research/object_detection" \
         "" \
@@ -567,7 +613,7 @@ makefile() {
         "\t@echo Enter the following to push this tag to the repository:" \
         "\t@echo git push origin v\$(VERSION)" \
         "" \
-        "docker-down: notebook-remove" \
+        "docker-down:" \
         "\tdocker-compose -f docker/docker-compose.yml down" \
         "" \
         "docker-images-update:" \
@@ -788,6 +834,14 @@ readme() {
         "    - Connection Username and Password: Enter **Postgres** username and password" \
         "      from the \`envfile\`." \
         "" \
+        "# PyCharm Setup" \
+        "1. Database -> New -> Data Source -> PostgreSQL" \
+        "1. Name: <project_name>_postgres@localhost" \
+        "1. Host: localhost" \
+        "1. Port: 5432" \
+        "1. Database: <project_name>" \
+        "1. User: **Postgres** username" \
+        "1. Password: **Postgres** password" \
         > "${MAIN_DIR}${FILE_SEP}README.md"
 }
 
@@ -850,6 +904,7 @@ setup() {
         "        ]," \
         "    extras_require={" \
         "        'build': ['setuptools', 'wheel']," \
+        "        'data': ['cufflinks', 'pandas']," \
         "        'database': ['psycopg2', 'sqlalchemy']," \
         "        'docs': ['sphinx', 'sphinx_rtd_theme']," \
         "        'notebook': ['jupyter']," \
