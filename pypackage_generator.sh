@@ -374,7 +374,7 @@ docker_pytorch() {
 
 docker_tensorflow() {
     printf "%b\n" \
-        "FROM python:latest" \
+        "FROM python:3.6" \
         "" \
         "WORKDIR /usr/src/${MAIN_DIR}" \
         "" \
@@ -763,6 +763,7 @@ makefile() {
         "\t\t\t && sed -i -e 's/pytorch-Dockerfile/tensorflow-Dockerfile/g' \\\\" \
         "\t\t\t\tdocker/docker-compose.yml \\\\" \
         "\t\t\t && sed -i -e 's/PKG_MANAGER=conda/PKG_MANAGER=pip/g' \\\\" \
+        "\t\t\t\tMakefile \\\\" \
         "\t\t\t && sed -i -e \\\\\"/'notebook': \['jupyter'\],/a \\\\" \
         "\t\t\t\t\\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ 'tf-cpu': ['tensorflow'],\\\\" \
         "\t\t\t\t\\\\n\\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ 'tf-gpu': ['tensorflow-gpu'],\\\\\" \\\\" \
