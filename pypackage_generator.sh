@@ -344,7 +344,8 @@ docker_python() {
         "" \
         "RUN pip3 install --upgrade pip \\\\" \
         "\t&& pip3 install --no-cache-dir -r requirements.txt \\\\" \
-        "\t&& pip3 install -e .[build,data,database,docs,notebook,test]" \
+        "\t&& pip3 install -e .[build,data,database,docs,notebook,test] \\\\" \
+        "\t&& jupyter contrib nbextension install --symlink" \
         "" \
         "CMD [ \"/bin/bash\" ]" \
         "" \
@@ -364,7 +365,8 @@ docker_pytorch() {
         "\t&& conda update -y --all \\\\" \
         "\t&& while read requirement; do conda install --yes \${requirement}; done < requirements.txt \\\\" \
         "\t&& conda install -y pytorch torchvision -c pytorch \\\\" \
-        "\t&& pip install -e .[build,data,database,docs,notebook,test]" \
+        "\t&& pip install -e .[build,data,database,docs,notebook,test] \\\\" \
+        "\t&& jupyter contrib nbextension install --symlink" \
         "" \
         "CMD [ \"/bin/bash\" ]" \
         "" \
@@ -395,7 +397,8 @@ docker_tensorflow() {
         "\t&& cd /usr/src/${MAIN_DIR} \\\\" \
         "\t&& pip install --upgrade pip \\\\" \
         "\t&& pip install --no-cache-dir -r requirements.txt \\\\" \
-        "\t&& pip install -e .[build,data,database,docs,notebook,tf-cpu,test]" \
+        "\t&& pip install -e .[build,data,database,docs,notebook,tf-cpu,test]\\\\" \
+        "\t&& jupyter contrib nbextension install --symlink" \
         "" \
         "ENV PYTHONPATH \$PYTHONPATH:/opt/models/research:/opt/models/research/slim:/opt/models/research/object_detection" \
         "" \
@@ -908,7 +911,7 @@ setup() {
         "        'data': ['cufflinks', 'pandas']," \
         "        'database': ['psycopg2', 'sqlalchemy']," \
         "        'docs': ['sphinx', 'sphinx_rtd_theme']," \
-        "        'notebook': ['jupyter']," \
+        "        'notebook': ['jupyter', 'jupyter_contrib_nbextensions']," \
         "        'test': ['pytest', 'pytest-pep8']," \
         "        }," \
         "    package_dir={'${MAIN_DIR}': '${SOURCE_DIR}'}," \
