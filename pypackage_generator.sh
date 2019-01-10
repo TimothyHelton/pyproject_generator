@@ -953,6 +953,11 @@ utils() {
         "    return logging.getLogger(__name__)" \
         "" \
         "" \
+        "def package_dir() -> Path:" \
+        '    """Return package root directory."""' \
+        '    return Path(__file__).parents[1]' \
+        "" \
+        "" \
         "def project_vars():" \
         '    """Load project specific environment variables."""' \
         "    with open(Path('envfile'), 'r') as f:" \
