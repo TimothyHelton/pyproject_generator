@@ -2,7 +2,7 @@
 
 : "${AUTHOR:=EnterAuthorName}"
 : "${EMAIL:=EnterAuthorEmail}"
-: "${PYTHON_VERSION:=3.6}"
+: "${PYTHON_VERSION:=3.7}"
 : "${PKG_VERSION:=0.1.0}"
 
 ###############################################################################
@@ -14,6 +14,7 @@ SOURCE_DIR="${2:-$1}"
 : "${DOCS_DIR:=docs}"
 : "${FILE_SEP:=/}"
 : "${NOTEBOOK_DIR:=notebooks}"
+: "${PROFILE_DIR:=profiles}"
 : "${TEST_DIR:=tests}"
 : "${WHEEL_DIR:=wheels}"
 
@@ -34,6 +35,7 @@ SUB_DIRECTORIES=(${DATA_DIR} \
                  ${DOCKER_DIR} \
                  ${DOCS_DIR} \
                  ${NOTEBOOK_DIR} \
+                 ${PROFILE_DIR} \
                  ${SOURCE_DIR} \
                  ${WHEEL_DIR})
 
@@ -755,6 +757,27 @@ makefile() {
         "\t\t\t\tdocker/docker-compose.yml \\\\" \
         "\t\t\t && sed -i -e 's/PKG_MANAGER=pip/PKG_MANAGER=conda/g' \\\\" \
         "\t\t\t\tMakefile\"" \
+        "" \
+        "snakeviz: docker-up snakeviz-server" \
+        "\tsleep 0.5" \
+        "\t\${BROWSER} http://0.0.0.0:\$(PORT)/snakeviz/" \
+        "" \
+        "snakeviz-remove:" \
+        "\tdocker container rm -f \$\$(docker container ls -f name=snakeviz -q)" \
+        "" \
+        "snakeviz-server: docker-up" \
+        "\tdocker container run -d --rm \\\\" \
+        "\t\t--name snakeviz_\$(PORT) \\\\" \
+        "\t\t-p \$(PORT):\$(PORT) \\\\" \
+        "\t\t-w /usr/src/\$(PROJECT)/profiles \\\\" \
+        "\t\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\" \
+        "\t\t\$(PROJECT)_python \\\\" \
+        "\t\t/bin/bash -c \\\\" \
+        "\t\t\t\"snakeviz profile.prof \\\\" \
+        "\t\t\t\t--hostname 0.0.0.0 \\\\" \
+        "\t\t\t\t--port \$(PORT) \\\\" \
+        "\t\t\t\t--server\"" \
+        "\tdocker network connect \$(PROJECT) snakeviz_\$(PORT)" \
         "" \
         "tensorflow: tensorflow-docker docker-rebuild" \
         "" \
