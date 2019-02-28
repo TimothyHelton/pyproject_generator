@@ -318,6 +318,8 @@ docker_compose() {
         "    image: ${MAIN_DIR}_python" \
         "    networks:"\
         "      - ${MAIN_DIR}-network" \
+        "    ports:" \
+        "      - 8888:8080" \
         "    restart: always" \
         "    tty: true" \
         "    volumes:" \
@@ -344,7 +346,7 @@ docker_python() {
         "" \
         "RUN pip3 install --upgrade pip \\\\" \
         "\t&& pip3 install --no-cache-dir -r requirements.txt \\\\" \
-        "\t&& pip3 install -e .[build,data,database,docs,notebook,test] \\\\" \
+        "\t&& pip3 install -e .[build,data,database,docs,notebook,profile,test] \\\\" \
         "\t&& jupyter contrib nbextension install --symlink" \
         "" \
         "CMD [ \"/bin/bash\" ]" \
@@ -365,7 +367,7 @@ docker_pytorch() {
         "\t&& conda update -y --all \\\\" \
         "\t&& while read requirement; do conda install --yes \${requirement}; done < requirements.txt \\\\" \
         "\t&& conda install -y pytorch torchvision -c pytorch \\\\" \
-        "\t&& pip install -e .[build,data,database,docs,notebook,test] \\\\" \
+        "\t&& pip install -e .[build,data,database,docs,notebook,profile,test] \\\\" \
         "\t&& jupyter contrib nbextension install --symlink" \
         "" \
         "CMD [ \"/bin/bash\" ]" \
@@ -397,7 +399,7 @@ docker_tensorflow() {
         "\t&& cd /usr/src/${MAIN_DIR} \\\\" \
         "\t&& pip install --upgrade pip \\\\" \
         "\t&& pip install --no-cache-dir -r requirements.txt \\\\" \
-        "\t&& pip install -e .[build,data,database,docs,notebook,tf-cpu,test]\\\\" \
+        "\t&& pip install -e .[build,data,database,docs,notebook,profile,tf-cpu,test]\\\\" \
         "\t&& jupyter contrib nbextension install --symlink" \
         "" \
         "ENV PYTHONPATH \$PYTHONPATH:/opt/models/research:/opt/models/research/slim:/opt/models/research/object_detection" \
@@ -723,6 +725,7 @@ makefile() {
         "\tdocker container run -d --rm \\\\" \
         "\t\t--name \$(NOTEBOOK_NAME) \\\\" \
         "\t\t-p \$(PORT):\$(PORT) \\\\" \
+        "\t\t-p 10000:10000 \\\\" \
         "\t\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\" \
         "\t\t\$(PROJECT)_python \\\\" \
         "\t\t/bin/bash -c \"jupyter lab \\\\" \
@@ -846,6 +849,24 @@ readme() {
         "1. Database: <project_name>" \
         "1. User: **Postgres** username" \
         "1. Password: **Postgres** password" \
+        "" \
+        "# SNAKEVIZ Execution" \
+        "1. Create profile file" \
+        "    - Jupyter Notebook" \
+        "        - \`%prun -D profile.prof enter_cmd_or_file\`" \
+        "    - Command Line" \
+        "        - \`python -m cProfile -o profile.prof program.py\`" \
+        "1. Start server **from the command line** on port 10000" \
+        "    - \`snakeviz profile.prof --hostname 0.0.0.0 --port 10000 -s\`" \
+        "1. Open host web browser" \
+        "    - \`http://0.0.0.0:10000/snakeviz/\`" \
+        "" \
+        "# Memory Profiler" \
+        "1. Open Jupyter Notebook" \
+        "1. Load Extension" \
+        "    - \`%load_ext memory_profiler\`" \
+        "1. Run profiler" \
+        "    - \`%memit enter_code_here\`" \
         > "${MAIN_DIR}${FILE_SEP}README.md"
 }
 
@@ -912,6 +933,7 @@ setup() {
         "        'database': ['psycopg2', 'sqlalchemy']," \
         "        'docs': ['sphinx', 'sphinx_rtd_theme']," \
         "        'notebook': ['jupyter', 'jupyterlab', 'jupyter_contrib_nbextensions']," \
+        "        'profile': ['memory_profiler', 'snakeviz']," \
         "        'test': ['pytest', 'pytest-pep8']," \
         "        }," \
         "    package_dir={'${MAIN_DIR}': '${SOURCE_DIR}'}," \
