@@ -725,7 +725,7 @@ makefile() {
         "\t\t-p \$(PORT):\$(PORT) \\\\" \
         "\t\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\" \
         "\t\t\$(PROJECT)_python \\\\" \
-        "\t\t/bin/bash -c \"jupyter notebook \\\\" \
+        "\t\t/bin/bash -c \"jupyter lab \\\\" \
         "\t\t\t\t--allow-root \\\\" \
         "\t\t\t\t--ip=0.0.0.0 \\\\" \
         "\t\t\t\t--port=\$(PORT)\"" \
@@ -911,7 +911,7 @@ setup() {
         "        'data': ['cufflinks', 'pandas']," \
         "        'database': ['psycopg2', 'sqlalchemy']," \
         "        'docs': ['sphinx', 'sphinx_rtd_theme']," \
-        "        'notebook': ['jupyter', 'jupyter_contrib_nbextensions']," \
+        "        'notebook': ['jupyter', 'jupyterlab', 'jupyter_contrib_nbextensions']," \
         "        'test': ['pytest', 'pytest-pep8']," \
         "        }," \
         "    package_dir={'${MAIN_DIR}': '${SOURCE_DIR}'}," \
