@@ -423,6 +423,7 @@ envfile() {
         "export POSTGRES_USER=enter_user" \
         "" \
         > "${MAIN_DIR}${FILE_SEP}envfile"
+    cp "${MAIN_DIR}${FILE_SEP}envfile" "${MAIN_DIR}${FILE_SEP}envfile_template"
 }
 
 
