@@ -423,6 +423,7 @@ envfile() {
         "export POSTGRES_USER=enter_user" \
         "" \
         > "${MAIN_DIR}${FILE_SEP}envfile"
+    cp "${MAIN_DIR}${FILE_SEP}envfile" "${MAIN_DIR}${FILE_SEP}envfile_template"
 }
 
 
@@ -727,7 +728,6 @@ makefile() {
         "\tdocker container run -d --rm \\\\" \
         "\t\t--name \$(NOTEBOOK_NAME) \\\\" \
         "\t\t-p \$(PORT):\$(PORT) \\\\" \
-        "\t\t-p 10000:10000 \\\\" \
         "\t\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\" \
         "\t\t\$(PROJECT)_python \\\\" \
         "\t\t/bin/bash -c \"jupyter lab \\\\" \
