@@ -969,7 +969,7 @@ setup() {
         "        ]," \
         "    extras_require={" \
         "        'build': ['setuptools', 'wheel']," \
-        "        'data': ['cufflinks', 'pandas']," \
+        "        'data': ['cufflinks', 'matplotlib', 'pandas']," \
         "        'database': ['psycopg2', 'sqlalchemy']," \
         "        'docs': ['sphinx', 'sphinx_rtd_theme']," \
         "        'notebook': ['jupyter', 'jupyterlab', 'jupyter_contrib_nbextensions']," \
