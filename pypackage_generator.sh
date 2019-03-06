@@ -13,6 +13,7 @@ SOURCE_DIR="${2:-$1}"
 : "${DOCKER_DIR:=docker}"
 : "${DOCS_DIR:=docs}"
 : "${FILE_SEP:=/}"
+: "${NODEJS_VERSION:=11}"
 : "${NOTEBOOK_DIR:=notebooks}"
 : "${PROFILE_DIR:=profiles}"
 : "${TEST_DIR:=tests}"
@@ -82,6 +83,21 @@ cli() {
         "    pass" \
         "" \
         > "${SRC_PATH}${FILE_SEP}cli.py"
+}
+
+
+common_image() {
+    printf "%s\n" \
+        "\t&& curl -sL https://deb.nodesource.com/setup_${NODEJS_VERSION}.x | bash - \\\\" \
+        "\t&& apt-get update -y \\\\" \
+        "\t&& apt-get upgrade -y \\\\" \
+        "\t&& apt-get install -y apt-utils \\\\" \
+        "\t&& apt-get install -y nodejs \\\\" \
+        "\t&& jupyter labextension install jupyterlab-drawio \\\\" \
+        "\t&& jupyter labextension install @mflevine/jupyterlab_html \\\\" \
+        "\t&& jupyter labextension install @jupyterlab/plotly-extension \\\\" \
+        "\t&& jupyter labextension install @jupyterlab/toc \\\\" \
+        "\t&& apt-get clean"
 }
 
 
@@ -349,7 +365,7 @@ docker_python() {
         "RUN pip3 install --upgrade pip \\\\" \
         "\t&& pip3 install --no-cache-dir -r requirements.txt \\\\" \
         "\t&& pip3 install -e .[build,data,database,docs,notebook,profile,test] \\\\" \
-        "\t&& jupyter contrib nbextension install --symlink" \
+        "$(common_image)" \
         "" \
         "CMD [ \"/bin/bash\" ]" \
         "" \
@@ -370,7 +386,7 @@ docker_pytorch() {
         "\t&& while read requirement; do conda install --yes \${requirement}; done < requirements.txt \\\\" \
         "\t&& conda install -y pytorch torchvision -c pytorch \\\\" \
         "\t&& pip install -e .[build,data,database,docs,notebook,profile,test] \\\\" \
-        "\t&& jupyter contrib nbextension install --symlink" \
+        "$(common_image)" \
         "" \
         "CMD [ \"/bin/bash\" ]" \
         "" \
@@ -402,7 +418,7 @@ docker_tensorflow() {
         "\t&& pip install --upgrade pip \\\\" \
         "\t&& pip install --no-cache-dir -r requirements.txt \\\\" \
         "\t&& pip install -e .[build,data,database,docs,notebook,profile,tf-cpu,test]\\\\" \
-        "\t&& jupyter contrib nbextension install --symlink" \
+        "$(common_image)" \
         "" \
         "ENV PYTHONPATH \$PYTHONPATH:/opt/models/research:/opt/models/research/slim:/opt/models/research/object_detection" \
         "" \
@@ -716,7 +732,7 @@ makefile() {
         "\tdocker container exec -it \$(PROJECT)_python ipython" \
         "" \
         "notebook: docker-up notebook-server" \
-        "\tsleep 0.5" \
+        "\tsleep 1.5" \
         "\t\${BROWSER} \$\$(docker container exec \\\\" \
         "\t\t\$(USER)_notebook_\$(PORT) \\\\" \
         "\t\tjupyter notebook list | grep -o '^http\S*')" \
@@ -733,6 +749,7 @@ makefile() {
         "\t\t/bin/bash -c \"jupyter lab \\\\" \
         "\t\t\t\t--allow-root \\\\" \
         "\t\t\t\t--ip=0.0.0.0 \\\\" \
+        "\t\t\t\t--no-browser \\\\" \
         "\t\t\t\t--port=\$(PORT)\"" \
         "\tdocker network connect \$(PROJECT) \$(NOTEBOOK_NAME)" \
         "" \
