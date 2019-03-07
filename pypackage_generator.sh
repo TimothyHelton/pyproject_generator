@@ -417,7 +417,7 @@ docker_tensorflow() {
         "\t&& cd /usr/src/${MAIN_DIR} \\\\" \
         "\t&& pip install --upgrade pip \\\\" \
         "\t&& pip install --no-cache-dir -r requirements.txt \\\\" \
-        "\t&& pip install -e .[build,data,database,docs,notebook,profile,tf-cpu,test]\\\\" \
+        "\t&& pip install -e .[build,data,database,docs,notebook,profile,test, tf-cpu]\\\\" \
         "$(common_image)" \
         "" \
         "ENV PYTHONPATH \$PYTHONPATH:/opt/models/research:/opt/models/research/slim:/opt/models/research/object_detection" \
@@ -810,7 +810,7 @@ makefile() {
         "\t\t\t\tdocker/docker-compose.yml \\\\" \
         "\t\t\t && sed -i -e 's/PKG_MANAGER=conda/PKG_MANAGER=pip/g' \\\\" \
         "\t\t\t\tMakefile \\\\" \
-        "\t\t\t && sed -i -e \\\\\"/'notebook': \['jupyter'\],/a \\\\" \
+        "\t\t\t && sed -i -e \\\\\"/'test': \['pytest', 'pytest-pep8'\],/a \\\\" \
         "\t\t\t\t\\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ 'tf-cpu': ['tensorflow'],\\\\" \
         "\t\t\t\t\\\\n\\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ 'tf-gpu': ['tensorflow-gpu'],\\\\\" \\\\" \
         "\t\t\t\tsetup.py\"" \
@@ -972,7 +972,7 @@ setup() {
         "        'data': ['cufflinks', 'matplotlib', 'pandas']," \
         "        'database': ['psycopg2', 'sqlalchemy']," \
         "        'docs': ['sphinx', 'sphinx_rtd_theme']," \
-        "        'notebook': ['jupyter', 'jupyterlab', 'jupyter_contrib_nbextensions']," \
+        "        'notebook': ['jupyter', 'jupyterlab']," \
         "        'profile': ['memory_profiler', 'snakeviz']," \
         "        'test': ['pytest', 'pytest-pep8']," \
         "        }," \
