@@ -163,7 +163,7 @@ db() {
         "import sqlalchemy as sa" \
         "from sqlalchemy.sql import select" \
         "" \
-        "from .utils import format_logger, project_vars" \
+        "from ${MAIN_DIR}.utils import format_logger, project_vars" \
         "" \
         "" \
         "logger = format_logger" \
