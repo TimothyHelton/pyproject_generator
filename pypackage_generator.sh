@@ -417,7 +417,7 @@ docker_tensorflow() {
         "\t&& cd /usr/src/${MAIN_DIR} \\\\" \
         "\t&& pip install --upgrade pip \\\\" \
         "\t&& pip install --no-cache-dir -r requirements.txt \\\\" \
-        "\t&& pip install -e .[build,data,database,docs,notebook,profile,test, tf-cpu]\\\\" \
+        "\t&& pip install -e .[build,data,database,docs,notebook,profile,test,tf-cpu]\\\\" \
         "$(common_image)" \
         "" \
         "ENV PYTHONPATH \$PYTHONPATH:/opt/models/research:/opt/models/research/slim:/opt/models/research/object_detection" \
