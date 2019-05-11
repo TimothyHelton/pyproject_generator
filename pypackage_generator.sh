@@ -1071,6 +1071,7 @@ utils() {
         "import yaml" \
         "" \
         "from ${MAIN_DIR}.globals import LOGGER_CONFIG, PACKAGE_ROOT" \
+        "from ${MAIN_DIR}.exceptions import InputError" \
         "" \
         "" \
         "def logger_setup(file_path: Union[None, str] = None," \
@@ -1112,6 +1113,23 @@ utils() {
         "    :param value: new value of the target key in \`key_path\`" \
         '    """' \
         "    nested_get(nested_dict, key_path[:-1])[key_path[-1]] = value" \
+        "" \
+        "" \
+        "def progress_str(n: int, total: int,"\
+        "                 msg: Union[None, str] = 'Progress') -> str:" \
+        '    """' \
+        "    Generate progress percentage message." \
+        "" \
+        "    :param n: number of current item" \
+        "    :param total: total number of items" \
+        "    :param msg: message to prepend to progress percentage" \
+        '    """' \
+        "    if total == 0:" \
+        "        raise ZeroDivisionError('Parameter \`total\` may not be equal to zero.')" \
+        "    if n > total:" \
+        "        raise InputError('Current item value \`n\` must be less than total.')" \
+        "    progress_msg = f'\r{msg}: {n / total: .1%}'" \
+        "    return progress_msg if n < total else progress_msg + '\n\n'" \
         "" \
         "" \
         "def project_vars():" \
