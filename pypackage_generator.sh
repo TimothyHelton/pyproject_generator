@@ -165,10 +165,10 @@ db() {
         "import sqlalchemy as sa" \
         "from sqlalchemy.sql import select" \
         "" \
-        "from ${MAIN_DIR}.utils import format_logger, project_vars" \
+        "from ${MAIN_DIR}.utils import logger_setup, project_vars" \
         "" \
         "" \
-        "logger = format_logger" \
+        "logger = logger_setup()" \
         "" \
         "" \
         "class Connect:" \
@@ -990,6 +990,7 @@ setup() {
         "    )," \
         "    install_requires=[" \
         "        'click'," \
+        "        'PyYAML'," \
         "        ]," \
         "    extras_require={" \
         "        'build': ['setuptools', 'wheel']," \
@@ -1024,24 +1025,37 @@ utils() {
         "" \
         '"""' \
         "import logging" \
+        "import logging.config" \
         "import functools" \
         "import operator" \
         "import os" \
         "from pathlib import Path" \
         "import re" \
-        "from typing import Any, Dict, List" \
+        "from typing import Any, Dict, List, Union" \
         "" \
-        "from ${MAIN_DIR}.globals import PACKAGE_ROOT" \
+        "import yaml" \
+        "" \
+        "from ${MAIN_DIR}.globals import LOGGER_CONFIG, PACKAGE_ROOT" \
         "" \
         "" \
-        "def format_logger() -> logging.Logger:" \
-        '    """Format the logger."""' \
-        "    log_format = ('%(asctime)s  %(levelname)8s  -> %(name)s <- '" \
-        "                  '(line: %(lineno)d) %(message)s\n')" \
-        "    date_format = '%m/%d/%Y %I:%M:%S'" \
-        "    logging.basicConfig(format=log_format, datefmt=date_format," \
-        "                        level=logging.INFO)" \
-        "    return logging.getLogger(__name__)" \
+        "def logger_setup(file_path: Union[None, str] = None," \
+        "                 logger_name: str = 'package') -> logging.Logger:" \
+        '    """' \
+        "    Configure logger with console and file handlers." \
+        "" \
+        "    :param file_path: if supplied the path will be appended by a timestamp \\\\" \
+        "        and \".log\" else the default name of \"info.log\" will be saved in the \\\\" \
+        "        location of the caller." \
+        "    :param logger_name: name to be assigned to logger" \
+        '    """' \
+        "    with open(LOGGER_CONFIG, 'r') as f:" \
+        "        config = yaml.safe_load(f.read())" \
+        "        if file_path:" \
+        "            time_stamp = datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')" \
+        "            file_path = f'{file_path}_{time_stamp}.log'" \
+        "            nested_set(config, ['handlers', 'file', 'filename'], file_path)" \
+        "        logging.config.dictConfig(config)" \
+        "    return logging.getLogger(logger_name)" \
         "" \
         "" \
         "def nested_get(nested_dict: Dict[Any, Any], key_path: List[Any]) -> Any:" \
