@@ -1066,11 +1066,13 @@ utils() {
         "import os" \
         "from pathlib import Path" \
         "import re" \
+        "import time" \
         "from typing import Any, Dict, List, Union" \
         "" \
         "import yaml" \
         "" \
         "from ${MAIN_DIR}.globals import LOGGER_CONFIG, PACKAGE_ROOT" \
+        "from ${MAIN_DIR}.exceptions import InputError" \
         "" \
         "" \
         "def logger_setup(file_path: Union[None, str] = None," \
@@ -1114,6 +1116,23 @@ utils() {
         "    nested_get(nested_dict, key_path[:-1])[key_path[-1]] = value" \
         "" \
         "" \
+        "def progress_str(n: int, total: int,"\
+        "                 msg: Union[None, str] = 'Progress') -> str:" \
+        '    """' \
+        "    Generate progress percentage message." \
+        "" \
+        "    :param n: number of current item" \
+        "    :param total: total number of items" \
+        "    :param msg: message to prepend to progress percentage" \
+        '    """' \
+        "    if total == 0:" \
+        "        raise ZeroDivisionError('Parameter \`total\` may not be equal to zero.')" \
+        "    if n > total:" \
+        "        raise InputError('Current item value \`n\` must be less than total.')" \
+        "    progress_msg = f'\r{msg}: {n / total: .1%}'" \
+        "    return progress_msg if n < total else progress_msg + '\n\n'" \
+        "" \
+        "" \
         "def project_vars():" \
         '    """Load project specific environment variables."""' \
         "    with open(PACKAGE_ROOT / 'envfile', 'r') as f:" \
@@ -1121,6 +1140,28 @@ utils() {
         "    env_vars = re.findall(r'export\s(.*)=(.*)', txt)" \
         "    for name, value in env_vars:" \
         "        os.environ[name] = value" \
+        "" \
+        "" \
+        "def status(status_logger: logging.Logger):" \
+        '    """' \
+        "    Decorator to issue logging statements and time function execution." \
+        "" \
+        "    :param status_logger: name of logger to record status output" \
+        '    """' \
+        "    def status_decorator(func):" \
+        "" \
+        "        @functools.wraps(func)" \
+        "        def wrapper(*args, **kwargs):" \
+        "            name = func.__name__" \
+        "            status_logger.info(f'Initiated: {name}')" \
+        "            start = time.time()" \
+        "            result = func(*args, **kwargs)" \
+        "            end = time.time()" \
+        "            status_logger.info(f'Completed: {name} -> {end - start:0.3g}s')" \
+        "            return result" \
+        "" \
+        "        return wrapper" \
+        "    return status_decorator" \
         "" \
         "" \
         "if __name__ == '__main__':" \
