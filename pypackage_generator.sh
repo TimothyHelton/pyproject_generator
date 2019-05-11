@@ -124,6 +124,7 @@ constructor_pkg() {
         "from . import globals" \
         "# from . import cli" \
         "# from . import db" \
+        "from . import exceptions" \
         "# from . import utils" \
         "" \
         "__version__ = '0.1.0'" \
@@ -1023,9 +1024,12 @@ utils() {
         "" \
         '"""' \
         "import logging" \
+        "import functools" \
+        "import operator" \
         "import os" \
         "from pathlib import Path" \
         "import re" \
+        "from typing import Any, Dict, List" \
         "" \
         "from ${MAIN_DIR}.globals import PACKAGE_ROOT" \
         "" \
@@ -1038,6 +1042,27 @@ utils() {
         "    logging.basicConfig(format=log_format, datefmt=date_format," \
         "                        level=logging.INFO)" \
         "    return logging.getLogger(__name__)" \
+        "" \
+        "" \
+        "def nested_get(nested_dict: Dict[Any, Any], key_path: List[Any]) -> Any:" \
+        '    """' \
+        "    Retrieve value from a nested dictionary." \
+        "" \
+        "    :param nested_dict: nested dictionary" \
+        "    :param key_path: list of key levels with the final entry being the target" \
+        '    """' \
+        "    return functools.reduce(operator.getitem, key_path, nested_dict)" \
+        "" \
+        "" \
+        "def nested_set(nested_dict: Dict[Any, Any], key_path: List[Any], value: Any):" \
+        '    """' \
+        "    Set object of nested dictionary." \
+        "" \
+        "    :param nested_dict: nested dictionary" \
+        "    :param key_path: list of key levels with the final entry being the target" \
+        "    :param value: new value of the target key in \`key_path\`" \
+        '    """' \
+        "    nested_get(nested_dict, key_path[:-1])[key_path[-1]] = value" \
         "" \
         "" \
         "def project_vars():" \
