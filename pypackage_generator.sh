@@ -791,7 +791,7 @@ makefile() {
         "\tdocker container exec -it \$(PROJECT)_python ipython" \
         "" \
         "notebook: docker-up notebook-server" \
-        "\tsleep 1.5" \
+        "\tsleep 3" \
         "\t\${BROWSER} \$\$(docker container exec \\\\" \
         "\t\t\$(USER)_notebook_\$(PORT) \\\\" \
         "\t\tjupyter notebook list | grep -o '^http\S*')" \
@@ -1116,7 +1116,7 @@ utils() {
         "" \
         "def project_vars():" \
         '    """Load project specific environment variables."""' \
-        "    with open(PACKAGE_ROOT / 'envfile'), 'r') as f:" \
+        "    with open(PACKAGE_ROOT / 'envfile', 'r') as f:" \
         "        txt = f.read()" \
         "    env_vars = re.findall(r'export\s(.*)=(.*)', txt)" \
         "    for name, value in env_vars:" \
