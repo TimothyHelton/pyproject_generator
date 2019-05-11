@@ -630,6 +630,41 @@ license() {
 }
 
 
+logger_config() {
+    printf "%s\n" \
+        "version: 1" \
+        "disable_existing_loggers: False" \
+        "formatters:" \
+        "   console:" \
+        "       format: '%(levelname)s - %(name)s -> Line: %(lineno)d <- %(message)s'" \
+        "   file:" \
+        "       format: '%(asctime)s - %(levelname)s - %(module)s.py -> Line: %(lineno)d <- %(message)s'" \
+        "handlers:" \
+        "   console:" \
+        "       class: logging.StreamHandler" \
+        "       level: WARNING" \
+        "       formatter: console" \
+        "       stream: ext://sys.stdout" \
+        "   file:" \
+        "       class: logging.handlers.RotatingFileHandler" \
+        "       encoding: utf8" \
+        "       level: DEBUG" \
+        "       filename: info.log" \
+        "       formatter: file" \
+        "       mode: w" \
+        "loggers:" \
+        "   package:" \
+        "       level: INFO" \
+        "       handlers: [console, file]" \
+        "       propagate: False" \
+        "root:" \
+        "   level: DEBUG" \
+        "   handlers: [console]" \
+        "" \
+        > "${MAIN_DIR}${FILE_SEP}logger_config.yaml"
+}
+
+
 makefile() {
     printf "%b\n" \
         "PROJECT=${MAIN_DIR}" \
@@ -1111,6 +1146,7 @@ git_config
 git_ignore
 globals
 license
+logger_config
 makefile
 manifest
 readme
