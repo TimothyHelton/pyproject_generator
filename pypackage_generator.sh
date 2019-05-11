@@ -121,6 +121,7 @@ constructor_pkg() {
         "from pkg_resources import get_distribution, DistributionNotFound" \
         "from os import path" \
         "" \
+        "from . import globals" \
         "# from . import cli" \
         "# from . import db" \
         "# from . import utils" \
@@ -573,6 +574,28 @@ git_init() {
 }
 
 
+globals() {
+    printf "%s\n" \
+            "${PY_SHEBANG}" \
+            "${PY_ENCODING}" \
+            "" \
+            '""" Global Variable Module' \
+            "" \
+            '"""' \
+            "from pathlib import Path" \
+            "" \
+            "" \
+            "PACKAGE_ROOT = Path(__file__).parents[1]" \
+            "LOGGER_CONFIG = (PACKAGE_ROOT / 'logger_config.yaml').resolve()" \
+            "" \
+            "" \
+            "if __name__ == '__main__':" \
+            "    pass" \
+            "" \
+            > "${SRC_PATH}${FILE_SEP}globals.py"
+    }
+
+
 license() {
     printf "%s\n" \
         "Copyright (c) ${YEAR}, ${AUTHOR}." \
@@ -996,13 +1019,15 @@ utils() {
         "${PY_SHEBANG}" \
         "${PY_ENCODING}" \
         "" \
-        '""" Package Utilities' \
+        '""" Package Utilities Module' \
         "" \
         '"""' \
         "import logging" \
         "import os" \
         "from pathlib import Path" \
         "import re" \
+        "" \
+        "from ${MAIN_DIR}.globals import PACKAGE_ROOT" \
         "" \
         "" \
         "def format_logger() -> logging.Logger:" \
@@ -1015,14 +1040,9 @@ utils() {
         "    return logging.getLogger(__name__)" \
         "" \
         "" \
-        "def package_dir() -> Path:" \
-        '    """Return package root directory."""' \
-        '    return Path(__file__).parents[1]' \
-        "" \
-        "" \
         "def project_vars():" \
         '    """Load project specific environment variables."""' \
-        "    with open(Path('envfile'), 'r') as f:" \
+        "    with open(PACKAGE_ROOT / 'envfile'), 'r') as f:" \
         "        txt = f.read()" \
         "    env_vars = re.findall(r'export\s(.*)=(.*)', txt)" \
         "    for name, value in env_vars:" \
@@ -1050,6 +1070,7 @@ exceptions
 git_attributes
 git_config
 git_ignore
+globals
 license
 makefile
 manifest
