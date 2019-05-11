@@ -124,6 +124,7 @@ constructor_pkg() {
         "from . import globals" \
         "# from . import cli" \
         "# from . import db" \
+        "from . import exceptions" \
         "# from . import utils" \
         "" \
         "__version__ = '0.1.0'" \
@@ -164,10 +165,10 @@ db() {
         "import sqlalchemy as sa" \
         "from sqlalchemy.sql import select" \
         "" \
-        "from ${MAIN_DIR}.utils import format_logger, project_vars" \
+        "from ${MAIN_DIR}.utils import logger_setup, project_vars" \
         "" \
         "" \
-        "logger = format_logger" \
+        "logger = logger_setup()" \
         "" \
         "" \
         "class Connect:" \
@@ -629,6 +630,41 @@ license() {
 }
 
 
+logger_config() {
+    printf "%s\n" \
+        "version: 1" \
+        "disable_existing_loggers: False" \
+        "formatters:" \
+        "   console:" \
+        "       format: '%(levelname)s - %(name)s -> Line: %(lineno)d <- %(message)s'" \
+        "   file:" \
+        "       format: '%(asctime)s - %(levelname)s - %(module)s.py -> Line: %(lineno)d <- %(message)s'" \
+        "handlers:" \
+        "   console:" \
+        "       class: logging.StreamHandler" \
+        "       level: WARNING" \
+        "       formatter: console" \
+        "       stream: ext://sys.stdout" \
+        "   file:" \
+        "       class: logging.handlers.RotatingFileHandler" \
+        "       encoding: utf8" \
+        "       level: DEBUG" \
+        "       filename: info.log" \
+        "       formatter: file" \
+        "       mode: w" \
+        "loggers:" \
+        "   package:" \
+        "       level: INFO" \
+        "       handlers: [console, file]" \
+        "       propagate: False" \
+        "root:" \
+        "   level: DEBUG" \
+        "   handlers: [console]" \
+        "" \
+        > "${MAIN_DIR}${FILE_SEP}logger_config.yaml"
+}
+
+
 makefile() {
     printf "%b\n" \
         "PROJECT=${MAIN_DIR}" \
@@ -755,7 +791,7 @@ makefile() {
         "\tdocker container exec -it \$(PROJECT)_python ipython" \
         "" \
         "notebook: docker-up notebook-server" \
-        "\tsleep 1.5" \
+        "\tsleep 3" \
         "\t\${BROWSER} \$\$(docker container exec \\\\" \
         "\t\t\$(USER)_notebook_\$(PORT) \\\\" \
         "\t\tjupyter notebook list | grep -o '^http\S*')" \
@@ -989,6 +1025,7 @@ setup() {
         "    )," \
         "    install_requires=[" \
         "        'click'," \
+        "        'PyYAML'," \
         "        ]," \
         "    extras_require={" \
         "        'build': ['setuptools', 'wheel']," \
@@ -1023,26 +1060,63 @@ utils() {
         "" \
         '"""' \
         "import logging" \
+        "import logging.config" \
+        "import functools" \
+        "import operator" \
         "import os" \
         "from pathlib import Path" \
         "import re" \
+        "from typing import Any, Dict, List, Union" \
         "" \
-        "from ${MAIN_DIR}.globals import PACKAGE_ROOT" \
+        "import yaml" \
+        "" \
+        "from ${MAIN_DIR}.globals import LOGGER_CONFIG, PACKAGE_ROOT" \
         "" \
         "" \
-        "def format_logger() -> logging.Logger:" \
-        '    """Format the logger."""' \
-        "    log_format = ('%(asctime)s  %(levelname)8s  -> %(name)s <- '" \
-        "                  '(line: %(lineno)d) %(message)s\n')" \
-        "    date_format = '%m/%d/%Y %I:%M:%S'" \
-        "    logging.basicConfig(format=log_format, datefmt=date_format," \
-        "                        level=logging.INFO)" \
-        "    return logging.getLogger(__name__)" \
+        "def logger_setup(file_path: Union[None, str] = None," \
+        "                 logger_name: str = 'package') -> logging.Logger:" \
+        '    """' \
+        "    Configure logger with console and file handlers." \
+        "" \
+        "    :param file_path: if supplied the path will be appended by a timestamp \\\\" \
+        "        and \".log\" else the default name of \"info.log\" will be saved in the \\\\" \
+        "        location of the caller." \
+        "    :param logger_name: name to be assigned to logger" \
+        '    """' \
+        "    with open(LOGGER_CONFIG, 'r') as f:" \
+        "        config = yaml.safe_load(f.read())" \
+        "        if file_path:" \
+        "            time_stamp = datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')" \
+        "            file_path = f'{file_path}_{time_stamp}.log'" \
+        "            nested_set(config, ['handlers', 'file', 'filename'], file_path)" \
+        "        logging.config.dictConfig(config)" \
+        "    return logging.getLogger(logger_name)" \
+        "" \
+        "" \
+        "def nested_get(nested_dict: Dict[Any, Any], key_path: List[Any]) -> Any:" \
+        '    """' \
+        "    Retrieve value from a nested dictionary." \
+        "" \
+        "    :param nested_dict: nested dictionary" \
+        "    :param key_path: list of key levels with the final entry being the target" \
+        '    """' \
+        "    return functools.reduce(operator.getitem, key_path, nested_dict)" \
+        "" \
+        "" \
+        "def nested_set(nested_dict: Dict[Any, Any], key_path: List[Any], value: Any):" \
+        '    """' \
+        "    Set object of nested dictionary." \
+        "" \
+        "    :param nested_dict: nested dictionary" \
+        "    :param key_path: list of key levels with the final entry being the target" \
+        "    :param value: new value of the target key in \`key_path\`" \
+        '    """' \
+        "    nested_get(nested_dict, key_path[:-1])[key_path[-1]] = value" \
         "" \
         "" \
         "def project_vars():" \
         '    """Load project specific environment variables."""' \
-        "    with open(PACKAGE_ROOT / 'envfile'), 'r') as f:" \
+        "    with open(PACKAGE_ROOT / 'envfile', 'r') as f:" \
         "        txt = f.read()" \
         "    env_vars = re.findall(r'export\s(.*)=(.*)', txt)" \
         "    for name, value in env_vars:" \
@@ -1072,6 +1146,7 @@ git_config
 git_ignore
 globals
 license
+logger_config
 makefile
 manifest
 readme
