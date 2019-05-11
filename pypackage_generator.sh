@@ -1066,6 +1066,7 @@ utils() {
         "import os" \
         "from pathlib import Path" \
         "import re" \
+        "import time" \
         "from typing import Any, Dict, List, Union" \
         "" \
         "import yaml" \
@@ -1139,6 +1140,28 @@ utils() {
         "    env_vars = re.findall(r'export\s(.*)=(.*)', txt)" \
         "    for name, value in env_vars:" \
         "        os.environ[name] = value" \
+        "" \
+        "" \
+        "def status(status_logger: logging.Logger):" \
+        '    """' \
+        "    Decorator to issue logging statements and time function execution." \
+        "" \
+        "    :param status_logger: name of logger to record status output" \
+        '    """' \
+        "    def status_decorator(func):" \
+        "" \
+        "        @functools.wraps(func)" \
+        "        def wrapper(*args, **kwargs):" \
+        "            name = func.__name__" \
+        "            status_logger.info(f'Initiated: {name}')" \
+        "            start = time.time()" \
+        "            result = func(*args, **kwargs)" \
+        "            end = time.time()" \
+        "            status_logger.info(f'Completed: {name} -> {end - start:0.3g}s')" \
+        "            return result" \
+        "" \
+        "        return wrapper" \
+        "    return status_decorator" \
         "" \
         "" \
         "if __name__ == '__main__':" \
