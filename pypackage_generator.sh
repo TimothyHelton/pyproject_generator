@@ -1030,7 +1030,7 @@ setup() {
         "    extras_require={" \
         "        'build': ['setuptools', 'wheel']," \
         "        'data': ['cufflinks', 'matplotlib', 'pandas']," \
-        "        'database': ['psycopg2', 'sqlalchemy']," \
+        "        'database': ['psycopg2-binary', 'sqlalchemy']," \
         "        'docs': ['sphinx', 'sphinx_rtd_theme']," \
         "        'notebook': ['jupyter', 'jupyterlab']," \
         "        'profile': ['memory_profiler', 'snakeviz']," \
