@@ -213,8 +213,8 @@ db() {
         "" \
         "    def __repr__(self) -> str:" \
         "        return (f'<{type(self).__name__}('" \
-        "                f'user={os.environ[\"POSTGRES_USER\"]}, '" \
-        "                f'database={os.environ[\"POSTGRES_DB\"]}'" \
+        "                f'user={os.environ[\"POSTGRES_USER\"]!r}, '" \
+        "                f'database={os.environ[\"POSTGRES_DB\"]!r}'" \
         "                f')')" \
         "" \
         "" \
