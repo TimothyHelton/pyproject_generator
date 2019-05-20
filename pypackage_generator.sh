@@ -66,6 +66,7 @@ cli() {
         "              help='Decrease output level one (-q) or multiple times (-qqq).')" \
         "@click.option('-v', '--verbose', is_flag=True, multiple=True," \
         "              help='Increase output level one (-v) or multiple times (-vvv).')" \
+        "" \
         "def count(number: int, quiet, verbose):" \
         '    """' \
         "    Display progressbar while counting to the user provided integer NUMBER." \
@@ -191,6 +192,7 @@ db() {
         "    - **tables**: *list* tables in database" \
         "    - **user**: *str* username" \
         '    """' \
+        "" \
         "    def __init__(self):" \
         "        project_vars()" \
         "        self.dialect = 'postgresql'" \
@@ -228,6 +230,7 @@ db() {
         "    - **user_df**: *DataFrame* table with base user information" \
         "    - **pref_df**: *DataFrame* table with user preferences" \
         '    """' \
+        "" \
         "    def __init__(self):" \
         "        super(User, self).__init__()" \
         "        self._user = sa.Table(" \
@@ -929,6 +932,10 @@ manifest() {
 
 readme() {
     printf "%s\n" \
+        "# Define System Variables" \
+        "1. Copy the \`envfile_template\` to \`envfile\`" \
+        "1. Enter your username and password for PGAdmin and Postgres" \
+        "" \
         "# PGAdmin Setup" \
         "1. From the main directory call \`make pgadmin\`" \
         "    - The default browser will open to \`localhost:5000\`" \
@@ -948,6 +955,9 @@ readme() {
         "1. Database: <project_name>" \
         "1. User: **Postgres** username" \
         "1. Password: **Postgres** password" \
+        "" \
+        "1. Settings -> Project -> Project Interpreter -> point to docker compose file" \
+        "1. Add the system variables defined in the \`envfile\` to the Project Interpreter" \
         "" \
         "# SNAKEVIZ Execution" \
         "1. Create profile file" \
@@ -1068,6 +1078,7 @@ utils() {
         "import re" \
         "import time" \
         "from typing import Any, Dict, List, Union" \
+        "import warnings" \
         "" \
         "import yaml" \
         "" \
@@ -1080,8 +1091,8 @@ utils() {
         '    """' \
         "    Configure logger with console and file handlers." \
         "" \
-        "    :param file_path: if supplied the path will be appended by a timestamp \\\\" \
-        "        and \".log\" else the default name of \"info.log\" will be saved in the \\\\" \
+        "    :param file_path: if supplied the path will be appended by a timestamp \\" \
+        "        and \".log\" else the default name of \"info.log\" will be saved in the \\" \
         "        location of the caller." \
         "    :param logger_name: name to be assigned to logger" \
         '    """' \
@@ -1148,6 +1159,7 @@ utils() {
         "" \
         "    :param status_logger: name of logger to record status output" \
         '    """' \
+        "" \
         "    def status_decorator(func):" \
         "" \
         "        @functools.wraps(func)" \
@@ -1162,6 +1174,20 @@ utils() {
         "" \
         "        return wrapper" \
         "    return status_decorator" \
+        "" \
+        "" \
+        "def warning_format(message, category, filename, lineno, line=None):" \
+        '    """' \
+        "    Set warning output message format." \
+        "" \
+        "    ..note:: For new formats add helper functions then update the \\" \
+        "        \`warnings.formatwarning\` call." \
+        '    """' \
+        "" \
+        "    def message_only(message, category, filename, lineno, line=''):" \
+        "        return f'{message}\n'" \
+        "" \
+        "    warnings.formatwarning = message_only" \
         "" \
         "" \
         "if __name__ == '__main__':" \
