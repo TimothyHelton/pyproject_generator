@@ -1068,6 +1068,7 @@ utils() {
         "import re" \
         "import time" \
         "from typing import Any, Dict, List, Union" \
+        "import warnings" \
         "" \
         "import yaml" \
         "" \
@@ -1080,8 +1081,8 @@ utils() {
         '    """' \
         "    Configure logger with console and file handlers." \
         "" \
-        "    :param file_path: if supplied the path will be appended by a timestamp \\\\" \
-        "        and \".log\" else the default name of \"info.log\" will be saved in the \\\\" \
+        "    :param file_path: if supplied the path will be appended by a timestamp \\" \
+        "        and \".log\" else the default name of \"info.log\" will be saved in the \\" \
         "        location of the caller." \
         "    :param logger_name: name to be assigned to logger" \
         '    """' \
@@ -1162,6 +1163,20 @@ utils() {
         "" \
         "        return wrapper" \
         "    return status_decorator" \
+        "" \
+        "" \
+        "def warning_format(message, category, filename, lineno, line=None):" \
+        '    """' \
+        "    Set warning output message format." \
+        "" \
+        "    ..note:: For new formats add helper functions then update the \\" \
+        "        \`warnings.formatwarning\` call." \
+        '    """' \
+        "" \
+        "    def message_only(message, category, filename, lineno, line=''):" \
+        "        return f'{message}\n'" \
+        "" \
+        "    warnings.formatwarning = message_only" \
         "" \
         "" \
         "if __name__ == '__main__':" \
