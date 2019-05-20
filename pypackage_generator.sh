@@ -932,6 +932,10 @@ manifest() {
 
 readme() {
     printf "%s\n" \
+        "# Define System Variables" \
+        "1. Copy the \`envfile_template\` to \`envfile\`" \
+        "1. Enter your username and password for PGAdmin and Postgres" \
+        "" \
         "# PGAdmin Setup" \
         "1. From the main directory call \`make pgadmin\`" \
         "    - The default browser will open to \`localhost:5000\`" \
@@ -951,6 +955,9 @@ readme() {
         "1. Database: <project_name>" \
         "1. User: **Postgres** username" \
         "1. Password: **Postgres** password" \
+        "" \
+        "1. Settings -> Project -> Project Interpreter -> point to docker compose file" \
+        "1. Add the system variables defined in the \`envfile\` to the Project Interpreter" \
         "" \
         "# SNAKEVIZ Execution" \
         "1. Create profile file" \
