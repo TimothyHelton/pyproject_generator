@@ -66,6 +66,7 @@ cli() {
         "              help='Decrease output level one (-q) or multiple times (-qqq).')" \
         "@click.option('-v', '--verbose', is_flag=True, multiple=True," \
         "              help='Increase output level one (-v) or multiple times (-vvv).')" \
+        "" \
         "def count(number: int, quiet, verbose):" \
         '    """' \
         "    Display progressbar while counting to the user provided integer NUMBER." \
@@ -191,6 +192,7 @@ db() {
         "    - **tables**: *list* tables in database" \
         "    - **user**: *str* username" \
         '    """' \
+        "" \
         "    def __init__(self):" \
         "        project_vars()" \
         "        self.dialect = 'postgresql'" \
@@ -228,6 +230,7 @@ db() {
         "    - **user_df**: *DataFrame* table with base user information" \
         "    - **pref_df**: *DataFrame* table with user preferences" \
         '    """' \
+        "" \
         "    def __init__(self):" \
         "        super(User, self).__init__()" \
         "        self._user = sa.Table(" \
@@ -1149,6 +1152,7 @@ utils() {
         "" \
         "    :param status_logger: name of logger to record status output" \
         '    """' \
+        "" \
         "    def status_decorator(func):" \
         "" \
         "        @functools.wraps(func)" \
