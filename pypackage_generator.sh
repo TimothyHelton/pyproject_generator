@@ -948,16 +948,32 @@ readme() {
         "      from the \`envfile\`." \
         "" \
         "# PyCharm Setup" \
-        "1. Database -> New -> Data Source -> PostgreSQL" \
-        "1. Name: <project_name>_postgres@localhost" \
-        "1. Host: localhost" \
-        "1. Port: 5432" \
-        "1. Database: <project_name>" \
-        "1. User: **Postgres** username" \
-        "1. Password: **Postgres** password" \
+        "## Database Configuration" \
+        "1. \`Database\` -> \`New\` -> \`Data Source\` -> \`PostgreSQL\`" \
+        "1. \`Name\`: <project_name>_postgres@localhost" \
+        "1. \`Host\`: localhost" \
+        "1. \`Port\`: 5432" \
+        "1. \`Database\`: <project_name>" \
+        "1. \`User\`: **Postgres** username" \
+        "1. \`Password\`: **Postgres** password" \
         "" \
-        "1. Settings -> Project -> Project Interpreter -> point to docker compose file" \
+        "1. \`Settings\` -> \`Project\` -> \`Project Interpreter\` -> point to docker compose file" \
         "1. Add the system variables defined in the \`envfile\` to the Project Interpreter" \
+        "" \
+        "## Unit Test Configuration" \
+        "1. \`Run/Debug Configurations\` -> \`+\` -> \`Python tests\` -> \`pytest\`" \
+        "1. \`Target\` -> \`Script path\`" \
+        "    - Enter the path to the project root directory." \
+        "1. Add the following to the \`Additional Arguments\` field:" \
+        "    - \`-vvv\`" \
+        "    - \`-r all\`" \
+        "    - \`--basetemp=pytest\`" \
+        "    - \`--ff\`" \
+        "    - \`doctest-modules\`" \
+        "        - To ignore specific modules add \`--ignore=<module_name>\`"\
+        "1. Enter \`Environment Variables\` (PYTHONPATH, database user, ...)" \
+        "1. Check Box -> \`Add content roots to PYTHONPATH\`" \
+        "1. Check Box -> \`Add source roots to PYTHONPATH\`" \
         "" \
         "# SNAKEVIZ Execution" \
         "1. Create profile file" \
