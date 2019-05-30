@@ -1058,7 +1058,7 @@ setup() {
         "        'data': ['cufflinks', 'matplotlib', 'pandas']," \
         "        'database': ['psycopg2-binary', 'sqlalchemy']," \
         "        'docs': ['sphinx', 'sphinx_rtd_theme']," \
-        "        'notebook': ['jupyter', 'jupyterlab']," \
+        "        'notebook': ['jupyter', 'jupyterlab', 'nbdime']," \
         "        'profile': ['memory_profiler', 'snakeviz']," \
         "        'test': ['pytest', 'pytest-pep8']," \
         "        }," \
