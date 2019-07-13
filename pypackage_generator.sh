@@ -66,7 +66,6 @@ cli() {
         "              help='Decrease output level one (-q) or multiple times (-qqq).')" \
         "@click.option('-v', '--verbose', is_flag=True, multiple=True," \
         "              help='Increase output level one (-v) or multiple times (-vvv).')" \
-        "" \
         "def count(number: int, quiet, verbose):" \
         '    """' \
         "    Display progressbar while counting to the user provided integer NUMBER." \
@@ -109,7 +108,6 @@ conftest() {
         '""" Test Configuration File' \
         '"""' \
         "import pytest" \
-        "" \
         > "${SRC_PATH}${FILE_SEP}${TEST_DIR}${FILE_SEP}conftest.py"
 }
 
@@ -160,16 +158,17 @@ db() {
         '""" Database Module' \
         "" \
         '"""' \
+        "import logging" \
         "import os" \
         "" \
         "import pandas as pd" \
         "import sqlalchemy as sa" \
         "from sqlalchemy.sql import select" \
         "" \
-        "from ${MAIN_DIR}.utils import logger_setup, project_vars" \
+        "from ${MAIN_DIR}.utils import project_vars" \
         "" \
         "" \
-        "logger = logger_setup()" \
+        "logger = logging.getLogger('package')" \
         "" \
         "" \
         "class Connect:" \
@@ -474,7 +473,6 @@ exceptions() {
         "" \
         "class InputError(Error):" \
         '    """Exception raised for errors in the input."""' \
-        "" \
         > "${SRC_PATH}${FILE_SEP}exceptions.py"
 }
 
@@ -590,12 +588,10 @@ globals() {
             "" \
             "" \
             "PACKAGE_ROOT = Path(__file__).parents[1]" \
-            "LOGGER_CONFIG = (PACKAGE_ROOT / 'logger_config.yaml').resolve()" \
             "" \
             "" \
             "if __name__ == '__main__':" \
             "    pass" \
-            "" \
             > "${SRC_PATH}${FILE_SEP}globals.py"
     }
 
@@ -630,41 +626,6 @@ license() {
         "(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS" \
         "SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE." \
         > "${MAIN_DIR}${FILE_SEP}LICENSE.txt"
-}
-
-
-logger_config() {
-    printf "%s\n" \
-        "version: 1" \
-        "disable_existing_loggers: False" \
-        "formatters:" \
-        "   console:" \
-        "       format: '%(levelname)s - %(name)s -> Line: %(lineno)d <- %(message)s'" \
-        "   file:" \
-        "       format: '%(asctime)s - %(levelname)s - %(module)s.py -> Line: %(lineno)d <- %(message)s'" \
-        "handlers:" \
-        "   console:" \
-        "       class: logging.StreamHandler" \
-        "       level: WARNING" \
-        "       formatter: console" \
-        "       stream: ext://sys.stdout" \
-        "   file:" \
-        "       class: logging.handlers.RotatingFileHandler" \
-        "       encoding: utf8" \
-        "       level: DEBUG" \
-        "       filename: info.log" \
-        "       formatter: file" \
-        "       mode: w" \
-        "loggers:" \
-        "   package:" \
-        "       level: INFO" \
-        "       handlers: [console, file]" \
-        "       propagate: False" \
-        "root:" \
-        "   level: DEBUG" \
-        "   handlers: [console]" \
-        "" \
-        > "${MAIN_DIR}${FILE_SEP}logger_config.yaml"
 }
 
 
@@ -1051,7 +1012,6 @@ setup() {
         "    )," \
         "    install_requires=[" \
         "        'click'," \
-        "        'PyYAML'," \
         "        ]," \
         "    extras_require={" \
         "        'build': ['setuptools', 'wheel']," \
@@ -1085,20 +1045,18 @@ utils() {
         '""" Package Utilities Module' \
         "" \
         '"""' \
+        "import datetime" \
         "import logging" \
         "import logging.config" \
         "import functools" \
         "import operator" \
         "import os" \
-        "from pathlib import Path" \
         "import re" \
         "import time" \
         "from typing import Any, Dict, List, Union" \
         "import warnings" \
         "" \
-        "import yaml" \
-        "" \
-        "from ${MAIN_DIR}.globals import LOGGER_CONFIG, PACKAGE_ROOT" \
+        "from ${MAIN_DIR}.globals import PACKAGE_ROOT" \
         "from ${MAIN_DIR}.exceptions import InputError" \
         "" \
         "" \
@@ -1139,13 +1097,52 @@ utils() {
         "        location of the caller." \
         "    :param logger_name: name to be assigned to logger" \
         '    """' \
-        "    with open(LOGGER_CONFIG, 'r') as f:" \
-        "        config = yaml.safe_load(f.read())" \
-        "        if file_path:" \
-        "            time_stamp = datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')" \
-        "            file_path = f'{file_path}_{time_stamp}.log'" \
-        "            nested_set(config, ['handlers', 'file', 'filename'], file_path)" \
-        "        logging.config.dictConfig(config)" \
+        "    config = {" \
+        "        'version': 1," \
+        "        'disable_existing_loggers': False," \
+        "        'formatters': {" \
+        "            'console': {" \
+        "                'format': ('%(levelname)s - %(name)s -> Line: %(lineno)d <- '" \
+        "                           '%(message)s')," \
+        "            }," \
+        "            'file': {" \
+        "                'format': ('%(asctime)s - %(levelname)s - %(module)s.py -> '" \
+        "                           'Line: %(lineno)d <- %(message)s')," \
+        "            }," \
+        "        }," \
+        "        'handlers': {" \
+        "            'console': {" \
+        "                'class': 'logging.StreamHandler'," \
+        "                'level': 'WARNING'," \
+        "                'formatter': 'console'," \
+        "                'stream': 'ext://sys.stdout'," \
+        "            }," \
+        "            'file': {" \
+        "                'class': 'logging.handlers.RotatingFileHandler'," \
+        "                'encoding': 'utf8'," \
+        "                'level': 'DEBUG'," \
+        "                'filename': 'info.log'," \
+        "                'formatter': 'file'," \
+        "                'mode': 'w'," \
+        "            }," \
+        "        }," \
+        "        'loggers': {" \
+        "            'package': {" \
+        "                'level': 'INFO'," \
+        "                'handlers': ['console', 'file']," \
+        "                'propagate': False," \
+        "            }," \
+        "        }," \
+        "        'root': {" \
+        "            'level': 'DEBUG'," \
+        "            'handlers': ['console']," \
+        "        }," \
+        "    }" \
+        "    if file_path:" \
+        "        time_stamp = datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')" \
+        "        file_path = f'{file_path}_{time_stamp}.log'" \
+        "        nested_set(config, ['handlers', 'file', 'filename'], file_path)" \
+        "    logging.config.dictConfig(config)" \
         "    return logging.getLogger(logger_name)" \
         "" \
         "" \
@@ -1182,7 +1179,9 @@ utils() {
         "    if total == 0:" \
         "        raise ZeroDivisionError('Parameter \`total\` may not be equal to zero.')" \
         "    if n > total:" \
-        "        raise InputError('Current item value \`n\` must be less than total.')" \
+        "        raise InputError(" \
+        "            expression='n > total'," \
+        "            message='Current item value \`n\` must be less than total.')" \
         "    progress_msg = f'\r{msg}: {n / total: .1%}'" \
         "    return progress_msg if n < total else progress_msg + '\n\n'" \
         "" \
@@ -1219,7 +1218,7 @@ utils() {
         "    return status_decorator" \
         "" \
         "" \
-        "def warning_format(message, category, filename, lineno, line=None):" \
+        "def warning_format():" \
         '    """' \
         "    Set warning output message format." \
         "" \
@@ -1235,7 +1234,6 @@ utils() {
         "" \
         "if __name__ == '__main__':" \
         "    pass" \
-        ""\
         > "${SRC_PATH}${FILE_SEP}utils.py"
 }
 
@@ -1256,7 +1254,6 @@ git_config
 git_ignore
 globals
 license
-logger_config
 makefile
 manifest
 readme
