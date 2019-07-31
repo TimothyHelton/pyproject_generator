@@ -93,6 +93,7 @@ common_image() {
         "\t&& apt-get upgrade -y \\\\" \
         "\t&& apt-get install -y apt-utils \\\\" \
         "\t&& apt-get install -y nodejs \\\\" \
+        "\t&& jupyter labextension install @telamonian/theme-darcula \\\\" \
         "\t&& jupyter labextension install jupyterlab-drawio \\\\" \
         "\t&& jupyter labextension install @mflevine/jupyterlab_html \\\\" \
         "\t&& jupyter labextension install @jupyterlab/plotly-extension \\\\" \
