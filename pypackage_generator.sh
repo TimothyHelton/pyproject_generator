@@ -380,7 +380,7 @@ docker_python() {
 
 docker_pytorch() {
     printf "%b\n" \
-        "FROM continuumio/anaconda3" \
+        "FROM pytorch/pytorch" \
         "" \
         "WORKDIR /usr/src/${MAIN_DIR}" \
         "" \
