@@ -435,13 +435,13 @@ docker_tensorflow() {
 envfile() {
     printf "%s\n" \
         "# PGAdmin" \
-        "export PGADMIN_DEFAULT_EMAIL=enter_user@${MAIN_DIR}.com" \
-        "export PGADMIN_DEFAULT_PASSWORD=enter_password" \
+        "export PGADMIN_DEFAULT_EMAIL=postgres@${MAIN_DIR}.com" \
+        "export PGADMIN_DEFAULT_PASSWORD=postgres" \
         "" \
         "# Postgres" \
-        "export POSTGRES_PASSWORD=enter_password" \
+        "export POSTGRES_PASSWORD=postgres" \
         "export POSTGRES_DB=${MAIN_DIR}" \
-        "export POSTGRES_USER=enter_user" \
+        "export POSTGRES_USER=postgres" \
         "" \
         > "${MAIN_DIR}${FILE_SEP}envfile"
     cp "${MAIN_DIR}${FILE_SEP}envfile" "${MAIN_DIR}${FILE_SEP}envfile_template"
@@ -911,11 +911,17 @@ readme() {
         "" \
         "# PyCharm Setup" \
         "## Database Configuration" \
+        "1. Make sure any new users are added to the database." \
+        "    \`\`\`postgresql" \
+        "    GRANT CONNECT ON DATABASE ${MAIN_DIR} TO new_user;" \
+        "    GRANT USAGE ON SCHEMA public TO new_user;" \
+        "    GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO new_user;" \
+        "    \`\`\`" \
         "1. \`Database\` -> \`New\` -> \`Data Source\` -> \`PostgreSQL\`" \
-        "1. \`Name\`: <project_name>_postgres@localhost" \
+        "1. \`Name\`: ${MAIN_DIR}_postgres@localhost" \
         "1. \`Host\`: localhost" \
         "1. \`Port\`: 5432" \
-        "1. \`Database\`: <project_name>" \
+        "1. \`Database\`: ${MAIN_DIR}" \
         "1. \`User\`: **Postgres** username" \
         "1. \`Password\`: **Postgres** password" \
         "" \
