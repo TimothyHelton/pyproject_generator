@@ -95,9 +95,9 @@ common_image() {
         "\t&& apt-get install -y nodejs \\\\" \
         "\t&& jupyter labextension install @telamonian/theme-darcula \\\\" \
         "\t&& jupyter labextension install jupyterlab-drawio \\\\" \
-        "\t&& jupyter labextension install @mflevine/jupyterlab_html \\\\" \
-        "\t&& jupyter labextension install @jupyterlab/plotly-extension \\\\" \
-        "\t&& jupyter labextension install @jupyterlab/toc \\\\" \
+        "\t# && jupyter labextension install jupyterlab-plotly \\\\" \
+        "\t# && jupyter labextension install jupyterlab-toc \\\\" \
+        "\t&& rm -rf /tmp/* \\\\" \
         "\t&& apt-get clean"
 }
 
