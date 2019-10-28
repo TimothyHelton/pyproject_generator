@@ -1165,7 +1165,7 @@ utils() {
         "        'axes.titlesize': FONT_SIZE['title']," \
         "        'figure.titlesize': FONT_SIZE['super_title']," \
         "        'patch.edgecolor': 'black'," \
-        "        'patch.force.edgecolor': True," \
+        "        'patch.force_edgecolor': True," \
         "    }" \
         "    plt.rcParams.update(params)" \
         "" \
