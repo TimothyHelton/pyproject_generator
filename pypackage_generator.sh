@@ -591,6 +591,7 @@ globals() {
             "PACKAGE_ROOT = Path(__file__).parents[1]" \
             "" \
             "FONT_SIZE = {" \
+            "    'axis': 18," \
             "    'label': 14," \
             "    'legend': 12," \
             "    'super_title': 24," \
@@ -601,17 +602,17 @@ globals() {
             "PLOTLY_FONTS = {" \
             "    'axis_font': {" \
             "        'family': FONT_FAMILY," \
-            "        'size': 18," \
+            "        'size': FONT_SIZE['axis']," \
             "        'color': 'gray'," \
             "    }," \
             "    'legend_font': {" \
             "        'family': FONT_FAMILY," \
-            "        'size': 12," \
+            "        'size': FONT_SIZE['label']," \
             "        'color': 'black'," \
             "    }," \
             "    'title_font': {" \
             "        'family': FONT_FAMILY," \
-            "        'size': 24," \
+            "        'size': FONT_SIZE['super_title']," \
             "        'color': 'black'," \
             "    }," \
             "}" \
@@ -1091,7 +1092,9 @@ utils() {
         "from typing import Any, Dict, List, Union" \
         "import warnings" \
         "" \
-        "from ${MAIN_DIR}.globals import PACKAGE_ROOT" \
+        "import matplotlib.pyplot as plt" \
+        "" \
+        "from ${MAIN_DIR}.globals import FONT_SIZE, PACKAGE_ROOT" \
         "from ${MAIN_DIR}.exceptions import InputError" \
         "" \
         "" \
@@ -1152,6 +1155,18 @@ utils() {
         "        nested_set(config, ['handlers', 'file', 'filename'], file_path)" \
         "    logging.config.dictConfig(config)" \
         "    return logging.getLogger(logger_name)" \
+        "" \
+        "" \
+        "def matplotlib_defaults():" \
+        '    """Set matplotlib default values."""' \
+        "    params = {" \
+        "        'axes.labelsize': FONT_SIZE['label']," \
+        "        'axes.titlesize': FONT_SIZE['title']," \
+        "        'figure.titlesize': FONT_SIZE['super_title']," \
+        "        'patch.edgecolor': 'black'," \
+        "        'patch.force.edgecolor': True," \
+        "    }" \
+        "    plt.rcParams.update(params)" \
         "" \
         "" \
         "def nested_get(nested_dict: Dict[Any, Any], key_path: List[Any]) -> Any:" \
