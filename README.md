@@ -8,7 +8,7 @@
 ## Installation
 All you need is the file **new_pyproject.sh**.
 
-1. go to [source file](https://github.com/TimothyHelton/pyproject_generator/blob/master/new_pyproject.sh)
+1. go to the [source file](https://github.com/TimothyHelton/pyproject_generator/blob/master/new_pyproject.sh)
 1. Save as...
 1. Change permissions to make the file user executable
     ```bash
@@ -72,17 +72,26 @@ with Git version control.
 │   ├── docker
 │   │   ├── docker-compose.yml
 │   │   └── python-Dockerfile
+│   │   ├── pytorch-Dockerfile
+│   │   └── tensorflow-Dockerfile
 │   ├── docs
 │   ├── envfile
+│   ├── envfile_template
 │   ├── example_package
 │   │   ├── __init__.py
-│   │   └── tests
-│   │       ├── __init__.py
-│   │       └── conftest.py
+│   │   ├── cli.py
+│   │   ├── db.py
+│   │   ├── exceptions.py
+│   │   ├── globals.py
+│   │   ├── tests
+│   │   │   ├── __init__.py
+│   │   │   └── conftest.py
+│   │   └── utils.py
 │   ├── .gitattributes
 │   ├── .gitconfig
 │   ├── .gitignore
 │   ├── notebooks
+│   ├── profiles
 │   ├── requirements.txt
 │   ├── setup.py
 │   └── wheels
