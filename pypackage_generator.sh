@@ -590,6 +590,34 @@ globals() {
             "" \
             "PACKAGE_ROOT = Path(__file__).parents[1]" \
             "" \
+            "FONT_SIZE = {" \
+            "    'label': 14," \
+            "    'legend': 12," \
+            "    'super_title': 24," \
+            "    'title': 20," \
+            "}" \
+            "" \
+            "FONT_FAMILY = 'Courier New, monospace'" \
+            "PLOTLY_FONTS = {" \
+            "    'axis_font': {" \
+            "        'family': FONT_FAMILY," \
+            "        'size': 18," \
+            "        'color': 'gray'," \
+            "    }," \
+            "    'legend_font': {" \
+            "        'family': FONT_FAMILY," \
+            "        'size': 12," \
+            "        'color': 'black'," \
+            "    }," \
+            "    'title_font': {" \
+            "        'family': FONT_FAMILY," \
+            "        'size': 24," \
+            "        'color': 'black'," \
+            "    }," \
+            "}" \
+            "" \
+            "" \
+            "" \
             "" \
             "if __name__ == '__main__':" \
             "    pass" \
@@ -1065,33 +1093,6 @@ utils() {
         "" \
         "from ${MAIN_DIR}.globals import PACKAGE_ROOT" \
         "from ${MAIN_DIR}.exceptions import InputError" \
-        "" \
-        "" \
-        "FONT_SIZE = {" \
-        "    'label': 14," \
-        "    'legend': 12," \
-        "    'super_title': 24," \
-        "    'title': 20," \
-        "}" \
-        "" \
-        "FONT_FAMILY = 'Courier New, monospace'" \
-        "PLOTLY_FONTS = {" \
-        "    'axis_font': {" \
-        "        'family': FONT_FAMILY," \
-        "        'size': 18," \
-        "        'color': 'gray'," \
-        "    }," \
-        "    'legend_font': {" \
-        "        'family': FONT_FAMILY," \
-        "        'size': 12," \
-        "        'color': 'black'," \
-        "    }," \
-        "    'title_font': {" \
-        "        'family': FONT_FAMILY," \
-        "        'size': 24," \
-        "        'color': 'black'," \
-        "    }," \
-        "}" \
         "" \
         "" \
         "def logger_setup(file_path: Union[None, str] = None," \
