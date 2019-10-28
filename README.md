@@ -6,7 +6,7 @@
 
 
 ## Installation
-All you need is the file **new_pyproject.sh**.
+All you need are the files **new_pyproject.sh** and **envfile_template**.
 
 1. go to the [source file](https://github.com/TimothyHelton/pyproject_generator/blob/master/new_pyproject.sh)
 1. Save as...
@@ -14,19 +14,27 @@ All you need is the file **new_pyproject.sh**.
     ```bash
     chmod u+x new_pyproject.sh
     ```
+1. go to the [environment variable file ](https://github.com/TimothyHelton/pyproject_generator/blob/master/envfile_template)
+1. Save as...
+    1. save the file in the same location as **new_project.sh**
+1. Rename file to **envfile**
+    ```bash
+    mv envfile_template envfile
+    ```
 
 
 ## Quick Start Guide
 
 ### Configure envfile
-1. Enter your name in the author argument
-    ```bash
-    export AUTHOR="Timothy Helton"
-    ```
-1. Enter your email address in the email argument
-    ```bash
-    export EMAIL="timothy.j.helton@gmail.com"
-    ```
+1. Open the envfile
+    1. Enter your name in the author argument
+        ```bash
+        export AUTHOR="Timothy Helton"
+        ```
+    1. Enter your email address in the email argument
+        ```bash
+        export EMAIL="timothy.j.helton@gmail.com"
+        ```
 
 ### Execution
 The script has a single required argument, which is the name of the package.
@@ -110,6 +118,6 @@ for creating a Python package, which uses
 [PostgreSQL](https://www.postgresql.org/) for persistent data storage,
 [PGAdmin](https://www.pgadmin.org/) for database interactions,
 [Git](https://git-scm.com/) for version control,
-and is contained in [Docker](https://www.docker.com/) containers.
+and is packaged in [Docker](https://www.docker.com/) containers.
 
 #### Thanks for looking around and enjoy the day!
