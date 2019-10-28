@@ -105,6 +105,32 @@ with Git version control.
 │   └── wheels
 ```
 
+## Makefile Targets
+After the package is created there are a number of helpful shortcuts in the
+**Makefile**.  For instance, to spin up the docker containers related to the
+project call:
+```bash
+make docker-up
+```
+
+To build the SPHINX documentation for the first time in a local repository 
+execute the following:
+```bash
+make docs-init
+```
+
+After the documentation has be configured in a local repository to rebuild the
+documentations call:
+```bash
+make docs
+```
+
+If you only want to view the documentation without rebuilding run:
+```bash
+make docs-view
+```
+
+
 ## Background
 I found myself writing various pieces of code and wanted to make them easy to
 share with the community.
