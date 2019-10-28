@@ -106,6 +106,7 @@ conftest() {
     printf "%s\n" \
         "${PY_SHEBANG}" \
         "${PY_ENCODING}" \
+        "" \
         '""" Test Configuration File' \
         '"""' \
         "import pytest" \
