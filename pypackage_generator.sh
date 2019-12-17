@@ -90,8 +90,9 @@ common_image() {
         "\t&& curl -sL https://deb.nodesource.com/setup_${NODEJS_VERSION}.x | bash - \\\\" \
         "\t&& apt-get update -y \\\\" \
         "\t&& apt-get upgrade -y \\\\" \
-        "\t&& apt-get install -y apt-utils \\\\" \
-        "\t&& apt-get install -y nodejs \\\\" \
+        "\t&& apt-get install -y \\\\" \
+        "\t\tapt-utils \\\\" \
+        "\t\tnodejs \\\\" \
         "\t&& jupyter labextension install @telamonian/theme-darcula \\\\" \
         "\t&& jupyter labextension install jupyterlab-drawio \\\\" \
         "\t# && jupyter labextension install jupyterlab-plotly \\\\" \
@@ -108,8 +109,25 @@ conftest() {
         "${PY_ENCODING}" \
         "" \
         '""" Test Configuration File' \
+        "" \
         '"""' \
+        "import datetime" \
+        "" \
         "import pytest" \
+        "" \
+        "" \
+        "TEST_TIME = datetime.datetime(2019, 12, 25, 8, 16, 32)" \
+        "" \
+        "" \
+        "@pytest.fixture" \
+        "def patch_datetime(monkeypatch):" \
+        "" \
+        "    class CustomDatetime:" \
+        "        @classmethod" \
+        "        def now(cls):" \
+        "            return TEST_TIME" \
+        "" \
+        "    monkeypatch.setattr(datetime, 'datetime', CustomDatetime)" \
         > "${SRC_PATH}${FILE_SEP}${TEST_DIR}${FILE_SEP}conftest.py"
 }
 
@@ -122,7 +140,7 @@ constructor_pkg() {
         "from pkg_resources import get_distribution, DistributionNotFound" \
         "from os import path" \
         "" \
-        "from . import globals" \
+        "from . import pkg_globals" \
         "# from . import cli" \
         "# from . import db" \
         "from . import exceptions" \
@@ -149,6 +167,21 @@ constructor_test() {
         "${PY_SHEBANG}" \
         "${PY_ENCODING}" \
         > "${SRC_PATH}${FILE_SEP}${TEST_DIR}${FILE_SEP}__init__.py"
+}
+
+
+coveragerc() {
+    printf "%s\n" \
+        "[run]" \
+        "omit =" \
+        "    setup.py" \
+        "    */tests/*" \
+        "" \
+        "[report]" \
+        "omit =" \
+        "    setup.py" \
+        "    */tests/*" \
+        > "${SRC_PATH}${FILE_SEP}.coveragerc"
 }
 
 
@@ -370,7 +403,7 @@ docker_python() {
         "" \
         "RUN pip3 install --upgrade pip \\\\" \
         "\t&& pip3 install --no-cache-dir -r requirements.txt \\\\" \
-        "\t&& pip3 install -e .[build,data,database,docs,notebook,profile,test] \\\\" \
+        "\t&& pip3 install -e .[all] \\\\" \
         "$(common_image)" \
         "" \
         "CMD [ \"/bin/bash\" ]" \
@@ -524,7 +557,6 @@ git_ignore() {
         "*.sqlite" \
         "" \
         "# OS generated files" \
-        "envfile" \
         ".DS_Store" \
         ".DS_store?" \
         "._*" \
@@ -545,10 +577,10 @@ git_ignore() {
         "" \
         "# Profile files" \
         "*.coverage" \
+        "htmlcov/*" \
         "*.profile" \
         "" \
         "# Project files" \
-        "source_venv.sh" \
         "*wheels" \
         "" \
         "# PyCharm files" \
@@ -557,6 +589,8 @@ git_ignore() {
         "" \
         "# pytest files" \
         ".cache${FILE_SEP}*" \
+        ".pytest_cache" \
+        "pytest" \
         "" \
         "# Raw data" \
         "${DATA_DIR}${FILE_SEP}*" \
@@ -837,11 +871,16 @@ makefile() {
         "\tdocker container exec \$(PROJECT)_python \\\\" \
         "\t\t/bin/bash -c \"py.test\\\\" \
         "\t\t\t\t--basetemp=pytest \\\\" \
+        "\t\t\t\t--cov=. \\\\" \
+        "\t\t\t\t--cov-report html \\\\" \
         "\t\t\t\t--doctest-modules \\\\" \
         "\t\t\t\t--ff \\\\" \
         "\t\t\t\t--pep8 \\\\" \
         "\t\t\t\t-r all \\\\" \
         "\t\t\t\t-vvv\"" \
+        "" \
+        "tests-coverage: tests" \
+	    "\t\${BROWSER} htmlcov/index.html"\
         "" \
         "upgrade-packages: docker-up" \
         "ifeq (\"\${PKG_MANAGER}\", \"pip\")" \
@@ -994,6 +1033,18 @@ readme() {
 }
 
 
+release_history() {
+    printf "%s\n" \
+        "# Release History" \
+        "## 0.1.0 (YYYY-MM-DD)" \
+        "" \
+        "**Improvements**" \
+        "" \
+        "- "\
+        > "${MAIN_DIR}${FILE_SEP}HISTORY.md"
+}
+
+
 requirements() {
     touch "${MAIN_DIR}${FILE_SEP}requirements.txt"
 }
@@ -1098,6 +1149,166 @@ setup() {
         "if __name__ == '__main__':" \
         "    pass" \
         > "${MAIN_DIR}${FILE_SEP}setup.py"
+}
+
+
+test_cli() {
+    printf "%s\n" \
+        "${PY_SHEBANG}" \
+        "${PY_ENCODING}" \
+        "" \
+        '""" Commandline Interface Unit Tests' \
+        "" \
+        '"""' \
+        "from click.testing import CliRunner" \
+        "" \
+        "from .. import cli" \
+        "" \
+        "" \
+        "def test_count():" \
+        "    runner = CliRunner()" \
+        "    result = runner.invoke(cli.count, ['1'])" \
+        "    assert result.exit_code == 0" \
+        > "${SRC_PATH}${FILE_SEP}test_cli.py"
+}
+
+
+test_conftest() {
+    printf "%s\n" \
+        "${PY_SHEBANG}" \
+        "${PY_ENCODING}" \
+        "" \
+        '""" pytest Fixtures Unit Tests' \
+        "" \
+        '"""' \
+        "import datetime" \
+        "" \
+        "from .conftest import TEST_TIME" \
+        "" \
+        "" \
+        "def test_patch_datetime(patch_datetime):" \
+        "    assert datetime.datetime.now() == TEST_TIME" \
+        > "${SRC_PATH}${FILE_SEP}test_conftest.py"
+}
+
+
+test_utils() {
+    printf "%s\n" \
+        "${PY_SHEBANG}" \
+        "${PY_ENCODING}" \
+        "" \
+        '""" Utilities Unit Tests' \
+        "" \
+        '"""' \
+        "from pathlib import Path" \
+        "import logging" \
+        "import os" \
+        "import warnings" \
+        "" \
+        "import pytest" \
+        "" \
+        "from .. import exceptions" \
+        "from .. import utils" \
+        "" \
+        "" \
+        "LOGGER = logging.getLogger(__name__)" \
+        "" \
+        "# Test logger_setup()" \
+        "logger_setup = {" \
+        "    'default args': (None, Path('info.log'))," \
+        "    'file_path': ('test_p', Path('test_p_2019-12-25_08:16:32.log'))," \
+        "}" \
+        "" \
+        "" \
+        "@pytest.mark.parametrize('file_path, log_file'," \
+        "                         list(logger_setup.values())," \
+        "                         ids=list(logger_setup.keys()))" \
+        "def test_logger_setup(patch_datetime, file_path, log_file):" \
+        "    logger = utils.logger_setup(file_path)" \
+        "    assert isinstance(logger, logging.Logger)" \
+        "    assert log_file in list(Path().glob('*.log'))" \
+        "    log_file.unlink()" \
+        "" \
+        "" \
+        "# Test nested_get()" \
+        "nested_get = {" \
+        "    'first level': (['x'], 0)," \
+        "    'nested level': (['a', 'b', 'c'], 2)," \
+        "}" \
+        "" \
+        "" \
+        "@pytest.mark.parametrize('key_path, expected'," \
+        "                         list(nested_get.values())," \
+        "                         ids=list(nested_get.keys()))" \
+        "def test_nested_get(key_path, expected):" \
+        "    sample_dict = {'a': {'b': {'c': 2}, 'y': 1}, 'x': 0}" \
+        "    assert utils.nested_get(sample_dict, key_path) == expected" \
+        "" \
+        "" \
+        "# Test nested_set()" \
+        "nested_set = {" \
+        "    'first level': (['x'], 00)," \
+        "    'nested level': (['a', 'b', 'c'], 22)," \
+        "}" \
+        "" \
+        "" \
+        "@pytest.mark.parametrize('key_path, value'," \
+        "                         list(nested_set.values())," \
+        "                         ids=list(nested_set.keys()))" \
+        "def test_nested_set(key_path, value):" \
+        "    sample_dict = {'a': {'b': {'c': 2}, 'y': 1}, 'x': 0}" \
+        "    utils.nested_set(sample_dict, key_path, value)" \
+        "    assert utils.nested_get(sample_dict, key_path) == value" \
+        "" \
+        "" \
+        "# Test progress_str()" \
+        "progress_str = {" \
+        "    '0%': (0, 100, '\rProgress:  0.0%')," \
+        "    '100%': (100, 100, '\rProgress:  100.0%\n\n')," \
+        "}" \
+        "" \
+        "" \
+        "@pytest.mark.parametrize('n, total, expected'," \
+        "                         list(progress_str.values())," \
+        "                         ids=list(progress_str.keys()))" \
+        "def test_progress_str(n, total, expected):" \
+        "    assert utils.progress_str(n, total) == expected" \
+        "" \
+        "" \
+        "def test_progress_str_zero_division_error():" \
+        "    with pytest.raises(ZeroDivisionError):" \
+        "        utils.progress_str(100, 0)" \
+        "" \
+        "" \
+        "def test_progress_str_input_error():" \
+        "    with pytest.raises(exceptions.InputError):" \
+        "        utils.progress_str(100, 50)" \
+        "" \
+        "" \
+        "# Test project_vars():" \
+        "def test_project_vars():" \
+        "    utils.project_vars()" \
+        "    assert os.environ['ACCEPT_EULA'] == 'Y'" \
+        "" \
+        "" \
+        "# Test status():" \
+        "def test_status(caplog):" \
+        "" \
+        "    @utils.status(LOGGER)" \
+        "    def foo():" \
+        "        return 5" \
+        "" \
+        "    foo()" \
+        "    assert 'Initiated: foo' in caplog.text" \
+        "" \
+        "" \
+        "# Test warning_format()" \
+        "def test_warning_format(patch_datetime):" \
+        "    utils.warning_format()" \
+        "    with pytest.warns(UserWarning):" \
+        "        warnings.warn('test', UserWarning)" \
+        "" \
+        > "${SRC_PATH}${FILE_SEP}test_utils.py"
 }
 
 
@@ -1294,6 +1505,7 @@ cli
 conftest
 constructor_pkg
 constructor_test
+coveragerc
 db
 docker_compose
 docker_python
@@ -1309,7 +1521,11 @@ license
 makefile
 manifest
 readme
+release_history
 requirements
 setup
+test_cli
+test_conftest
+test_utils
 utils
 git_init
