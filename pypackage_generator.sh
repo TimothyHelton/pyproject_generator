@@ -68,7 +68,7 @@ cli() {
         "              help='Increase output level one (-v) or multiple times (-vvv).')" \
         "def count(number: int, quiet, verbose):" \
         '    """' \
-        "    Display progressbar while counting to the user provided integer NUMBER." \
+        "    Display progressbar while counting to the user provided integer \`number\`." \
         '    """' \
         "    click.clear()" \
         "    logging_level = logging.INFO + 10 * len(quiet) - 10 * len(verbose)" \
@@ -81,7 +81,6 @@ cli() {
         "" \
         "if __name__ == '__main__':" \
         "    pass" \
-        "" \
         > "${SRC_PATH}${FILE_SEP}cli.py"
 }
 
@@ -515,7 +514,7 @@ git_ignore() {
         "*.pyc" \
         "*.so" \
         "" \
-        "# Ipython Files" \
+        "# Ipython files" \
         ".ipynb_checkpoints" \
         "" \
         "# Logs and databases" \
@@ -559,7 +558,7 @@ git_ignore() {
         "# pytest files" \
         ".cache${FILE_SEP}*" \
         "" \
-        "# Raw Data" \
+        "# Raw data" \
         "${DATA_DIR}${FILE_SEP}*" \
         "" \
         "# Sphinx files" \
@@ -1075,6 +1074,7 @@ setup() {
         > "${MAIN_DIR}${FILE_SEP}setup.py"
 }
 
+
 utils() {
     printf "%s\n" \
         "${PY_SHEBANG}" \
@@ -1261,6 +1261,7 @@ utils() {
         "    pass" \
         > "${SRC_PATH}${FILE_SEP}utils.py"
 }
+
 
 directories
 cli
