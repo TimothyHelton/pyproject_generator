@@ -168,7 +168,7 @@ db() {
         "import sqlalchemy as sa" \
         "from sqlalchemy.sql import select" \
         "" \
-        "from ${MAIN_DIR}.utils import project_vars" \
+        "from ${SOURCE_DIR}.utils import project_vars" \
         "" \
         "" \
         "logger = logging.getLogger('package')" \
@@ -1096,8 +1096,8 @@ utils() {
         "" \
         "import matplotlib.pyplot as plt" \
         "" \
-        "from ${MAIN_DIR}.globals import FONT_SIZE, PACKAGE_ROOT" \
-        "from ${MAIN_DIR}.exceptions import InputError" \
+        "from ${SOURCE_DIR}.globals import FONT_SIZE, PACKAGE_ROOT" \
+        "from ${SOURCE_DIR}.exceptions import InputError" \
         "" \
         "" \
         "def logger_setup(file_path: Union[None, str] = None," \
