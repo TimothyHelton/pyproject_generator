@@ -1014,6 +1014,18 @@ readme() {
 }
 
 
+release_history() {
+    printf "%s\n" \
+        "# Release History" \
+        "## 0.1.0 (YYYY-MM-DD)" \
+        "" \
+        "**Improvements**" \
+        "" \
+        "- "\
+        > "${MAIN_DIR}${FILE_SEP}HISTORY.md"
+}
+
+
 requirements() {
     touch "${MAIN_DIR}${FILE_SEP}requirements.txt"
 }
@@ -1330,6 +1342,7 @@ license
 makefile
 manifest
 readme
+release_history
 requirements
 setup
 utils
