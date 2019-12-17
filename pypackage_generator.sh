@@ -68,7 +68,7 @@ cli() {
         "              help='Increase output level one (-v) or multiple times (-vvv).')" \
         "def count(number: int, quiet, verbose):" \
         '    """' \
-        "    Display progressbar while counting to the user provided integer NUMBER." \
+        "    Display progressbar while counting to the user provided integer \`number\`." \
         '    """' \
         "    click.clear()" \
         "    logging_level = logging.INFO + 10 * len(quiet) - 10 * len(verbose)" \
@@ -81,7 +81,6 @@ cli() {
         "" \
         "if __name__ == '__main__':" \
         "    pass" \
-        "" \
         > "${SRC_PATH}${FILE_SEP}cli.py"
 }
 
@@ -98,6 +97,7 @@ common_image() {
         "\t# && jupyter labextension install jupyterlab-plotly \\\\" \
         "\t# && jupyter labextension install jupyterlab-toc \\\\" \
         "\t&& rm -rf /tmp/* \\\\" \
+        "\t&& rm -rf /var/lib/apt/lists/* \\\\" \
         "\t&& apt-get clean"
 }
 
@@ -167,7 +167,7 @@ db() {
         "import sqlalchemy as sa" \
         "from sqlalchemy.sql import select" \
         "" \
-        "from ${MAIN_DIR}.utils import project_vars" \
+        "from ${SOURCE_DIR}.utils import project_vars" \
         "" \
         "" \
         "logger = logging.getLogger('package')" \
@@ -336,7 +336,7 @@ docker_compose() {
         "    container_name: ${MAIN_DIR}_python" \
         "    build:" \
         "      context: .." \
-        "      dockerfile: docker/python-Dockerfile" \
+        "      dockerfile: docker/python.Dockerfile" \
         "    depends_on:" \
         "      - postgres" \
         "    image: ${MAIN_DIR}_python" \
@@ -356,7 +356,7 @@ docker_compose() {
         "volumes:" \
         "  ${MAIN_DIR}-db:" \
         "" \
-        > "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}docker-compose.yml"
+        > "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}docker-compose.yaml"
 }
 
 
@@ -375,7 +375,7 @@ docker_python() {
         "" \
         "CMD [ \"/bin/bash\" ]" \
         "" \
-        > "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}python-Dockerfile"
+        > "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}python.Dockerfile"
 }
 
 
@@ -396,7 +396,7 @@ docker_pytorch() {
         "" \
         "CMD [ \"/bin/bash\" ]" \
         "" \
-        > "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}pytorch-Dockerfile"
+        > "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}pytorch.Dockerfile"
 }
 
 
@@ -429,7 +429,7 @@ docker_tensorflow() {
         "ENV PYTHONPATH \$PYTHONPATH:/opt/models/research:/opt/models/research/slim:/opt/models/research/object_detection" \
         "" \
         "CMD [ \"/bin/bash\" ]" \
-        > "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}tensorflow-Dockerfile"
+        > "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}tensorflow.Dockerfile"
 }
 
 
@@ -514,7 +514,7 @@ git_ignore() {
         "*.pyc" \
         "*.so" \
         "" \
-        "# Ipython Files" \
+        "# Ipython files" \
         ".ipynb_checkpoints" \
         "" \
         "# Logs and databases" \
@@ -558,7 +558,7 @@ git_ignore() {
         "# pytest files" \
         ".cache${FILE_SEP}*" \
         "" \
-        "# Raw Data" \
+        "# Raw data" \
         "${DATA_DIR}${FILE_SEP}*" \
         "" \
         "# Sphinx files" \
@@ -576,55 +576,6 @@ git_init() {
     git add --all
     git commit -m "Initial Commit"
 }
-
-
-globals() {
-    printf "%s\n" \
-            "${PY_SHEBANG}" \
-            "${PY_ENCODING}" \
-            "" \
-            '""" Global Variable Module' \
-            "" \
-            '"""' \
-            "from pathlib import Path" \
-            "" \
-            "" \
-            "PACKAGE_ROOT = Path(__file__).parents[1]" \
-            "" \
-            "FONT_SIZE = {" \
-            "    'axis': 18," \
-            "    'label': 14," \
-            "    'legend': 12," \
-            "    'super_title': 24," \
-            "    'title': 20," \
-            "}" \
-            "" \
-            "FONT_FAMILY = 'Courier New, monospace'" \
-            "PLOTLY_FONTS = {" \
-            "    'axis_font': {" \
-            "        'family': FONT_FAMILY," \
-            "        'size': FONT_SIZE['axis']," \
-            "        'color': 'gray'," \
-            "    }," \
-            "    'legend_font': {" \
-            "        'family': FONT_FAMILY," \
-            "        'size': FONT_SIZE['label']," \
-            "        'color': 'black'," \
-            "    }," \
-            "    'title_font': {" \
-            "        'family': FONT_FAMILY," \
-            "        'size': FONT_SIZE['super_title']," \
-            "        'color': 'black'," \
-            "    }," \
-            "}" \
-            "" \
-            "" \
-            "" \
-            "" \
-            "if __name__ == '__main__':" \
-            "    pass" \
-            > "${SRC_PATH}${FILE_SEP}globals.py"
-    }
 
 
 license() {
@@ -692,16 +643,16 @@ makefile() {
         "\t@echo git push origin v\$(VERSION)" \
         "" \
         "docker-down:" \
-        "\tdocker-compose -f docker/docker-compose.yml down" \
+        "\tdocker-compose -f docker/docker-compose.yaml down" \
         "" \
         "docker-images-update:" \
         "\tdocker image ls | grep -v REPOSITORY | cut -d ' ' -f 1 | xargs -L1 docker pull" \
         ""\
         "docker-rebuild: setup.py" \
-        "\tdocker-compose -f docker/docker-compose.yml up -d --build" \
+        "\tdocker-compose -f docker/docker-compose.yaml up -d --build" \
         "" \
         "docker-up:" \
-        "\tdocker-compose -f docker/docker-compose.yml up -d" \
+        "\tdocker-compose -f docker/docker-compose.yaml up -d" \
         "" \
         "docs: docker-up" \
         "\tdocker container exec \$(PROJECT)_python \\\\" \
@@ -721,7 +672,7 @@ makefile() {
         "\t\t\t\t--ext-viewcode \\\\" \
         "\t\t\t\t--makefile \\\\" \
         "\t\t\t\t--no-batchfile\"" \
-        "\tdocker-compose -f docker/docker-compose.yml restart nginx" \
+        "\tdocker-compose -f docker/docker-compose.yaml restart nginx" \
         "ifeq (\"\$(shell git remote)\", \"origin\")" \
         "\tgit fetch" \
         "\tgit checkout origin/master -- docs/" \
@@ -822,10 +773,10 @@ makefile() {
         "\t\t-w /usr/src/\$(PROJECT) \\\\" \
         "\t\tubuntu \\\\" \
         "\t\t/bin/bash -c \\\\" \
-        "\t\t\t\"sed -i -e 's/python-Dockerfile/pytorch-Dockerfile/g' \\\\" \
-        "\t\t\t\tdocker/docker-compose.yml \\\\" \
-        "\t\t\t && sed -i -e 's/tensorflow-Dockerfile/pytorch-Dockerfile/g' \\\\" \
-        "\t\t\t\tdocker/docker-compose.yml \\\\" \
+        "\t\t\t\"sed -i -e 's/python.Dockerfile/pytorch.Dockerfile/g' \\\\" \
+        "\t\t\t\tdocker/docker-compose.yaml \\\\" \
+        "\t\t\t && sed -i -e 's/tensorflow.Dockerfile/pytorch.Dockerfile/g' \\\\" \
+        "\t\t\t\tdocker/docker-compose.yaml \\\\" \
         "\t\t\t && sed -i -e 's/PKG_MANAGER=pip/PKG_MANAGER=conda/g' \\\\" \
         "\t\t\t\tMakefile\"" \
         "" \
@@ -858,10 +809,10 @@ makefile() {
         "\t\t-w /usr/src/\$(PROJECT) \\\\" \
         "\t\tubuntu \\\\" \
         "\t\t/bin/bash -c \\\\" \
-        "\t\t\t\"sed -i -e 's/python-Dockerfile/tensorflow-Dockerfile/g' \\\\" \
-        "\t\t\t\tdocker/docker-compose.yml \\\\" \
-        "\t\t\t && sed -i -e 's/pytorch-Dockerfile/tensorflow-Dockerfile/g' \\\\" \
-        "\t\t\t\tdocker/docker-compose.yml \\\\" \
+        "\t\t\t\"sed -i -e 's/python.Dockerfile/tensorflow.Dockerfile/g' \\\\" \
+        "\t\t\t\tdocker/docker-compose.yaml \\\\" \
+        "\t\t\t && sed -i -e 's/pytorch.Dockerfile/tensorflow.Dockerfile/g' \\\\" \
+        "\t\t\t\tdocker/docker-compose.yaml \\\\" \
         "\t\t\t && sed -i -e 's/PKG_MANAGER=conda/PKG_MANAGER=pip/g' \\\\" \
         "\t\t\t\tMakefile \\\\" \
         "\t\t\t && sed -i -e \\\\\"/'test': \['pytest', 'pytest-pep8'\],/a \\\\" \
@@ -920,6 +871,55 @@ manifest() {
         "include LICENSE.txt" \
         > "${MAIN_DIR}${FILE_SEP}MANIFEST.in"
 }
+
+
+pkg_globals() {
+    printf "%s\n" \
+            "${PY_SHEBANG}" \
+            "${PY_ENCODING}" \
+            "" \
+            '""" Global Variable Module' \
+            "" \
+            '"""' \
+            "from pathlib import Path" \
+            "" \
+            "" \
+            "PACKAGE_ROOT = Path(__file__).parents[1]" \
+            "" \
+            "FONT_SIZE = {" \
+            "    'axis': 18," \
+            "    'label': 14," \
+            "    'legend': 12," \
+            "    'super_title': 24," \
+            "    'title': 20," \
+            "}" \
+            "" \
+            "FONT_FAMILY = 'Courier New, monospace'" \
+            "PLOTLY_FONTS = {" \
+            "    'axis_font': {" \
+            "        'family': FONT_FAMILY," \
+            "        'size': FONT_SIZE['axis']," \
+            "        'color': 'gray'," \
+            "    }," \
+            "    'legend_font': {" \
+            "        'family': FONT_FAMILY," \
+            "        'size': FONT_SIZE['label']," \
+            "        'color': 'black'," \
+            "    }," \
+            "    'title_font': {" \
+            "        'family': FONT_FAMILY," \
+            "        'size': FONT_SIZE['super_title']," \
+            "        'color': 'black'," \
+            "    }," \
+            "}" \
+            "" \
+            "" \
+            "" \
+            "" \
+            "if __name__ == '__main__':" \
+            "    pass" \
+            > "${SRC_PATH}${FILE_SEP}pkg_globals.py"
+    }
 
 
 readme() {
@@ -1011,6 +1011,33 @@ setup() {
         "from setuptools import setup, find_packages" \
         "" \
         "" \
+        "dependencies = {" \
+        "    'build': {" \
+        "        'setuptools'," \
+        "        'wheel'," \
+        "    }," \
+        "    'docs': {" \
+        "        'sphinx'," \
+        "        'sphinx_rtd_theme'," \
+        "    }," \
+        "    'jupyter': {" \
+        "        'jupyter'," \
+        "        'jupyterlab'," \
+        "    }," \
+        "    'profile': {" \
+        "        'memory_profiler'," \
+        "        'snakeviz'," \
+        "    }," \
+        "    'test': {" \
+        "        'Faker'," \
+        "        'git-lint'," \
+        "        'pytest'," \
+        "        'pytest-cov'," \
+        "        'pytest-pep8'," \
+        "    }," \
+        "}" \
+        "" \
+        "" \
         "with open('${SOURCE_DIR}${FILE_SEP}__init__.py', 'r') as fd:" \
         "    version = re.search(r'^__version__\s*=\s*[\'\"]([^\'\"]*)[\'\"]'," \
         "                        fd.read(), re.MULTILINE).group(1)" \
@@ -1051,14 +1078,13 @@ setup() {
         "        'click'," \
         "        ]," \
         "    extras_require={" \
-        "        'build': ['setuptools', 'wheel']," \
-        "        'data': ['cufflinks', 'matplotlib', 'pandas']," \
-        "        'database': ['psycopg2-binary', 'sqlalchemy']," \
-        "        'docs': ['sphinx', 'sphinx_rtd_theme']," \
-        "        'notebook': ['jupyter', 'jupyterlab', 'nbdime']," \
-        "        'profile': ['memory_profiler', 'snakeviz']," \
-        "        'test': ['pytest', 'pytest-pep8']," \
-        "        }," \
+        "         'all': combine_dependencies(dependencies.keys())," \
+        "         'build': combine_dependencies(('build', 'test'))," \
+        "         'docs': combine_dependencies('docs')," \
+        "         'jupyter': combine_dependencies('jupyter')," \
+        "         'profile': combine_dependencies('profile')," \
+        "         'test': combine_dependencies('test')," \
+        "    }," \
         "    package_dir={'${MAIN_DIR}': '${SOURCE_DIR}'}," \
         "    include_package_data=True," \
         "    entry_points={" \
@@ -1073,6 +1099,7 @@ setup() {
         "    pass" \
         > "${MAIN_DIR}${FILE_SEP}setup.py"
 }
+
 
 utils() {
     printf "%s\n" \
@@ -1095,8 +1122,8 @@ utils() {
         "" \
         "import matplotlib.pyplot as plt" \
         "" \
-        "from ${MAIN_DIR}.globals import FONT_SIZE, PACKAGE_ROOT" \
-        "from ${MAIN_DIR}.exceptions import InputError" \
+        "from ${SOURCE_DIR}.globals import FONT_SIZE, PACKAGE_ROOT" \
+        "from ${SOURCE_DIR}.exceptions import InputError" \
         "" \
         "" \
         "def logger_setup(file_path: Union[None, str] = None," \
@@ -1261,6 +1288,7 @@ utils() {
         > "${SRC_PATH}${FILE_SEP}utils.py"
 }
 
+
 directories
 cli
 conftest
@@ -1276,7 +1304,7 @@ exceptions
 git_attributes
 git_config
 git_ignore
-globals
+pkg_globals
 license
 makefile
 manifest
