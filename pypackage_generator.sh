@@ -578,55 +578,6 @@ git_init() {
 }
 
 
-globals() {
-    printf "%s\n" \
-            "${PY_SHEBANG}" \
-            "${PY_ENCODING}" \
-            "" \
-            '""" Global Variable Module' \
-            "" \
-            '"""' \
-            "from pathlib import Path" \
-            "" \
-            "" \
-            "PACKAGE_ROOT = Path(__file__).parents[1]" \
-            "" \
-            "FONT_SIZE = {" \
-            "    'axis': 18," \
-            "    'label': 14," \
-            "    'legend': 12," \
-            "    'super_title': 24," \
-            "    'title': 20," \
-            "}" \
-            "" \
-            "FONT_FAMILY = 'Courier New, monospace'" \
-            "PLOTLY_FONTS = {" \
-            "    'axis_font': {" \
-            "        'family': FONT_FAMILY," \
-            "        'size': FONT_SIZE['axis']," \
-            "        'color': 'gray'," \
-            "    }," \
-            "    'legend_font': {" \
-            "        'family': FONT_FAMILY," \
-            "        'size': FONT_SIZE['label']," \
-            "        'color': 'black'," \
-            "    }," \
-            "    'title_font': {" \
-            "        'family': FONT_FAMILY," \
-            "        'size': FONT_SIZE['super_title']," \
-            "        'color': 'black'," \
-            "    }," \
-            "}" \
-            "" \
-            "" \
-            "" \
-            "" \
-            "if __name__ == '__main__':" \
-            "    pass" \
-            > "${SRC_PATH}${FILE_SEP}globals.py"
-    }
-
-
 license() {
     printf "%s\n" \
         "Copyright (c) ${YEAR}, ${AUTHOR}." \
@@ -920,6 +871,55 @@ manifest() {
         "include LICENSE.txt" \
         > "${MAIN_DIR}${FILE_SEP}MANIFEST.in"
 }
+
+
+pkg_globals() {
+    printf "%s\n" \
+            "${PY_SHEBANG}" \
+            "${PY_ENCODING}" \
+            "" \
+            '""" Global Variable Module' \
+            "" \
+            '"""' \
+            "from pathlib import Path" \
+            "" \
+            "" \
+            "PACKAGE_ROOT = Path(__file__).parents[1]" \
+            "" \
+            "FONT_SIZE = {" \
+            "    'axis': 18," \
+            "    'label': 14," \
+            "    'legend': 12," \
+            "    'super_title': 24," \
+            "    'title': 20," \
+            "}" \
+            "" \
+            "FONT_FAMILY = 'Courier New, monospace'" \
+            "PLOTLY_FONTS = {" \
+            "    'axis_font': {" \
+            "        'family': FONT_FAMILY," \
+            "        'size': FONT_SIZE['axis']," \
+            "        'color': 'gray'," \
+            "    }," \
+            "    'legend_font': {" \
+            "        'family': FONT_FAMILY," \
+            "        'size': FONT_SIZE['label']," \
+            "        'color': 'black'," \
+            "    }," \
+            "    'title_font': {" \
+            "        'family': FONT_FAMILY," \
+            "        'size': FONT_SIZE['super_title']," \
+            "        'color': 'black'," \
+            "    }," \
+            "}" \
+            "" \
+            "" \
+            "" \
+            "" \
+            "if __name__ == '__main__':" \
+            "    pass" \
+            > "${SRC_PATH}${FILE_SEP}pkg_globals.py"
+    }
 
 
 readme() {
@@ -1278,7 +1278,7 @@ exceptions
 git_attributes
 git_config
 git_ignore
-globals
+pkg_globals
 license
 makefile
 manifest
