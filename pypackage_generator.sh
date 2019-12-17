@@ -90,8 +90,9 @@ common_image() {
         "\t&& curl -sL https://deb.nodesource.com/setup_${NODEJS_VERSION}.x | bash - \\\\" \
         "\t&& apt-get update -y \\\\" \
         "\t&& apt-get upgrade -y \\\\" \
-        "\t&& apt-get install -y apt-utils \\\\" \
-        "\t&& apt-get install -y nodejs \\\\" \
+        "\t&& apt-get install -y \\\\" \
+        "\t\tapt-utils \\\\" \
+        "\t\tnodejs \\\\" \
         "\t&& jupyter labextension install @telamonian/theme-darcula \\\\" \
         "\t&& jupyter labextension install jupyterlab-drawio \\\\" \
         "\t# && jupyter labextension install jupyterlab-plotly \\\\" \
@@ -402,7 +403,7 @@ docker_python() {
         "" \
         "RUN pip3 install --upgrade pip \\\\" \
         "\t&& pip3 install --no-cache-dir -r requirements.txt \\\\" \
-        "\t&& pip3 install -e .[build,data,database,docs,notebook,profile,test] \\\\" \
+        "\t&& pip3 install -e .[all] \\\\" \
         "$(common_image)" \
         "" \
         "CMD [ \"/bin/bash\" ]" \
