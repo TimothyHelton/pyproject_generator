@@ -122,7 +122,7 @@ constructor_pkg() {
         "from pkg_resources import get_distribution, DistributionNotFound" \
         "from os import path" \
         "" \
-        "from . import globals" \
+        "from . import pkg_globals" \
         "# from . import cli" \
         "# from . import db" \
         "from . import exceptions" \
