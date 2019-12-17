@@ -152,6 +152,21 @@ constructor_test() {
 }
 
 
+coveragerc() {
+    printf "%s\n" \
+        "[run]" \
+        "omit =" \
+        "    setup.py" \
+        "    */tests/*" \
+        "" \
+        "[report]" \
+        "omit =" \
+        "    setup.py" \
+        "    */tests/*" \
+        > "${SRC_PATH}${FILE_SEP}.coveragerc"
+}
+
+
 db() {
     printf "%s\n" \
         "${PY_SHEBANG}" \
@@ -837,11 +852,16 @@ makefile() {
         "\tdocker container exec \$(PROJECT)_python \\\\" \
         "\t\t/bin/bash -c \"py.test\\\\" \
         "\t\t\t\t--basetemp=pytest \\\\" \
+        "\t\t\t\t--cov=. \\\\" \
+        "\t\t\t\t--cov-report html \\\\" \
         "\t\t\t\t--doctest-modules \\\\" \
         "\t\t\t\t--ff \\\\" \
         "\t\t\t\t--pep8 \\\\" \
         "\t\t\t\t-r all \\\\" \
         "\t\t\t\t-vvv\"" \
+        "" \
+        "tests-coverage: tests" \
+	    "\t\${BROWSER} htmlcov/index.html"\
         "" \
         "upgrade-packages: docker-up" \
         "ifeq (\"\${PKG_MANAGER}\", \"pip\")" \
@@ -1294,6 +1314,7 @@ cli
 conftest
 constructor_pkg
 constructor_test
+coveragerc
 db
 docker_compose
 docker_python
