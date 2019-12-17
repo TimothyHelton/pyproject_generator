@@ -1011,6 +1011,33 @@ setup() {
         "from setuptools import setup, find_packages" \
         "" \
         "" \
+        "dependencies = {" \
+        "    'build': {" \
+        "        'setuptools'," \
+        "        'wheel'," \
+        "    }," \
+        "    'docs': {" \
+        "        'sphinx'," \
+        "        'sphinx_rtd_theme'," \
+        "    }," \
+        "    'jupyter': {" \
+        "        'jupyter'," \
+        "        'jupyterlab'," \
+        "    }," \
+        "    'profile': {" \
+        "        'memory_profiler'," \
+        "        'snakeviz'," \
+        "    }," \
+        "    'test': {" \
+        "        'Faker'," \
+        "        'git-lint'," \
+        "        'pytest'," \
+        "        'pytest-cov'," \
+        "        'pytest-pep8'," \
+        "    }," \
+        "}" \
+        "" \
+        "" \
         "with open('${SOURCE_DIR}${FILE_SEP}__init__.py', 'r') as fd:" \
         "    version = re.search(r'^__version__\s*=\s*[\'\"]([^\'\"]*)[\'\"]'," \
         "                        fd.read(), re.MULTILINE).group(1)" \
@@ -1051,14 +1078,13 @@ setup() {
         "        'click'," \
         "        ]," \
         "    extras_require={" \
-        "        'build': ['setuptools', 'wheel']," \
-        "        'data': ['cufflinks', 'matplotlib', 'pandas']," \
-        "        'database': ['psycopg2-binary', 'sqlalchemy']," \
-        "        'docs': ['sphinx', 'sphinx_rtd_theme']," \
-        "        'notebook': ['jupyter', 'jupyterlab', 'nbdime']," \
-        "        'profile': ['memory_profiler', 'snakeviz']," \
-        "        'test': ['pytest', 'pytest-pep8']," \
-        "        }," \
+        "         'all': combine_dependencies(dependencies.keys())," \
+        "         'build': combine_dependencies(('build', 'test'))," \
+        "         'docs': combine_dependencies('docs')," \
+        "         'jupyter': combine_dependencies('jupyter')," \
+        "         'profile': combine_dependencies('profile')," \
+        "         'test': combine_dependencies('test')," \
+        "    }," \
         "    package_dir={'${MAIN_DIR}': '${SOURCE_DIR}'}," \
         "    include_package_data=True," \
         "    entry_points={" \
