@@ -557,7 +557,6 @@ git_ignore() {
         "*.sqlite" \
         "" \
         "# OS generated files" \
-        "envfile" \
         ".DS_Store" \
         ".DS_store?" \
         "._*" \
@@ -578,10 +577,10 @@ git_ignore() {
         "" \
         "# Profile files" \
         "*.coverage" \
+        "htmlcov/*" \
         "*.profile" \
         "" \
         "# Project files" \
-        "source_venv.sh" \
         "*wheels" \
         "" \
         "# PyCharm files" \
@@ -590,6 +589,8 @@ git_ignore() {
         "" \
         "# pytest files" \
         ".cache${FILE_SEP}*" \
+        ".pytest_cache" \
+        "pytest" \
         "" \
         "# Raw data" \
         "${DATA_DIR}${FILE_SEP}*" \
