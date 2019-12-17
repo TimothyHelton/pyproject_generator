@@ -51,7 +51,7 @@ cli() {
         "${PY_SHEBANG}" \
         "${PY_ENCODING}" \
         "" \
-        '""" Commandline Interface Module' \
+        '""" Command Line Interface Module' \
         "" \
         '"""' \
         "import logging" \
@@ -745,7 +745,7 @@ makefile() {
         "\t\t\".. automodule:: cli\" \\\\" \
         "\t\t\"    :members:\" \\\\" \
         "\t\t\"    :show-inheritance:\" \\\\" \
-        "\t\t\"    :synopsis: Package commandline interface calls.\" \\\\" \
+        "\t\t\"    :synopsis: Package command line interface calls.\" \\\\" \
         "\t\t\"\" \\\\" \
         "\t\t\"db\" \\\\" \
         "\t\t\"--\" \\\\" \
@@ -1157,7 +1157,7 @@ test_cli() {
         "${PY_SHEBANG}" \
         "${PY_ENCODING}" \
         "" \
-        '""" Commandline Interface Unit Tests' \
+        '""" Command Line Interface Unit Tests' \
         "" \
         '"""' \
         "from click.testing import CliRunner" \
