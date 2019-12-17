@@ -98,6 +98,7 @@ common_image() {
         "\t# && jupyter labextension install jupyterlab-plotly \\\\" \
         "\t# && jupyter labextension install jupyterlab-toc \\\\" \
         "\t&& rm -rf /tmp/* \\\\" \
+        "\t&& rm -rf /var/lib/apt/lists/* \\\\" \
         "\t&& apt-get clean"
 }
 
@@ -336,7 +337,7 @@ docker_compose() {
         "    container_name: ${MAIN_DIR}_python" \
         "    build:" \
         "      context: .." \
-        "      dockerfile: docker/python-Dockerfile" \
+        "      dockerfile: docker/python.Dockerfile" \
         "    depends_on:" \
         "      - postgres" \
         "    image: ${MAIN_DIR}_python" \
@@ -356,7 +357,7 @@ docker_compose() {
         "volumes:" \
         "  ${MAIN_DIR}-db:" \
         "" \
-        > "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}docker-compose.yml"
+        > "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}docker-compose.yaml"
 }
 
 
@@ -375,7 +376,7 @@ docker_python() {
         "" \
         "CMD [ \"/bin/bash\" ]" \
         "" \
-        > "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}python-Dockerfile"
+        > "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}python.Dockerfile"
 }
 
 
@@ -396,7 +397,7 @@ docker_pytorch() {
         "" \
         "CMD [ \"/bin/bash\" ]" \
         "" \
-        > "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}pytorch-Dockerfile"
+        > "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}pytorch.Dockerfile"
 }
 
 
@@ -429,7 +430,7 @@ docker_tensorflow() {
         "ENV PYTHONPATH \$PYTHONPATH:/opt/models/research:/opt/models/research/slim:/opt/models/research/object_detection" \
         "" \
         "CMD [ \"/bin/bash\" ]" \
-        > "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}tensorflow-Dockerfile"
+        > "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}tensorflow.Dockerfile"
 }
 
 
@@ -692,16 +693,16 @@ makefile() {
         "\t@echo git push origin v\$(VERSION)" \
         "" \
         "docker-down:" \
-        "\tdocker-compose -f docker/docker-compose.yml down" \
+        "\tdocker-compose -f docker/docker-compose.yaml down" \
         "" \
         "docker-images-update:" \
         "\tdocker image ls | grep -v REPOSITORY | cut -d ' ' -f 1 | xargs -L1 docker pull" \
         ""\
         "docker-rebuild: setup.py" \
-        "\tdocker-compose -f docker/docker-compose.yml up -d --build" \
+        "\tdocker-compose -f docker/docker-compose.yaml up -d --build" \
         "" \
         "docker-up:" \
-        "\tdocker-compose -f docker/docker-compose.yml up -d" \
+        "\tdocker-compose -f docker/docker-compose.yaml up -d" \
         "" \
         "docs: docker-up" \
         "\tdocker container exec \$(PROJECT)_python \\\\" \
@@ -721,7 +722,7 @@ makefile() {
         "\t\t\t\t--ext-viewcode \\\\" \
         "\t\t\t\t--makefile \\\\" \
         "\t\t\t\t--no-batchfile\"" \
-        "\tdocker-compose -f docker/docker-compose.yml restart nginx" \
+        "\tdocker-compose -f docker/docker-compose.yaml restart nginx" \
         "ifeq (\"\$(shell git remote)\", \"origin\")" \
         "\tgit fetch" \
         "\tgit checkout origin/master -- docs/" \
@@ -822,10 +823,10 @@ makefile() {
         "\t\t-w /usr/src/\$(PROJECT) \\\\" \
         "\t\tubuntu \\\\" \
         "\t\t/bin/bash -c \\\\" \
-        "\t\t\t\"sed -i -e 's/python-Dockerfile/pytorch-Dockerfile/g' \\\\" \
-        "\t\t\t\tdocker/docker-compose.yml \\\\" \
-        "\t\t\t && sed -i -e 's/tensorflow-Dockerfile/pytorch-Dockerfile/g' \\\\" \
-        "\t\t\t\tdocker/docker-compose.yml \\\\" \
+        "\t\t\t\"sed -i -e 's/python.Dockerfile/pytorch.Dockerfile/g' \\\\" \
+        "\t\t\t\tdocker/docker-compose.yaml \\\\" \
+        "\t\t\t && sed -i -e 's/tensorflow.Dockerfile/pytorch.Dockerfile/g' \\\\" \
+        "\t\t\t\tdocker/docker-compose.yaml \\\\" \
         "\t\t\t && sed -i -e 's/PKG_MANAGER=pip/PKG_MANAGER=conda/g' \\\\" \
         "\t\t\t\tMakefile\"" \
         "" \
@@ -858,10 +859,10 @@ makefile() {
         "\t\t-w /usr/src/\$(PROJECT) \\\\" \
         "\t\tubuntu \\\\" \
         "\t\t/bin/bash -c \\\\" \
-        "\t\t\t\"sed -i -e 's/python-Dockerfile/tensorflow-Dockerfile/g' \\\\" \
-        "\t\t\t\tdocker/docker-compose.yml \\\\" \
-        "\t\t\t && sed -i -e 's/pytorch-Dockerfile/tensorflow-Dockerfile/g' \\\\" \
-        "\t\t\t\tdocker/docker-compose.yml \\\\" \
+        "\t\t\t\"sed -i -e 's/python.Dockerfile/tensorflow.Dockerfile/g' \\\\" \
+        "\t\t\t\tdocker/docker-compose.yaml \\\\" \
+        "\t\t\t && sed -i -e 's/pytorch.Dockerfile/tensorflow.Dockerfile/g' \\\\" \
+        "\t\t\t\tdocker/docker-compose.yaml \\\\" \
         "\t\t\t && sed -i -e 's/PKG_MANAGER=conda/PKG_MANAGER=pip/g' \\\\" \
         "\t\t\t\tMakefile \\\\" \
         "\t\t\t && sed -i -e \\\\\"/'test': \['pytest', 'pytest-pep8'\],/a \\\\" \
