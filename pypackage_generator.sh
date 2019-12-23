@@ -1185,7 +1185,7 @@ test_cli() {
         "    runner = CliRunner()" \
         "    result = runner.invoke(cli.count, ['1'])" \
         "    assert result.exit_code == 0" \
-        > "${SRC_PATH}${FILE_SEP}test_cli.py"
+        > "${SRC_PATH}${FILE_SEP}${TEST_DIR}${FILE_SEP}test_cli.py"
 }
 
 
@@ -1204,7 +1204,7 @@ test_conftest() {
         "" \
         "def test_patch_datetime(patch_datetime):" \
         "    assert datetime.datetime.now() == TEST_TIME" \
-        > "${SRC_PATH}${FILE_SEP}test_conftest.py"
+        > "${SRC_PATH}${FILE_SEP}${TEST_DIR}${FILE_SEP}test_conftest.py"
 }
 
 
@@ -1324,7 +1324,7 @@ test_utils() {
         "    with pytest.warns(UserWarning):" \
         "        warnings.warn('test', UserWarning)" \
         "" \
-        > "${SRC_PATH}${FILE_SEP}test_utils.py"
+        > "${SRC_PATH}${FILE_SEP}${TEST_DIR}${FILE_SEP}test_utils.py"
 }
 
 
