@@ -1057,7 +1057,9 @@ setup() {
         "" \
         "from codecs import open" \
         "from pathlib import Path" \
+        "from operator import itemgetter" \
         "import re" \
+        "from typing import Iterable, List, Union" \
         "" \
         "from setuptools import setup, find_packages" \
         "" \
@@ -1087,6 +1089,20 @@ setup() {
         "        'pytest-pep8'," \
         "    }," \
         "}" \
+        "" \
+        "" \
+        "def combine_dependencies(extras: Union[str, Iterable[str]]) -> List[str]:" \
+        '    """' \
+        "    Combine package dependencies." \
+        "" \
+        "    :param extras: key(s) from the \`dependencies\` dictionary" \
+        "    :return: The minimum set of package dependencies contained in \`extras\`." \
+        '    """' \
+        "    if isinstance(extras, str):" \
+        "        deps = set(itemgetter(extras)(dependencies))" \
+        "    else:" \
+        "        deps = set().union(*itemgetter(*extras)(dependencies))" \
+        "    return list(deps)" \
         "" \
         "" \
         "with open('${SOURCE_DIR}${FILE_SEP}__init__.py', 'r') as fd:" \
@@ -1127,7 +1143,7 @@ setup() {
         "    )," \
         "    install_requires=[" \
         "        'click'," \
-        "        ]," \
+        "    ]," \
         "    extras_require={" \
         "         'all': combine_dependencies(dependencies.keys())," \
         "         'build': combine_dependencies(('build', 'test'))," \
