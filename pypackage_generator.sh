@@ -38,7 +38,8 @@ SUB_DIRECTORIES=(${DATA_DIR} \
                  ${NOTEBOOK_DIR} \
                  ${PROFILE_DIR} \
                  ${SOURCE_DIR} \
-                 ${WHEEL_DIR})
+                 ${WHEEL_DIR} \
+                 ".github")
 
 PY_SHEBANG="#! /usr/bin/env python3"
 PY_ENCODING="# -*- coding: utf-8 -*-"
@@ -912,6 +913,25 @@ manifest() {
 }
 
 
+pull_request_template() {
+    printf "%s\n" \
+        "# Summary" \
+        "< Description of PR >" \
+        "" \
+        "# Test Plan" \
+        "- < Item(s) a reviewer should be able to verify >" \
+        "" \
+        "# Checklist" \
+        "- [ ] PEP8 Compliant" \
+        "- [ ] Unit Test Coverage" \
+        "- [ ] Updated HISTORY.md" \
+        "" \
+        "# Issues Closed (optional)" \
+        "- < issue(s) reference >" \
+        > "${MAIN_DIR}${FILE_SEP}.github${FILE_SEP}PULL_REQUEST_TEMPLATE.md"
+}
+
+
 pkg_globals() {
     printf "%s\n" \
             "${PY_SHEBANG}" \
@@ -1349,7 +1369,7 @@ utils() {
         "" \
         "import matplotlib.pyplot as plt" \
         "" \
-        "from ${SOURCE_DIR}.globals import FONT_SIZE, PACKAGE_ROOT" \
+        "from ${SOURCE_DIR}.pkg_globals import FONT_SIZE, PACKAGE_ROOT" \
         "from ${SOURCE_DIR}.exceptions import InputError" \
         "" \
         "" \
@@ -1536,6 +1556,7 @@ pkg_globals
 license
 makefile
 manifest
+pull_request_template
 readme
 release_history
 requirements
