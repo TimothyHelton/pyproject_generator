@@ -1349,7 +1349,7 @@ utils() {
         "" \
         "import matplotlib.pyplot as plt" \
         "" \
-        "from ${SOURCE_DIR}.globals import FONT_SIZE, PACKAGE_ROOT" \
+        "from ${SOURCE_DIR}.pkg_globals import FONT_SIZE, PACKAGE_ROOT" \
         "from ${SOURCE_DIR}.exceptions import InputError" \
         "" \
         "" \
