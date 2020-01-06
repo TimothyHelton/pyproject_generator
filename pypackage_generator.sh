@@ -852,10 +852,13 @@ makefile() {
         "\t\t\t\tdocker/docker-compose.yaml \\\\" \
         "\t\t\t && sed -i -e 's/PKG_MANAGER=conda/PKG_MANAGER=pip/g' \\\\" \
         "\t\t\t\tMakefile \\\\" \
-        "\t\t\t && sed -i -e \\\\\"/'test': \['pytest', 'pytest-pep8'\],/a \\\\" \
-        "\t\t\t\t\\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ 'tf-cpu': ['tensorflow'],\\\\" \
-        "\t\t\t\t\\\\n\\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ 'tf-gpu': ['tensorflow-gpu'],\\\\\" \\\\" \
-        "\t\t\t\tsetup.py\"" \
+        "\t\t\t && echo '*********************************************************************************' \\\\" \
+        "\t\t\t && echo '*********************************************************************************' \\\\" \
+        "\t\t\t && echo \\" \
+        "\t\t\t && echo 'Add \\\"tensorflow\\\" or \\\"tensorflow-gpu\\\" to install_requires in the setup.py file' \\\\" \
+        "\t\t\t && echo \\" \
+        "\t\t\t && echo '*********************************************************************************' \\\\" \
+        "\t\t\t && echo '*********************************************************************************'\"" \
         "" \
         "tensorflow-models: tensorflow docker-rebuild" \
         "ifneq (\$(wildcard \${MODELS}), )" \
