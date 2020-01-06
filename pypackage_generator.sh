@@ -436,17 +436,18 @@ docker_pytorch() {
 
 docker_tensorflow() {
     printf "%b\n" \
-        "FROM python:3.6" \
+        "FROM nvcr.io/nvidia/tensorflow:19.12-tf2-py3" \
         "" \
-        "WORKDIR /usr/src/${MAIN_DIR}" \
+        "WORKDIR /usr/src/${SOURCE_DIR}" \
         "" \
         "COPY . ." \
         "" \
         "RUN cd /opt \\\\" \
-        "\t&& apt-get update \\\\" \
+        "\t&& apt-get update -y \\\\" \
+        "\t#&& apt-get upgrade -y \\\\  Do not upgrade NVIDIA image OS" \
         "\t&& apt-get install -y \\\\" \
+        "\t\tapt-utils \\\\" \
         "\t\tprotobuf-compiler \\\\" \
-        "\t&& rm -rf /var/lib/apt/lists/* \\\\" \
         "\t&& git clone \\\\" \
         "\t\t--branch master \\\\" \
         "\t\t--single-branch \\\\" \
@@ -454,11 +455,12 @@ docker_tensorflow() {
         "\t\thttps://github.com/tensorflow/models.git \\\\" \
         "\t&& cd /opt/models/research \\\\" \
         "\t&& protoc object_detection/protos/*.proto --python_out=. \\\\" \
-        "\t&& cd /usr/src/${MAIN_DIR} \\\\" \
+        "\t&& cd /usr/src/${SOURCE_DIR} \\\\" \
         "\t&& pip install --upgrade pip \\\\" \
-        "\t&& pip install --no-cache-dir -r requirements.txt \\\\" \
-        "\t&& pip install -e .[build,data,database,docs,notebook,profile,test,tf-cpu]\\\\" \
-        "$(common_image)" \
+        "\t&& pip install -e .[all] \\\\" \
+        "\t&& rm -rf /tmp/* \\\\" \
+        "\t&& rm -rf /var/lib/apt/lists/* \\\\" \
+        "\t&& apt-get clean" \
         "" \
         "ENV PYTHONPATH \$PYTHONPATH:/opt/models/research:/opt/models/research/slim:/opt/models/research/object_detection" \
         "" \
@@ -850,10 +852,13 @@ makefile() {
         "\t\t\t\tdocker/docker-compose.yaml \\\\" \
         "\t\t\t && sed -i -e 's/PKG_MANAGER=conda/PKG_MANAGER=pip/g' \\\\" \
         "\t\t\t\tMakefile \\\\" \
-        "\t\t\t && sed -i -e \\\\\"/'test': \['pytest', 'pytest-pep8'\],/a \\\\" \
-        "\t\t\t\t\\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ 'tf-cpu': ['tensorflow'],\\\\" \
-        "\t\t\t\t\\\\n\\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ \\\\ 'tf-gpu': ['tensorflow-gpu'],\\\\\" \\\\" \
-        "\t\t\t\tsetup.py\"" \
+        "\t\t\t && echo '*********************************************************************************' \\\\" \
+        "\t\t\t && echo '*********************************************************************************' \\\\" \
+        "\t\t\t && echo \\" \
+        "\t\t\t && echo 'Add \\\"tensorflow\\\" or \\\"tensorflow-gpu\\\" to install_requires in the setup.py file' \\\\" \
+        "\t\t\t && echo \\" \
+        "\t\t\t && echo '*********************************************************************************' \\\\" \
+        "\t\t\t && echo '*********************************************************************************'\"" \
         "" \
         "tensorflow-models: tensorflow docker-rebuild" \
         "ifneq (\$(wildcard \${MODELS}), )" \
