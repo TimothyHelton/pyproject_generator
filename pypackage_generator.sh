@@ -145,7 +145,7 @@ constructor_pkg() {
         "# from . import cli" \
         "# from . import db" \
         "from . import exceptions" \
-        "# from . import utils" \
+        "from . import utils" \
         "" \
         "__version__ = '0.1.0'" \
         "" \
