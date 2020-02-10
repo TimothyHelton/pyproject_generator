@@ -884,11 +884,11 @@ makefile() {
         "\t\t\t\t--cov-report html \\\\" \
         "\t\t\t\t--doctest-modules \\\\" \
         "\t\t\t\t--ff \\\\" \
-        "\t\t\t\t--pep8 \\\\" \
+        "\t\t\t\t--pycodestyle \\\\" \
         "\t\t\t\t-r all \\\\" \
         "\t\t\t\t-vvv\"" \
         "" \
-        "tests-coverage: tests" \
+        "tests-coverage: test" \
 	    "\t\${BROWSER} htmlcov/index.html"\
         "" \
         "upgrade-packages: docker-up" \
