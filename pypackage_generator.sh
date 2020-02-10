@@ -145,7 +145,7 @@ constructor_pkg() {
         "# from . import cli" \
         "# from . import db" \
         "from . import exceptions" \
-        "# from . import utils" \
+        "from . import utils" \
         "" \
         "__version__ = '0.1.0'" \
         "" \
@@ -479,6 +479,9 @@ envfile() {
         "export POSTGRES_PASSWORD=postgres" \
         "export POSTGRES_DB=${MAIN_DIR}" \
         "export POSTGRES_USER=postgres" \
+        "" \
+        "# SQL Server" \
+        "export ACCEPT_EULA=Y"
         "" \
         > "${MAIN_DIR}${FILE_SEP}envfile"
     cp "${MAIN_DIR}${FILE_SEP}envfile" "${MAIN_DIR}${FILE_SEP}envfile_template"
@@ -881,11 +884,11 @@ makefile() {
         "\t\t\t\t--cov-report html \\\\" \
         "\t\t\t\t--doctest-modules \\\\" \
         "\t\t\t\t--ff \\\\" \
-        "\t\t\t\t--pep8 \\\\" \
+        "\t\t\t\t--pycodestyle \\\\" \
         "\t\t\t\t-r all \\\\" \
         "\t\t\t\t-vvv\"" \
         "" \
-        "tests-coverage: tests" \
+        "tests-coverage: test" \
 	    "\t\${BROWSER} htmlcov/index.html"\
         "" \
         "upgrade-packages: docker-up" \
@@ -976,8 +979,6 @@ pkg_globals() {
             "        'color': 'black'," \
             "    }," \
             "}" \
-            "" \
-            "" \
             "" \
             "" \
             "if __name__ == '__main__':" \
@@ -1111,7 +1112,7 @@ setup() {
         "        'git-lint'," \
         "        'pytest'," \
         "        'pytest-cov'," \
-        "        'pytest-pep8'," \
+        "        'pytest-pycodestyle'," \
         "    }," \
         "}" \
         "" \
@@ -1168,6 +1169,7 @@ setup() {
         "    )," \
         "    install_requires=[" \
         "        'click'," \
+        "        'matplotlib'," \
         "    ]," \
         "    extras_require={" \
         "         'all': combine_dependencies(dependencies.keys())," \
