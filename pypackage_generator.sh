@@ -1112,7 +1112,7 @@ setup() {
         "        'git-lint'," \
         "        'pytest'," \
         "        'pytest-cov'," \
-        "        'pytest-pep8'," \
+        "        'pytest-pycodestyle'," \
         "    }," \
         "}" \
         "" \
@@ -1169,6 +1169,7 @@ setup() {
         "    )," \
         "    install_requires=[" \
         "        'click'," \
+        "        'matplotlib'," \
         "    ]," \
         "    extras_require={" \
         "         'all': combine_dependencies(dependencies.keys())," \
