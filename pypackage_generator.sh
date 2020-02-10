@@ -981,8 +981,6 @@ pkg_globals() {
             "}" \
             "" \
             "" \
-            "" \
-            "" \
             "if __name__ == '__main__':" \
             "    pass" \
             > "${SRC_PATH}${FILE_SEP}pkg_globals.py"
