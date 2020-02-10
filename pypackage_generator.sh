@@ -480,6 +480,9 @@ envfile() {
         "export POSTGRES_DB=${MAIN_DIR}" \
         "export POSTGRES_USER=postgres" \
         "" \
+        "# SQL Server" \
+        "export ACCEPT_EULA=Y"
+        "" \
         > "${MAIN_DIR}${FILE_SEP}envfile"
     cp "${MAIN_DIR}${FILE_SEP}envfile" "${MAIN_DIR}${FILE_SEP}envfile_template"
 }
