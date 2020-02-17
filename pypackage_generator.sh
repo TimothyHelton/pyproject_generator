@@ -481,7 +481,7 @@ envfile() {
         "export POSTGRES_USER=postgres" \
         "" \
         "# SQL Server" \
-        "export ACCEPT_EULA=Y"
+        "export ACCEPT_EULA=Y" \
         "" \
         > "${MAIN_DIR}${FILE_SEP}envfile"
     cp "${MAIN_DIR}${FILE_SEP}envfile" "${MAIN_DIR}${FILE_SEP}envfile_template"
@@ -1334,6 +1334,27 @@ test_utils() {
         "    assert os.environ['ACCEPT_EULA'] == 'Y'" \
         "" \
         "" \
+        "# Test rle()" \
+        "rle = {" \
+        "    'None': ([], (None, None, None))," \
+        "    'int': ([1, 0, 0, 1, 1, 1], ([0, 1, 3], [1, 2, 3], [1, 0, 1]))," \
+        "    'string': (['a', 'b', 'b', 'c', 'c', 'c']," \
+        "               ([0, 1, 3], [1, 2, 3], ['a', 'b', 'c']))," \
+        "}" \
+        "" \
+        "" \
+        "@pytest.mark.parametrize('arr, expected'," \
+        "                         list(rle.values())," \
+        "                         ids=list(rle.keys()))" \
+        "def test_rle(arr, expected):" \
+        "    actual = utils.rle(arr)" \
+        "    for a, e in zip(actual, expected):" \
+        "        if e is not None:" \
+        "            assert np.array_equal(a, np.array(e))" \
+        "        else:" \
+        "            assert a is e" \
+        "" \
+        "" \
         "# Test status():" \
         "def test_status(caplog):" \
         "" \
@@ -1498,6 +1519,25 @@ utils() {
         "    env_vars = re.findall(r'export\s(.*)=(.*)', txt)" \
         "    for name, value in env_vars:" \
         "        os.environ[name] = value" \
+        "" \
+        "" \
+        "def rle(arr: Union[List[Any], np.ndarray]) \\" \
+        "        -> Union[Tuple[np.ndarray, ...], Tuple[None, ...]]:" \
+        '    """' \
+        "    Run Length Encode provided array." \
+        "" \
+        "    :param arr: array to be encoded" \
+        "    :return: Start Indices for code, Length of code, Value of code" \
+        '    """' \
+        "    arr = np.array(arr) if not isinstance(arr, np.ndarray) else arr" \
+        "    vec = arr.flatten() if arr.ndim > 1 else arr" \
+        "    n = vec.size" \
+        "    if n == 0:" \
+        "        return None, None, None" \
+        "    switch_idx = np.nonzero(vec[1:] != vec[:-1])[0] + 1" \
+        "    ids = np.r_[0, switch_idx]" \
+        "    lengths = np.diff(np.r_[ids, n])" \
+        "    return ids, lengths, vec[ids]" \
         "" \
         "" \
         "def status(status_logger: logging.Logger):" \
