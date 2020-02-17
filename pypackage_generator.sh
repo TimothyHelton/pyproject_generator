@@ -1334,6 +1334,27 @@ test_utils() {
         "    assert os.environ['ACCEPT_EULA'] == 'Y'" \
         "" \
         "" \
+        "# Test rle()" \
+        "rle = {" \
+        "    'None': ([], (None, None, None))," \
+        "    'int': ([1, 0, 0, 1, 1, 1], ([0, 1, 3], [1, 2, 3], [1, 0, 1]))," \
+        "    'string': (['a', 'b', 'b', 'c', 'c', 'c']," \
+        "               ([0, 1, 3], [1, 2, 3], ['a', 'b', 'c']))," \
+        "}" \
+        "" \
+        "" \
+        "@pytest.mark.parametrize('arr, expected'," \
+        "                         list(rle.values())," \
+        "                         ids=list(rle.keys()))" \
+        "def test_rle(arr, expected):" \
+        "    actual = utils.rle(arr)" \
+        "    for a, e in zip(actual, expected):" \
+        "        if e is not None:" \
+        "            assert np.array_equal(a, np.array(e))" \
+        "        else:" \
+        "            assert a is e" \
+        "" \
+        "" \
         "# Test status():" \
         "def test_status(caplog):" \
         "" \
