@@ -174,15 +174,21 @@ constructor_test() {
 coveragerc() {
     printf "%s\n" \
         "[run]" \
-        "omit =" \
-        "    setup.py" \
-        "    */tests/*" \
+        "parallel = True" \
+        "" \
+        "[paths]" \
+        "source =" \
+        "    ${SOURCE_DIR}/" \
         "" \
         "[report]" \
         "omit =" \
-        "    setup.py" \
+        "    */__init__.py" \
         "    */tests/*" \
-        > "${SRC_PATH}${FILE_SEP}.coveragerc"
+        "" \
+        "[html]" \
+        "directory = htmlcov" \
+        "title = ${MAIN_DIR} Test Coverage" \
+        > "${MAIN_DIR}${FILE_SEP}.coveragerc"
 }
 
 
