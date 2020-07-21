@@ -1402,6 +1402,7 @@ utils() {
         "import warnings" \
         "" \
         "import matplotlib.pyplot as plt" \
+        "import numpy as np" \
         "" \
         "from ${SOURCE_DIR}.pkg_globals import FONT_SIZE, PACKAGE_ROOT" \
         "from ${SOURCE_DIR}.exceptions import InputError" \
