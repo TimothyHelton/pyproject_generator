@@ -13,7 +13,7 @@ SOURCE_DIR="${2:-$1}"
 : "${DOCKER_DIR:=docker}"
 : "${DOCS_DIR:=docs}"
 : "${FILE_SEP:=/}"
-: "${NODEJS_VERSION:=11}"
+: "${NODEJS_VERSION:=10}"
 : "${NOTEBOOK_DIR:=notebooks}"
 : "${PROFILE_DIR:=profiles}"
 : "${TEST_DIR:=tests}"
@@ -95,7 +95,6 @@ common_image() {
         "\t\tapt-utils \\\\" \
         "\t\tnodejs \\\\" \
         "\t&& jupyter labextension install @telamonian/theme-darcula \\\\" \
-        "\t&& jupyter labextension install jupyterlab-drawio \\\\" \
         "\t# && jupyter labextension install jupyterlab-plotly \\\\" \
         "\t# && jupyter labextension install jupyterlab-toc \\\\" \
         "\t&& rm -rf /tmp/* \\\\" \
@@ -1398,10 +1397,11 @@ utils() {
         "import os" \
         "import re" \
         "import time" \
-        "from typing import Any, Dict, List, Union" \
+        "from typing import Any, Dict, List, Tuple, Union" \
         "import warnings" \
         "" \
         "import matplotlib.pyplot as plt" \
+        "import numpy as np" \
         "" \
         "from ${SOURCE_DIR}.pkg_globals import FONT_SIZE, PACKAGE_ROOT" \
         "from ${SOURCE_DIR}.exceptions import InputError" \
