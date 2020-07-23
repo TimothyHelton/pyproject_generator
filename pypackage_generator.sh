@@ -1240,6 +1240,75 @@ test_conftest() {
 }
 
 
+test_db() {
+    printf "%s\n" \
+        "${PY_SHEBANG}" \
+        "${PY_ENCODING}" \
+    '""" Database Unit Tests' \
+    "" \
+    '"""' \
+    "import pytest" \
+    "" \
+    "from .. import db" \
+    "" \
+    "HOST = 'host_name'" \
+    "DATABASE = 'database_name'" \
+    "" \
+    "" \
+    "# Test Connect.__repr__()" \
+    "def test_connect_repr():" \
+    "    c = db.Connect(host=HOST, database=DATABASE)" \
+    "    assert repr(c) == f\"<Connect(host='{HOST}', database='{DATABASE}')>\"" \
+    "" \
+    "" \
+    "# Test Connect.__enter__() and Connect.__exit__()" \
+    "def test_connect_context_manager():" \
+    "    with db.Connect(host=HOST, database=DATABASE) as c:" \
+    "        _ = c.engine.connect()" \
+    "        assert c.engine.pool.checkedout()" \
+    "    assert not c.engine.pool.checkedout()" \
+    "" \
+    "" \
+    "# Test Connect.reflect_tables()" \
+    "reflect_tables = {" \
+    "    'single table': 'table_name_1'," \
+    "    'multiple tables': ('table_name_1', 'table_name_2')," \
+    "}" \
+    "" \
+    "" \
+    "@pytest.mark.parametrize('tables'," \
+    "                         list(reflect_tables.values())," \
+    "                         ids=list(reflect_tables.keys()))" \
+    "def test_connect_reflect_tables(tables):" \
+    "    with db.Connect(host=HOST, database=DATABASE) as c:" \
+    "        c.tables = {'schema_name': tables}" \
+    "        c.reflect_tables()" \
+    "        tables = [tables] if isinstance(tables, str) else tables" \
+    "        for t in tables:" \
+    "            assert f'schema_name.{t}' in c.meta.tables.keys()" \
+    "" \
+    "" \
+    "# Test sql_data()" \
+    "def test_sql_data():" \
+    "    table_name = 'table_name'" \
+    "" \
+    "    def col_query(session, table):" \
+    "        return session.query(table.c['column_name']).statement" \
+    "" \
+    "    df = db.sql_data(host=HOST, database=DATABASE, schema='schema_name'," \
+    "                     table_name=table_name, query=col_query)" \
+    "    assert 'column_name' in df.columns" \
+    "" \
+    "" \
+    "# Test sql_table()" \
+    "def test_sql_table():" \
+    "    df = db.sql_table(host=HOST, database=DATABASE, schema='schema_name'," \
+    "                      table_name='table_name')" \
+    "    assert 'column_name' in df.columns" \
+        > "${SRC_PATH}${FILE_SEP}${TEST_DIR}${FILE_SEP}test_db.py"
+}
+
+
 test_utils() {
     printf "%s\n" \
         "${PY_SHEBANG}" \
@@ -1616,6 +1685,7 @@ requirements
 setup
 test_cli
 test_conftest
+test_db
 test_utils
 utils
 git_init
