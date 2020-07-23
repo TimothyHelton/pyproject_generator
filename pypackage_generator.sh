@@ -289,7 +289,7 @@ db() {
         "            sa.Column('pref_value', sa.String(100))" \
         "        )" \
         "        self.meta.create_all(self.engine)" \
-        "        " \
+        "" \
         "        self._user_df = pd.read_sql(select([self._user]), self.engine)" \
         "        self._pref_df = pd.read_sql(select([self._pref]), self.engine)" \
         "" \
@@ -306,8 +306,44 @@ db() {
         "        return self._user_df" \
         "" \
         "" \
-        "if __name__ == '__main__':" \
-        "    pass" \
+        "def sql_data(" \
+        "        host: str," \
+        "        database: str," \
+        "        schema: str," \
+        "        table_name: str," \
+        "        query: Callable," \
+        "        ) -> pd.DataFrame:" \
+        '    """' \
+        "    Retrieve data from a database table." \
+        "" \
+        "    :param host: name of database host" \
+        "    :param database: name of database" \
+        "    :param schema: name of table schema" \
+        "    :param table_name: name of table" \
+        "    :param query: callable that returns a ORM SQLAlchemy select statement" \
+        "    :return: data frame containing data from query" \
+        "" \
+        "    Example \`query\`:" \
+        "    def query_example(session, table):" \
+        "        cols = ('col1', 'col2')" \
+        "        return session.query(*[table.c[x] for x in cols]).statement" \
+        '    """' \
+        "    with Connect(host=host, database=database) as c:" \
+        "        table = sa.Table(" \
+        "            table_name," \
+        "            c.meta," \
+        "            autoload=True," \
+        "            autoload_with=c.engine," \
+        "            schema=schema," \
+        "        )" \
+        "        df = pd.read_sql(" \
+        "            query(c.session, table)," \
+        "            con=c.engine," \
+        "        )" \
+        "    logger.info('Executed: %s' % query.__name__)" \
+        "    return df" \
+        "" \
+        "" \
         "def sql_table(" \
         "        host: str," \
         "        database: str," \
@@ -340,6 +376,10 @@ db() {
         "        )" \
         "    logger.info('Retrieved data from: %s/%s' % (database, table_name))" \
         "    return df" \
+        "" \
+        "" \
+        "if __name__ == '__main__':" \
+        "    pass" \
         > "${SRC_PATH}${FILE_SEP}db.py"
 }
 
