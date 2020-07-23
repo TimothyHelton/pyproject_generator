@@ -289,7 +289,7 @@ db() {
         "            sa.Column('pref_value', sa.String(100))" \
         "        )" \
         "        self.meta.create_all(self.engine)" \
-        "        " \
+        "" \
         "        self._user_df = pd.read_sql(select([self._user]), self.engine)" \
         "        self._pref_df = pd.read_sql(select([self._pref]), self.engine)" \
         "" \
@@ -304,6 +304,78 @@ db() {
         "    @property" \
         "    def user_df(self):" \
         "        return self._user_df" \
+        "" \
+        "" \
+        "def sql_data(" \
+        "        host: str," \
+        "        database: str," \
+        "        schema: str," \
+        "        table_name: str," \
+        "        query: Callable," \
+        "        ) -> pd.DataFrame:" \
+        '    """' \
+        "    Retrieve data from a database table." \
+        "" \
+        "    :param host: name of database host" \
+        "    :param database: name of database" \
+        "    :param schema: name of table schema" \
+        "    :param table_name: name of table" \
+        "    :param query: callable that returns a ORM SQLAlchemy select statement" \
+        "    :return: data frame containing data from query" \
+        "" \
+        "    Example \`query\`:" \
+        "    def query_example(session, table):" \
+        "        cols = ('col1', 'col2')" \
+        "        return session.query(*[table.c[x] for x in cols]).statement" \
+        '    """' \
+        "    with Connect(host=host, database=database) as c:" \
+        "        table = sa.Table(" \
+        "            table_name," \
+        "            c.meta," \
+        "            autoload=True," \
+        "            autoload_with=c.engine," \
+        "            schema=schema," \
+        "        )" \
+        "        df = pd.read_sql(" \
+        "            query(c.session, table)," \
+        "            con=c.engine," \
+        "        )" \
+        "    logger.info('Executed: %s' % query.__name__)" \
+        "    return df" \
+        "" \
+        "" \
+        "def sql_table(" \
+        "        host: str," \
+        "        database: str," \
+        "        schema: str," \
+        "        table_name: str," \
+        "        columns: Optional[Union[str, Iterable[str]]] = None," \
+        "        date_columns: Optional[Union[str, Iterable[str]]] = None," \
+        "        ) -> pd.DataFrame:" \
+        '    """' \
+        "    Retrieve data from a database table." \
+        "" \
+        "    :param host: name of database host" \
+        "    :param database: name of database" \
+        "    :param schema: name of table schema" \
+        "    :param table_name: name of table" \
+        "    :param columns: column names to return (default: returns all columns)" \
+        "    :param date_columns: column names to be formatted as dates" \
+        "    :return: data frame containing data from table" \
+        '    """' \
+        "    columns = [columns] if isinstance(columns, str) else columns" \
+        "    date_columns = ([date_columns] if isinstance(date_columns, str)" \
+        "                    else date_columns)" \
+        "    with Connect(host=host, database=database) as c:" \
+        "        df = pd.read_sql_table(" \
+        "            table_name=table_name," \
+        "            con=c.engine," \
+        "            schema=schema," \
+        "            columns=columns," \
+        "            parse_dates=date_columns," \
+        "        )" \
+        "    logger.info('Retrieved data from: %s/%s' % (database, table_name))" \
+        "    return df" \
         "" \
         "" \
         "if __name__ == '__main__':" \
@@ -1240,6 +1312,75 @@ test_conftest() {
 }
 
 
+test_db() {
+    printf "%s\n" \
+        "${PY_SHEBANG}" \
+        "${PY_ENCODING}" \
+    '""" Database Unit Tests' \
+    "" \
+    '"""' \
+    "import pytest" \
+    "" \
+    "from .. import db" \
+    "" \
+    "HOST = 'host_name'" \
+    "DATABASE = 'database_name'" \
+    "" \
+    "" \
+    "# Test Connect.__repr__()" \
+    "def test_connect_repr():" \
+    "    c = db.Connect(host=HOST, database=DATABASE)" \
+    "    assert repr(c) == f\"<Connect(host='{HOST}', database='{DATABASE}')>\"" \
+    "" \
+    "" \
+    "# Test Connect.__enter__() and Connect.__exit__()" \
+    "def test_connect_context_manager():" \
+    "    with db.Connect(host=HOST, database=DATABASE) as c:" \
+    "        _ = c.engine.connect()" \
+    "        assert c.engine.pool.checkedout()" \
+    "    assert not c.engine.pool.checkedout()" \
+    "" \
+    "" \
+    "# Test Connect.reflect_tables()" \
+    "reflect_tables = {" \
+    "    'single table': 'table_name_1'," \
+    "    'multiple tables': ('table_name_1', 'table_name_2')," \
+    "}" \
+    "" \
+    "" \
+    "@pytest.mark.parametrize('tables'," \
+    "                         list(reflect_tables.values())," \
+    "                         ids=list(reflect_tables.keys()))" \
+    "def test_connect_reflect_tables(tables):" \
+    "    with db.Connect(host=HOST, database=DATABASE) as c:" \
+    "        c.tables = {'schema_name': tables}" \
+    "        c.reflect_tables()" \
+    "        tables = [tables] if isinstance(tables, str) else tables" \
+    "        for t in tables:" \
+    "            assert f'schema_name.{t}' in c.meta.tables.keys()" \
+    "" \
+    "" \
+    "# Test sql_data()" \
+    "def test_sql_data():" \
+    "    table_name = 'table_name'" \
+    "" \
+    "    def col_query(session, table):" \
+    "        return session.query(table.c['column_name']).statement" \
+    "" \
+    "    df = db.sql_data(host=HOST, database=DATABASE, schema='schema_name'," \
+    "                     table_name=table_name, query=col_query)" \
+    "    assert 'column_name' in df.columns" \
+    "" \
+    "" \
+    "# Test sql_table()" \
+    "def test_sql_table():" \
+    "    df = db.sql_table(host=HOST, database=DATABASE, schema='schema_name'," \
+    "                      table_name='table_name')" \
+    "    assert 'column_name' in df.columns" \
+        > "${SRC_PATH}${FILE_SEP}${TEST_DIR}${FILE_SEP}test_db.py"
+}
+
+
 test_utils() {
     printf "%s\n" \
         "${PY_SHEBANG}" \
@@ -1616,6 +1757,7 @@ requirements
 setup
 test_cli
 test_conftest
+test_db
 test_utils
 utils
 git_init
