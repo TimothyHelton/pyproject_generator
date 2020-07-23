@@ -308,6 +308,38 @@ db() {
         "" \
         "if __name__ == '__main__':" \
         "    pass" \
+        "def sql_table(" \
+        "        host: str," \
+        "        database: str," \
+        "        schema: str," \
+        "        table_name: str," \
+        "        columns: Optional[Union[str, Iterable[str]]] = None," \
+        "        date_columns: Optional[Union[str, Iterable[str]]] = None," \
+        "        ) -> pd.DataFrame:" \
+        '    """' \
+        "    Retrieve data from a database table." \
+        "" \
+        "    :param host: name of database host" \
+        "    :param database: name of database" \
+        "    :param schema: name of table schema" \
+        "    :param table_name: name of table" \
+        "    :param columns: column names to return (default: returns all columns)" \
+        "    :param date_columns: column names to be formatted as dates" \
+        "    :return: data frame containing data from table" \
+        '    """' \
+        "    columns = [columns] if isinstance(columns, str) else columns" \
+        "    date_columns = ([date_columns] if isinstance(date_columns, str)" \
+        "                    else date_columns)" \
+        "    with Connect(host=host, database=database) as c:" \
+        "        df = pd.read_sql_table(" \
+        "            table_name=table_name," \
+        "            con=c.engine," \
+        "            schema=schema," \
+        "            columns=columns," \
+        "            parse_dates=date_columns," \
+        "        )" \
+        "    logger.info('Retrieved data from: %s/%s' % (database, table_name))" \
+        "    return df" \
         > "${SRC_PATH}${FILE_SEP}db.py"
 }
 
