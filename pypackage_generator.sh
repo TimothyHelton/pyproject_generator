@@ -30,15 +30,15 @@ if [[ ${SOURCE_DIR} == *-* ]]; then
     exit 0
 fi
 
-YEAR=`date +%Y`
+YEAR=$(date +%Y)
 
-SUB_DIRECTORIES=(${DATA_DIR} \
-                 ${DOCKER_DIR} \
-                 ${DOCS_DIR} \
-                 ${NOTEBOOK_DIR} \
-                 ${PROFILE_DIR} \
-                 ${SOURCE_DIR} \
-                 ${WHEEL_DIR} \
+SUB_DIRECTORIES=("${DATA_DIR}" \
+                 "${DOCKER_DIR}" \
+                 "${DOCS_DIR}" \
+                 "${NOTEBOOK_DIR}" \
+                 "${PROFILE_DIR}" \
+                 "${SOURCE_DIR}" \
+                 "${WHEEL_DIR}" \
                  ".github")
 
 PY_SHEBANG="#! /usr/bin/env python3"
@@ -688,7 +688,7 @@ git_ignore() {
 
 
 git_init() {
-    cd ${MAIN_DIR}
+    cd "${MAIN_DIR}" || exit
     git init
     git add --all
     git commit -m "Initial Commit"
@@ -746,6 +746,8 @@ makefile() {
         "VERSION=\$(shell echo \$(shell cat ${SOURCE_DIR}/__init__.py | \\\\" \
         "\t\t\tgrep \"^__version__\" | \\\\" \
         "\t\t\tcut -d = -f 2))" \
+        "NOTEBOOK_CMD=\"\${BROWSER} \$\$(docker container exec \$(USER)_notebook_\$(PORT) jupyter notebook list | grep -o '^http\S*')\"" \
+        "NOTEBOOK_DELAY=3" \
         "" \
         "include envfile" \
         ".PHONY: docs upgrade-packages" \
@@ -854,10 +856,9 @@ makefile() {
         "\tdocker container exec -it \$(PROJECT)_python ipython" \
         "" \
         "notebook: docker-up notebook-server" \
-        "\tsleep 3" \
-        "\t\${BROWSER} \$\$(docker container exec \\\\" \
-        "\t\t\$(USER)_notebook_\$(PORT) \\\\" \
-        "\t\tjupyter notebook list | grep -o '^http\S*')" \
+        "\tsleep 2" \
+        "\teval \${NOTEBOOK_CMD} || sleep \${NOTEBOOK_DELAY}" \
+        "\teval \${NOTEBOOK_CMD}" \
         "" \
         "notebook-remove:" \
         "\tdocker container rm -f \$\$(docker container ls -f name=\$(USER)_notebook -q)" \
