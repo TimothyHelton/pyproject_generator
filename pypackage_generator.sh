@@ -30,15 +30,15 @@ if [[ ${SOURCE_DIR} == *-* ]]; then
     exit 0
 fi
 
-YEAR=`date +%Y`
+YEAR=$(date +%Y)
 
-SUB_DIRECTORIES=(${DATA_DIR} \
-                 ${DOCKER_DIR} \
-                 ${DOCS_DIR} \
-                 ${NOTEBOOK_DIR} \
-                 ${PROFILE_DIR} \
-                 ${SOURCE_DIR} \
-                 ${WHEEL_DIR} \
+SUB_DIRECTORIES=("${DATA_DIR}" \
+                 "${DOCKER_DIR}" \
+                 "${DOCS_DIR}" \
+                 "${NOTEBOOK_DIR}" \
+                 "${PROFILE_DIR}" \
+                 "${SOURCE_DIR}" \
+                 "${WHEEL_DIR}" \
                  ".github")
 
 PY_SHEBANG="#! /usr/bin/env python3"
@@ -688,7 +688,7 @@ git_ignore() {
 
 
 git_init() {
-    cd ${MAIN_DIR}
+    cd "${MAIN_DIR}" || exit
     git init
     git add --all
     git commit -m "Initial Commit"
