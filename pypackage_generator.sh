@@ -200,13 +200,12 @@ db() {
         "" \
         '"""' \
         "import logging" \
-        "import os" \
         "" \
         "import pandas as pd" \
         "import sqlalchemy as sa" \
         "from sqlalchemy.sql import select" \
         "" \
-        "from ${SOURCE_DIR}.utils import project_vars" \
+        "from ${SOURCE_DIR}.utils import docker_secret" \
         "" \
         "" \
         "logger = logging.getLogger('package')" \
@@ -234,15 +233,14 @@ db() {
         '    """' \
         "" \
         "    def __init__(self):" \
-        "        project_vars()" \
         "        self.dialect = 'postgresql'" \
         "        self.driver = None" \
-        "        self.db_name = os.environ['POSTGRES_DB']" \
+        "        self.db_name = docker_secret('db-database')" \
         "        self.host = '${MAIN_DIR}_postgres'" \
         "        self.meta = sa.MetaData()" \
-        "        self.password = os.environ['POSTGRES_PASSWORD']" \
+        "        self.password = docker_secret('db-password')" \
         "        self.port = 5432" \
-        "        self.user = os.environ['POSTGRES_USER']" \
+        "        self.user = docker_secret('db-username')" \
         "" \
         "        self.dialect = (f'{self.dialect}+{self.driver}' if self.driver" \
         "                        else self.dialect)" \
@@ -255,8 +253,8 @@ db() {
         "" \
         "    def __repr__(self) -> str:" \
         "        return (f'<{type(self).__name__}('" \
-        "                f'user={os.environ[\"POSTGRES_USER\"]!r}, '" \
-        "                f'database={os.environ[\"POSTGRES_DB\"]!r}'" \
+        "                f'user={self.user!r}, '" \
+        "                f'database={self.db_name!r}'" \
         "                f')')" \
         "" \
         "" \
