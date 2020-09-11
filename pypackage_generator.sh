@@ -1267,6 +1267,9 @@ setup() {
         "    install_requires=[" \
         "        'click'," \
         "        'matplotlib'," \
+        "        'pandas'," \
+        "        'psycopg2'," \
+        "        'sqlalchemy'," \
         "    ]," \
         "    extras_require={" \
         "         'all': combine_dependencies(dependencies.keys())," \
