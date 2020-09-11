@@ -1093,6 +1093,8 @@ readme() {
         "    - The default browser will open to \`localhost:5000\`" \
         "1. Enter the **PGAdmin** default user and password." \
         "    - These variable are set in the \`envfile\`." \
+        "1. CHANGE THE PASSWORD" \
+        "    - The pgAdmin container requires a default password to get started." \
         "1. Click \`Add New Server\`." \
         "    - General Name: Enter the <project_name>" \
         "    - Connection Host: Enter <project_name>_postgres" \
