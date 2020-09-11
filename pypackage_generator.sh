@@ -1555,17 +1555,32 @@ utils() {
         "import logging.config" \
         "import functools" \
         "import operator" \
+        "from pathlib import Path" \
         "import os" \
         "import re" \
         "import time" \
-        "from typing import Any, Dict, List, Tuple, Union" \
+        "from typing import Any, Dict, List, Optional, Tuple, Union" \
         "import warnings" \
         "" \
         "import matplotlib.pyplot as plt" \
         "import numpy as np" \
         "" \
-        "from ${SOURCE_DIR}.pkg_globals import FONT_SIZE, PACKAGE_ROOT" \
+        "from ${SOURCE_DIR}.pkg_globals import FONT_SIZE" \
         "from ${SOURCE_DIR}.exceptions import InputError" \
+        "" \
+        "" \
+        "def docker_secret(secret_name: str) -> Optional[str]:" \
+        '    """' \
+        "    Read Docker secret file." \
+        "" \
+        "    :param secret_name: name of secrete to retrieve" \
+        "    :return: contents of secrete file" \
+        '    """' \
+        "    try:" \
+        "        with open(f'/run/secrets/{secret_name}', 'r') as f:" \
+        "            return f.read().strip('\n')" \
+        "    except IOError:" \
+        "        return None" \
         "" \
         "" \
         "def logger_setup(file_path: Union[None, str] = None," \
@@ -1679,9 +1694,13 @@ utils() {
         "    return progress_msg if n < total else progress_msg + '\n\n'" \
         "" \
         "" \
-        "def project_vars():" \
-        '    """Load project specific environment variables."""' \
-        "    with open(PACKAGE_ROOT / 'envfile', 'r') as f:" \
+        "def project_vars(env_file: Path):" \
+        '    """' \
+        "    Load project specific environment variables." \
+        "" \
+        "    :param env_file: path to environment variable file" \
+        '    """' \
+        "    with open(env_file, 'r') as f:" \
         "        txt = f.read()" \
         "    env_vars = re.findall(r'export\s(.*)=(.*)', txt)" \
         "    for name, value in env_vars:" \
