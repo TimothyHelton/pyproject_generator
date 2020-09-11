@@ -626,6 +626,8 @@ git_config() {
 
 git_ignore() {
     printf "%s\n" \
+        "# Docker secret files" \
+        "docker/secrets/*" \
         "# Compiled source" \
         "build${FILE_SEP}*" \
         "*.com" \
