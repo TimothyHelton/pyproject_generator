@@ -398,9 +398,20 @@ directories() {
 
 docker_compose() {
     printf "%s\n" \
-        "version: '3.7'" \
+        "version: '3.8'" \
         "" \
         "services:" \
+        "" \
+        "  latex:" \
+        "    container_name: ${MAIN_DIR}_latex" \
+        "    image: blang/latex" \
+        "    networks:" \
+        "      - ${MAIN_DIR}-network" \
+        "    restart: always" \
+        "    tty: true" \
+        "    volumes:" \
+        "      - ..:/usr/src/${MAIN_DIR}" \
+        "    working_dir: /usr/src/${MAIN_DIR}" \
         "" \
         "  nginx:" \
         "    container_name: ${MAIN_DIR}_nginx" \
@@ -742,6 +753,9 @@ makefile() {
         "PORT:=\$(shell awk -v min=16384 -v max=32768 'BEGIN{srand(); print int(min+rand()*(max-min+1))}')" \
         "NOTEBOOK_NAME=\$(USER)_notebook_\$(PORT)" \
         "SRC_DIR=/usr/src/${SOURCE_DIR}" \
+        "TEX_DIR:=\"\"" \
+        "TEX_FILE:=\"*.tex\"" \
+        "TEX_WORKING_DIR=\${SRC_DIR}/\${TEX_DIR}" \
         "USER=\$(shell echo \$\${USER%%@*})" \
         "VERSION=\$(shell echo \$(shell cat ${SOURCE_DIR}/__init__.py | \\\\" \
         "\t\t\tgrep \"^__version__\" | \\\\" \
@@ -855,6 +869,9 @@ makefile() {
         "ipython: docker-up" \
         "\tdocker container exec -it \$(PROJECT)_python ipython" \
         "" \
+        "latexmk: docker-up" \
+        "\tdocker container exec -w \$(TEX_WORKING_DIR) \$(PROJECT)_latex \\\\" \
+        "\t\t/bin/bash -c \"latexmk -f -pdf \$(TEX_FILE) && latexmk -c\"" \
         "notebook: docker-up notebook-server" \
         "\tsleep 2" \
         "\teval \${NOTEBOOK_CMD} || sleep \${NOTEBOOK_DELAY}" \
