@@ -204,9 +204,11 @@ db() {
         "" \
         '"""' \
         "import logging" \
+        "from typing import Callable, Iterable, Optional, Union" \
         "" \
         "import pandas as pd" \
         "import sqlalchemy as sa" \
+        "from sqlalchemy.orm import sessionmaker" \
         "from sqlalchemy.sql import select" \
         "" \
         "from ${SOURCE_DIR}.utils import docker_secret" \
@@ -236,11 +238,14 @@ db() {
         "    - **user**: *str* username" \
         '    """' \
         "" \
-        "    def __init__(self):" \
+        "    def __init__(" \
+        "            self," \
+        "            host: Optional[str] = None," \
+        "            database: Optional[str] = None):" \
         "        self.dialect = 'postgresql'" \
         "        self.driver = None" \
-        "        self.db_name = docker_secret('db-database')" \
-        "        self.host = '${MAIN_DIR}_postgres'" \
+        "        self.db_name = database if database else docker_secret('db-database')" \
+        "        self.host = host if host else 'junk_postgres'" \
         "        self.meta = sa.MetaData()" \
         "        self.password = docker_secret('db-password')" \
         "        self.port = 5432" \
@@ -253,13 +258,22 @@ db() {
         "            f'@{self.host}:{self.port}/{self.db_name}'" \
         "        )" \
         "        self.conn = self.engine.connect()" \
+        "        self.session = sessionmaker(bind=self.engine)" \
         "        self.tables = self.engine.table_names()" \
         "" \
         "    def __repr__(self) -> str:" \
         "        return (f'<{type(self).__name__}('" \
-        "                f'user={self.user!r}, '" \
+        "                f'host={self.host!r}, '" \
         "                f'database={self.db_name!r}'" \
-        "                f')')" \
+        "                f')>')" \
+        "" \
+        "    def __enter__(self):" \
+        "        return self" \
+        "" \
+        "    def __exit__(self, exc_type, exc_val, exc_tb):" \
+        "        self.conn.close()" \
+        "        self.engine.dispose()" \
+        "        self.session.close_all()" \
         "" \
         "" \
         "class User(Connect):" \
@@ -1364,8 +1378,9 @@ test_db() {
     "" \
     "from .. import db" \
     "" \
-    "HOST = 'host_name'" \
-    "DATABASE = 'database_name'" \
+    "DATABASE = '${MAIN_DIR}'" \
+    "HOST = '${MAIN_DIR}_postgres'" \
+    "TABLE_NAME = '<enter_table_name_in_${MAIN_DIR}_db>'"
     "" \
     "" \
     "# Test Connect.__repr__()" \
@@ -1403,20 +1418,19 @@ test_db() {
     "" \
     "# Test sql_data()" \
     "def test_sql_data():" \
-    "    table_name = 'table_name'" \
     "" \
     "    def col_query(session, table):" \
     "        return session.query(table.c['column_name']).statement" \
     "" \
     "    df = db.sql_data(host=HOST, database=DATABASE, schema='schema_name'," \
-    "                     table_name=table_name, query=col_query)" \
+    "                     table_name=TABLE_NAME, query=col_query)" \
     "    assert 'column_name' in df.columns" \
     "" \
     "" \
     "# Test sql_table()" \
     "def test_sql_table():" \
     "    df = db.sql_table(host=HOST, database=DATABASE, schema='schema_name'," \
-    "                      table_name='table_name')" \
+    "                      table_name=TABLE_NAME)" \
     "    assert 'column_name' in df.columns" \
         > "${TEST_PATH}test_db.py"
 }
@@ -1435,9 +1449,11 @@ test_utils() {
         "import os" \
         "import warnings" \
         "" \
+        "import numpy as np" \
         "import pytest" \
         "" \
         "from .. import exceptions" \
+        "from ..pkg_globals import PACKAGE_ROOT" \
         "from .. import utils" \
         "" \
         "" \
