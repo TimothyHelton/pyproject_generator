@@ -16,6 +16,7 @@ SOURCE_DIR="${2:-$1}"
 : "${NODEJS_VERSION:=10}"
 : "${NOTEBOOK_DIR:=notebooks}"
 : "${PROFILE_DIR:=profiles}"
+: "${SECRETS_DIR:=secrets}"
 : "${TEST_DIR:=tests}"
 : "${WHEEL_DIR:=wheels}"
 
@@ -44,7 +45,10 @@ SUB_DIRECTORIES=("${DATA_DIR}" \
 PY_SHEBANG="#! /usr/bin/env python3"
 PY_ENCODING="# -*- coding: utf-8 -*-"
 
+DOCKER_PATH="${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}"
+SECRETS_PATH="${DOCKER_PATH}${SECRETS_DIR}${FILE_SEP}"
 SRC_PATH="${MAIN_DIR}${FILE_SEP}${SOURCE_DIR}${FILE_SEP}"
+TEST_PATH="${SRC_PATH}${TEST_DIR}${FILE_SEP}"
 
 
 cli() {
@@ -82,7 +86,7 @@ cli() {
         "" \
         "if __name__ == '__main__':" \
         "    pass" \
-        > "${SRC_PATH}${FILE_SEP}cli.py"
+        > "${SRC_PATH}cli.py"
 }
 
 
@@ -128,7 +132,7 @@ conftest() {
         "            return TEST_TIME" \
         "" \
         "    monkeypatch.setattr(datetime, 'datetime', CustomDatetime)" \
-        > "${SRC_PATH}${FILE_SEP}${TEST_DIR}${FILE_SEP}conftest.py"
+        > "${TEST_PATH}conftest.py"
 }
 
 
@@ -166,7 +170,7 @@ constructor_test() {
     printf "%s\n" \
         "${PY_SHEBANG}" \
         "${PY_ENCODING}" \
-        > "${SRC_PATH}${FILE_SEP}${TEST_DIR}${FILE_SEP}__init__.py"
+        > "${TEST_PATH}__init__.py"
 }
 
 
@@ -200,13 +204,14 @@ db() {
         "" \
         '"""' \
         "import logging" \
-        "import os" \
+        "from typing import Callable, Iterable, Optional, Union" \
         "" \
         "import pandas as pd" \
         "import sqlalchemy as sa" \
+        "from sqlalchemy.orm import sessionmaker" \
         "from sqlalchemy.sql import select" \
         "" \
-        "from ${SOURCE_DIR}.utils import project_vars" \
+        "from ${SOURCE_DIR}.utils import docker_secret" \
         "" \
         "" \
         "logger = logging.getLogger('package')" \
@@ -233,16 +238,18 @@ db() {
         "    - **user**: *str* username" \
         '    """' \
         "" \
-        "    def __init__(self):" \
-        "        project_vars()" \
+        "    def __init__(" \
+        "            self," \
+        "            host: Optional[str] = None," \
+        "            database: Optional[str] = None):" \
         "        self.dialect = 'postgresql'" \
         "        self.driver = None" \
-        "        self.db_name = os.environ['POSTGRES_DB']" \
-        "        self.host = '${MAIN_DIR}_postgres'" \
+        "        self.db_name = database if database else docker_secret('db-database')" \
+        "        self.host = host if host else 'junk_postgres'" \
         "        self.meta = sa.MetaData()" \
-        "        self.password = os.environ['POSTGRES_PASSWORD']" \
+        "        self.password = docker_secret('db-password')" \
         "        self.port = 5432" \
-        "        self.user = os.environ['POSTGRES_USER']" \
+        "        self.user = docker_secret('db-username')" \
         "" \
         "        self.dialect = (f'{self.dialect}+{self.driver}' if self.driver" \
         "                        else self.dialect)" \
@@ -251,13 +258,22 @@ db() {
         "            f'@{self.host}:{self.port}/{self.db_name}'" \
         "        )" \
         "        self.conn = self.engine.connect()" \
+        "        self.session = sessionmaker(bind=self.engine)" \
         "        self.tables = self.engine.table_names()" \
         "" \
         "    def __repr__(self) -> str:" \
         "        return (f'<{type(self).__name__}('" \
-        "                f'user={os.environ[\"POSTGRES_USER\"]!r}, '" \
-        "                f'database={os.environ[\"POSTGRES_DB\"]!r}'" \
-        "                f')')" \
+        "                f'host={self.host!r}, '" \
+        "                f'database={self.db_name!r}'" \
+        "                f')>')" \
+        "" \
+        "    def __enter__(self):" \
+        "        return self" \
+        "" \
+        "    def __exit__(self, exc_type, exc_val, exc_tb):" \
+        "        self.conn.close()" \
+        "        self.engine.dispose()" \
+        "        self.session.close_all()" \
         "" \
         "" \
         "class User(Connect):" \
@@ -380,7 +396,7 @@ db() {
         "" \
         "if __name__ == '__main__':" \
         "    pass" \
-        > "${SRC_PATH}${FILE_SEP}db.py"
+        > "${SRC_PATH}db.py"
 }
 
 
@@ -391,8 +407,10 @@ directories() {
     for dir in "${SUB_DIRECTORIES[@]}"; do
         mkdir "${MAIN_DIR}${FILE_SEP}${dir}"
     done
+    # Secrets directory
+    mkdir "${SECRETS_PATH}"
     # Test directory
-    mkdir "${MAIN_DIR}${FILE_SEP}${SOURCE_DIR}${FILE_SEP}${TEST_DIR}"
+    mkdir "${SRC_PATH}${TEST_DIR}"
 }
 
 
@@ -428,14 +446,18 @@ docker_compose() {
         "    container_name: ${MAIN_DIR}_postgres" \
         "    image: postgres:alpine" \
         "    environment:" \
-        "      POSTGRES_PASSWORD: \${POSTGRES_PASSWORD}" \
-        "      POSTGRES_DB: \${POSTGRES_DB}" \
-        "      POSTGRES_USER: \${POSTGRES_USER}" \
+        "      POSTGRES_PASSWORD_FILE: /run/secrets/db-password" \
+        "      POSTGRES_DB_FILE: /run/secrets/db-database" \
+        "      POSTGRES_USER_FILE: /run/secrets/db-username" \
         "    networks:"\
         "      - ${MAIN_DIR}-network" \
         "    ports:" \
         "      - 5432:5432" \
         "    restart: always" \
+        "    secrets:" \
+        "      - db-database" \
+        "      - db-password" \
+        "      - db-username" \
         "    volumes:" \
         "      - ${MAIN_DIR}-db:/var/lib/postgresql/data" \
         "" \
@@ -445,8 +467,8 @@ docker_compose() {
         "    depends_on:" \
         "      - postgres" \
         "    environment:" \
-        "      PGADMIN_DEFAULT_EMAIL: \${PGADMIN_DEFAULT_EMAIL}" \
-        "      PGADMIN_DEFAULT_PASSWORD: \${PGADMIN_DEFAULT_PASSWORD}" \
+        "      PGADMIN_DEFAULT_EMAIL: \${PGADMIN_DEFAULT_EMAIL:-pgadmin@pgadmin.org}" \
+        "      PGADMIN_DEFAULT_PASSWORD: \${PGADMIN_DEFAULT_PASSWORD:-admin}" \
         "    external_links:" \
         "      - ${MAIN_DIR}_postgres:${MAIN_DIR}_postgres" \
         "    networks:"\
@@ -467,6 +489,10 @@ docker_compose() {
         "    ports:" \
         "      - 8888:8080" \
         "    restart: always" \
+        "    secrets:" \
+        "      - db-database" \
+        "      - db-password" \
+        "      - db-username" \
         "    tty: true" \
         "    volumes:" \
         "      - ..:/usr/src/${MAIN_DIR}" \
@@ -475,10 +501,18 @@ docker_compose() {
         "  ${MAIN_DIR}-network:" \
         "    name: ${MAIN_DIR}" \
         "" \
+        "secrets:" \
+        "  db-database:" \
+        "    file: secrets/db_database.txt" \
+        "  db-password:" \
+        "    file: secrets/db_password.txt" \
+        "  db-username:" \
+        "    file: secrets/db_username.txt" \
+        "" \
         "volumes:" \
         "  ${MAIN_DIR}-db:" \
         "" \
-        > "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}docker-compose.yaml"
+        > "${DOCKER_PATH}docker-compose.yaml"
 }
 
 
@@ -497,7 +531,7 @@ docker_python() {
         "" \
         "CMD [ \"/bin/bash\" ]" \
         "" \
-        > "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}python.Dockerfile"
+        > "${DOCKER_PATH}python.Dockerfile"
 }
 
 
@@ -518,7 +552,7 @@ docker_pytorch() {
         "" \
         "CMD [ \"/bin/bash\" ]" \
         "" \
-        > "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}pytorch.Dockerfile"
+        > "${DOCKER_PATH}pytorch.Dockerfile"
 }
 
 
@@ -553,26 +587,7 @@ docker_tensorflow() {
         "ENV PYTHONPATH \$PYTHONPATH:/opt/models/research:/opt/models/research/slim:/opt/models/research/object_detection" \
         "" \
         "CMD [ \"/bin/bash\" ]" \
-        > "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}tensorflow.Dockerfile"
-}
-
-
-envfile() {
-    printf "%s\n" \
-        "# PGAdmin" \
-        "export PGADMIN_DEFAULT_EMAIL=postgres@${MAIN_DIR}.com" \
-        "export PGADMIN_DEFAULT_PASSWORD=postgres" \
-        "" \
-        "# Postgres" \
-        "export POSTGRES_PASSWORD=postgres" \
-        "export POSTGRES_DB=${MAIN_DIR}" \
-        "export POSTGRES_USER=postgres" \
-        "" \
-        "# SQL Server" \
-        "export ACCEPT_EULA=Y" \
-        "" \
-        > "${MAIN_DIR}${FILE_SEP}envfile"
-    cp "${MAIN_DIR}${FILE_SEP}envfile" "${MAIN_DIR}${FILE_SEP}envfile_template"
+        > "${DOCKER_PATH}tensorflow.Dockerfile"
 }
 
 
@@ -602,7 +617,7 @@ exceptions() {
         "" \
         "class InputError(Error):" \
         '    """Exception raised for errors in the input."""' \
-        > "${SRC_PATH}${FILE_SEP}exceptions.py"
+        > "${SRC_PATH}exceptions.py"
 }
 
 
@@ -628,6 +643,8 @@ git_config() {
 
 git_ignore() {
     printf "%s\n" \
+        "# Docker secret files" \
+        "docker/secrets/*" \
         "# Compiled source" \
         "build${FILE_SEP}*" \
         "*.com" \
@@ -763,7 +780,6 @@ makefile() {
         "NOTEBOOK_CMD=\"\${BROWSER} \$\$(docker container exec \$(USER)_notebook_\$(PORT) jupyter notebook list | grep -o '^http\S*')\"" \
         "NOTEBOOK_DELAY=3" \
         "" \
-        "include envfile" \
         ".PHONY: docs upgrade-packages" \
         "" \
         "deploy: docker-up" \
@@ -1078,26 +1094,25 @@ pkg_globals() {
             "" \
             "if __name__ == '__main__':" \
             "    pass" \
-            > "${SRC_PATH}${FILE_SEP}pkg_globals.py"
+            > "${SRC_PATH}pkg_globals.py"
     }
 
 
 readme() {
     printf "%s\n" \
         "# Define System Variables" \
-        "1. Copy the \`envfile_template\` to \`envfile\`" \
         "1. Enter your username and password for PGAdmin and Postgres" \
         "" \
         "# PGAdmin Setup" \
         "1. From the main directory call \`make pgadmin\`" \
         "    - The default browser will open to \`localhost:5000\`" \
         "1. Enter the **PGAdmin** default user and password." \
-        "    - These variable are set in the \`envfile\`." \
+        "1. CHANGE THE PASSWORD" \
+        "    - The pgAdmin container requires a default password to get started." \
         "1. Click \`Add New Server\`." \
         "    - General Name: Enter the <project_name>" \
         "    - Connection Host: Enter <project_name>_postgres" \
         "    - Connection Username and Password: Enter **Postgres** username and password" \
-        "      from the \`envfile\`." \
         "" \
         "# PyCharm Setup" \
         "## Database Configuration" \
@@ -1116,7 +1131,6 @@ readme() {
         "1. \`Password\`: **Postgres** password" \
         "" \
         "1. \`Settings\` -> \`Project\` -> \`Project Interpreter\` -> point to docker compose file" \
-        "1. Add the system variables defined in the \`envfile\` to the Project Interpreter" \
         "" \
         "## Unit Test Configuration" \
         "1. \`Run/Debug Configurations\` -> \`+\` -> \`Python tests\` -> \`pytest\`" \
@@ -1129,7 +1143,6 @@ readme() {
         "    - \`--ff\`" \
         "    - \`doctest-modules\`" \
         "        - To ignore specific modules add \`--ignore=<module_name>\`"\
-        "1. Enter \`Environment Variables\` (PYTHONPATH, database user, ...)" \
         "1. Check Box -> \`Add content roots to PYTHONPATH\`" \
         "1. Check Box -> \`Add source roots to PYTHONPATH\`" \
         "" \
@@ -1168,6 +1181,27 @@ release_history() {
 
 requirements() {
     touch "${MAIN_DIR}${FILE_SEP}requirements.txt"
+}
+
+
+secret_db_database() {
+    printf "%s" \
+        "${MAIN_DIR}" \
+        > "${SECRETS_PATH}db_database.txt"
+}
+
+
+secret_db_password() {
+    printf "%s" \
+        "postgres" \
+        > "${SECRETS_PATH}db_password.txt"
+}
+
+
+secret_db_username() {
+    printf "%s" \
+        "postgres" \
+        > "${SECRETS_PATH}db_username.txt"
 }
 
 
@@ -1265,6 +1299,9 @@ setup() {
         "    install_requires=[" \
         "        'click'," \
         "        'matplotlib'," \
+        "        'pandas'," \
+        "        'psycopg2'," \
+        "        'sqlalchemy'," \
         "    ]," \
         "    extras_require={" \
         "         'all': combine_dependencies(dependencies.keys())," \
@@ -1307,7 +1344,7 @@ test_cli() {
         "    runner = CliRunner()" \
         "    result = runner.invoke(cli.count, ['1'])" \
         "    assert result.exit_code == 0" \
-        > "${SRC_PATH}${FILE_SEP}${TEST_DIR}${FILE_SEP}test_cli.py"
+        > "${TEST_PATH}test_cli.py"
 }
 
 
@@ -1326,7 +1363,7 @@ test_conftest() {
         "" \
         "def test_patch_datetime(patch_datetime):" \
         "    assert datetime.datetime.now() == TEST_TIME" \
-        > "${SRC_PATH}${FILE_SEP}${TEST_DIR}${FILE_SEP}test_conftest.py"
+        > "${TEST_PATH}test_conftest.py"
 }
 
 
@@ -1341,8 +1378,9 @@ test_db() {
     "" \
     "from .. import db" \
     "" \
-    "HOST = 'host_name'" \
-    "DATABASE = 'database_name'" \
+    "DATABASE = '${MAIN_DIR}'" \
+    "HOST = '${MAIN_DIR}_postgres'" \
+    "TABLE_NAME = '<enter_table_name_in_${MAIN_DIR}_db>'"
     "" \
     "" \
     "# Test Connect.__repr__()" \
@@ -1380,22 +1418,21 @@ test_db() {
     "" \
     "# Test sql_data()" \
     "def test_sql_data():" \
-    "    table_name = 'table_name'" \
     "" \
     "    def col_query(session, table):" \
     "        return session.query(table.c['column_name']).statement" \
     "" \
     "    df = db.sql_data(host=HOST, database=DATABASE, schema='schema_name'," \
-    "                     table_name=table_name, query=col_query)" \
+    "                     table_name=TABLE_NAME, query=col_query)" \
     "    assert 'column_name' in df.columns" \
     "" \
     "" \
     "# Test sql_table()" \
     "def test_sql_table():" \
     "    df = db.sql_table(host=HOST, database=DATABASE, schema='schema_name'," \
-    "                      table_name='table_name')" \
+    "                      table_name=TABLE_NAME)" \
     "    assert 'column_name' in df.columns" \
-        > "${SRC_PATH}${FILE_SEP}${TEST_DIR}${FILE_SEP}test_db.py"
+        > "${TEST_PATH}test_db.py"
 }
 
 
@@ -1412,13 +1449,33 @@ test_utils() {
         "import os" \
         "import warnings" \
         "" \
+        "import numpy as np" \
         "import pytest" \
         "" \
         "from .. import exceptions" \
+        "from ..pkg_globals import PACKAGE_ROOT" \
         "from .. import utils" \
         "" \
         "" \
         "LOGGER = logging.getLogger(__name__)" \
+        "" \
+        "" \
+        "# Test docker_secret()" \
+        "docker_secret = {" \
+        "    'database': ('db-database', 'junk')," \
+        "}" \
+        "" \
+        "" \
+        "@pytest.mark.parametrize('secret_name, expected'," \
+        "                         list(docker_secret.values())," \
+        "                         ids=list(docker_secret.keys()))" \
+        "def test_docker_secret_found(secret_name, expected):" \
+        "    assert utils.docker_secret(secret_name) == expected" \
+        "" \
+        "" \
+        "def test_docker_secret_missing():" \
+        "    assert utils.docker_secret('missing-secret') is None" \
+        "" \
         "" \
         "# Test logger_setup()" \
         "logger_setup = {" \
@@ -1492,12 +1549,6 @@ test_utils() {
         "        utils.progress_str(100, 50)" \
         "" \
         "" \
-        "# Test project_vars():" \
-        "def test_project_vars():" \
-        "    utils.project_vars()" \
-        "    assert os.environ['ACCEPT_EULA'] == 'Y'" \
-        "" \
-        "" \
         "# Test rle()" \
         "rle = {" \
         "    'None': ([], (None, None, None))," \
@@ -1519,7 +1570,7 @@ test_utils() {
         "            assert a is e" \
         "" \
         "" \
-        "# Test status():" \
+        "# Test status()" \
         "def test_status(caplog):" \
         "" \
         "    @utils.status(LOGGER)" \
@@ -1535,8 +1586,7 @@ test_utils() {
         "    utils.warning_format()" \
         "    with pytest.warns(UserWarning):" \
         "        warnings.warn('test', UserWarning)" \
-        "" \
-        > "${SRC_PATH}${FILE_SEP}${TEST_DIR}${FILE_SEP}test_utils.py"
+        > "${TEST_PATH}test_utils.py"
 }
 
 
@@ -1553,17 +1603,32 @@ utils() {
         "import logging.config" \
         "import functools" \
         "import operator" \
+        "from pathlib import Path" \
         "import os" \
         "import re" \
         "import time" \
-        "from typing import Any, Dict, List, Tuple, Union" \
+        "from typing import Any, Dict, List, Optional, Tuple, Union" \
         "import warnings" \
         "" \
         "import matplotlib.pyplot as plt" \
         "import numpy as np" \
         "" \
-        "from ${SOURCE_DIR}.pkg_globals import FONT_SIZE, PACKAGE_ROOT" \
+        "from ${SOURCE_DIR}.pkg_globals import FONT_SIZE" \
         "from ${SOURCE_DIR}.exceptions import InputError" \
+        "" \
+        "" \
+        "def docker_secret(secret_name: str) -> Optional[str]:" \
+        '    """' \
+        "    Read Docker secret file." \
+        "" \
+        "    :param secret_name: name of secrete to retrieve" \
+        "    :return: contents of secrete file" \
+        '    """' \
+        "    try:" \
+        "        with open(f'/run/secrets/{secret_name}', 'r') as f:" \
+        "            return f.read().strip('\n')" \
+        "    except IOError:" \
+        "        return None" \
         "" \
         "" \
         "def logger_setup(file_path: Union[None, str] = None," \
@@ -1677,15 +1742,6 @@ utils() {
         "    return progress_msg if n < total else progress_msg + '\n\n'" \
         "" \
         "" \
-        "def project_vars():" \
-        '    """Load project specific environment variables."""' \
-        "    with open(PACKAGE_ROOT / 'envfile', 'r') as f:" \
-        "        txt = f.read()" \
-        "    env_vars = re.findall(r'export\s(.*)=(.*)', txt)" \
-        "    for name, value in env_vars:" \
-        "        os.environ[name] = value" \
-        "" \
-        "" \
         "def rle(arr: Union[List[Any], np.ndarray]) \\" \
         "        -> Union[Tuple[np.ndarray, ...], Tuple[None, ...]]:" \
         '    """' \
@@ -1744,7 +1800,7 @@ utils() {
         "" \
         "if __name__ == '__main__':" \
         "    pass" \
-        > "${SRC_PATH}${FILE_SEP}utils.py"
+        > "${SRC_PATH}utils.py"
 }
 
 
@@ -1759,7 +1815,6 @@ docker_compose
 docker_python
 docker_pytorch
 docker_tensorflow
-envfile
 exceptions
 git_attributes
 git_config
@@ -1772,6 +1827,9 @@ pull_request_template
 readme
 release_history
 requirements
+secret_db_database
+secret_db_password
+secret_db_username
 setup
 test_cli
 test_conftest
