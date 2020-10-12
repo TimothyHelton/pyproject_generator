@@ -45,8 +45,10 @@ SUB_DIRECTORIES=("${DATA_DIR}" \
 PY_SHEBANG="#! /usr/bin/env python3"
 PY_ENCODING="# -*- coding: utf-8 -*-"
 
-SECRETS_PATH="${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}${SECRETS_DIR}${FILE_SEP}"
+DOCKER_PATH="${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}"
+SECRETS_PATH="${DOCKER_PATH}${SECRETS_DIR}${FILE_SEP}"
 SRC_PATH="${MAIN_DIR}${FILE_SEP}${SOURCE_DIR}${FILE_SEP}"
+TEST_PATH="${SRC_PATH}${TEST_DIR}${FILE_SEP}"
 
 
 cli() {
@@ -84,7 +86,7 @@ cli() {
         "" \
         "if __name__ == '__main__':" \
         "    pass" \
-        > "${SRC_PATH}${FILE_SEP}cli.py"
+        > "${SRC_PATH}cli.py"
 }
 
 
@@ -130,7 +132,7 @@ conftest() {
         "            return TEST_TIME" \
         "" \
         "    monkeypatch.setattr(datetime, 'datetime', CustomDatetime)" \
-        > "${SRC_PATH}${FILE_SEP}${TEST_DIR}${FILE_SEP}conftest.py"
+        > "${TEST_PATH}conftest.py"
 }
 
 
@@ -168,7 +170,7 @@ constructor_test() {
     printf "%s\n" \
         "${PY_SHEBANG}" \
         "${PY_ENCODING}" \
-        > "${SRC_PATH}${FILE_SEP}${TEST_DIR}${FILE_SEP}__init__.py"
+        > "${TEST_PATH}__init__.py"
 }
 
 
@@ -380,7 +382,7 @@ db() {
         "" \
         "if __name__ == '__main__':" \
         "    pass" \
-        > "${SRC_PATH}${FILE_SEP}db.py"
+        > "${SRC_PATH}db.py"
 }
 
 
@@ -394,7 +396,7 @@ directories() {
     # Secrets directory
     mkdir "${SECRETS_PATH}"
     # Test directory
-    mkdir "${MAIN_DIR}${FILE_SEP}${SOURCE_DIR}${FILE_SEP}${TEST_DIR}"
+    mkdir "${SRC_PATH}${TEST_DIR}"
 }
 
 
@@ -496,7 +498,7 @@ docker_compose() {
         "volumes:" \
         "  ${MAIN_DIR}-db:" \
         "" \
-        > "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}docker-compose.yaml"
+        > "${DOCKER_PATH}docker-compose.yaml"
 }
 
 
@@ -515,7 +517,7 @@ docker_python() {
         "" \
         "CMD [ \"/bin/bash\" ]" \
         "" \
-        > "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}python.Dockerfile"
+        > "${DOCKER_PATH}python.Dockerfile"
 }
 
 
@@ -536,7 +538,7 @@ docker_pytorch() {
         "" \
         "CMD [ \"/bin/bash\" ]" \
         "" \
-        > "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}pytorch.Dockerfile"
+        > "${DOCKER_PATH}pytorch.Dockerfile"
 }
 
 
@@ -571,7 +573,7 @@ docker_tensorflow() {
         "ENV PYTHONPATH \$PYTHONPATH:/opt/models/research:/opt/models/research/slim:/opt/models/research/object_detection" \
         "" \
         "CMD [ \"/bin/bash\" ]" \
-        > "${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}tensorflow.Dockerfile"
+        > "${DOCKER_PATH}tensorflow.Dockerfile"
 }
 
 
@@ -601,7 +603,7 @@ exceptions() {
         "" \
         "class InputError(Error):" \
         '    """Exception raised for errors in the input."""' \
-        > "${SRC_PATH}${FILE_SEP}exceptions.py"
+        > "${SRC_PATH}exceptions.py"
 }
 
 
@@ -1078,7 +1080,7 @@ pkg_globals() {
             "" \
             "if __name__ == '__main__':" \
             "    pass" \
-            > "${SRC_PATH}${FILE_SEP}pkg_globals.py"
+            > "${SRC_PATH}pkg_globals.py"
     }
 
 
@@ -1328,7 +1330,7 @@ test_cli() {
         "    runner = CliRunner()" \
         "    result = runner.invoke(cli.count, ['1'])" \
         "    assert result.exit_code == 0" \
-        > "${SRC_PATH}${FILE_SEP}${TEST_DIR}${FILE_SEP}test_cli.py"
+        > "${TEST_PATH}test_cli.py"
 }
 
 
@@ -1347,7 +1349,7 @@ test_conftest() {
         "" \
         "def test_patch_datetime(patch_datetime):" \
         "    assert datetime.datetime.now() == TEST_TIME" \
-        > "${SRC_PATH}${FILE_SEP}${TEST_DIR}${FILE_SEP}test_conftest.py"
+        > "${TEST_PATH}test_conftest.py"
 }
 
 
@@ -1416,7 +1418,7 @@ test_db() {
     "    df = db.sql_table(host=HOST, database=DATABASE, schema='schema_name'," \
     "                      table_name='table_name')" \
     "    assert 'column_name' in df.columns" \
-        > "${SRC_PATH}${FILE_SEP}${TEST_DIR}${FILE_SEP}test_db.py"
+        > "${TEST_PATH}test_db.py"
 }
 
 
@@ -1568,7 +1570,7 @@ test_utils() {
         "    utils.warning_format()" \
         "    with pytest.warns(UserWarning):" \
         "        warnings.warn('test', UserWarning)" \
-        > "${SRC_PATH}${FILE_SEP}${TEST_DIR}${FILE_SEP}test_utils.py"
+        > "${TEST_PATH}test_utils.py"
 }
 
 
@@ -1782,7 +1784,7 @@ utils() {
         "" \
         "if __name__ == '__main__':" \
         "    pass" \
-        > "${SRC_PATH}${FILE_SEP}utils.py"
+        > "${SRC_PATH}utils.py"
 }
 
 
