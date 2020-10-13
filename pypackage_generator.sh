@@ -774,7 +774,7 @@ makefile() {
         "NOTEBOOK_CMD=\"\${BROWSER} \$\$(docker container exec \$(USER)_notebook_\$(PORT) jupyter notebook list | grep -o '^http\S*')\"" \
         "NOTEBOOK_DELAY=3" \
         "" \
-        ".PHONY: docs upgrade-packages" \
+        ".PHONY: docs format-style upgrade-packages" \
         "" \
         "deploy: docker-up" \
         "\tdocker container exec \$(PROJECT)_python \\\\" \
@@ -984,7 +984,7 @@ makefile() {
         "\tgit clone https://github.com/tensorflow/models.git \${MODELS}" \
         "endif" \
         "" \
-        "test: docker-up" \
+        "test: docker-up format-style" \
         "\tdocker container exec \$(PROJECT)_python \\\\" \
         "\t\t/bin/bash -c \"py.test\\\\" \
         "\t\t\t\t--basetemp=pytest \\\\" \
