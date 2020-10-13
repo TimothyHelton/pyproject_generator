@@ -1380,25 +1380,6 @@ test_db() {
     "    assert not c.engine.pool.checkedout()" \
     "" \
     "" \
-    "# Test Connect.reflect_tables()" \
-    "reflect_tables = {" \
-    "    'single table': 'table_name_1'," \
-    "    'multiple tables': ('table_name_1', 'table_name_2')," \
-    "}" \
-    "" \
-    "" \
-    "@pytest.mark.parametrize('tables'," \
-    "                         list(reflect_tables.values())," \
-    "                         ids=list(reflect_tables.keys()))" \
-    "def test_connect_reflect_tables(tables):" \
-    "    with db.Connect(host=HOST, database=DATABASE) as c:" \
-    "        c.tables = {'schema_name': tables}" \
-    "        c.reflect_tables()" \
-    "        tables = [tables] if isinstance(tables, str) else tables" \
-    "        for t in tables:" \
-    "            assert f'schema_name.{t}' in c.meta.tables.keys()" \
-    "" \
-    "" \
     "# Test sql_data()" \
     "def test_sql_data():" \
     "    def col_query(session, table):" \
