@@ -876,6 +876,9 @@ makefile() {
         "docs-view: docker-up" \
         "\t\${BROWSER} http://localhost:8080" \
         "" \
+        "format-style: docker-up" \
+        "\tdocker container exec \$(PROJECT)_python yapf -i -p -r --style \"pep8\" \${SRC_DIR}" \
+        "" \
         "ipython: docker-up" \
         "\tdocker container exec -it \$(PROJECT)_python ipython" \
         "" \
