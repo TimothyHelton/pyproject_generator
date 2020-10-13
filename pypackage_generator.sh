@@ -55,7 +55,6 @@ cli() {
     printf "%s\n" \
         "${PY_SHEBANG}" \
         "${PY_ENCODING}" \
-        "" \
         '""" Command Line Interface Module' \
         "" \
         '"""' \
@@ -67,9 +66,15 @@ cli() {
         "" \
         "@click.command()" \
         "@click.argument('number')" \
-        "@click.option('-q', '--quiet', is_flag=True, multiple=True," \
+        "@click.option('-q'," \
+        "              '--quiet'," \
+        "              is_flag=True," \
+        "              multiple=True," \
         "              help='Decrease output level one (-q) or multiple times (-qqq).')" \
-        "@click.option('-v', '--verbose', is_flag=True, multiple=True," \
+        "@click.option('-v'," \
+        "              '--verbose'," \
+        "              is_flag=True," \
+        "              multiple=True," \
         "              help='Increase output level one (-v) or multiple times (-vvv).')" \
         "def count(number: int, quiet, verbose):" \
         '    """' \
@@ -111,7 +116,6 @@ conftest() {
     printf "%s\n" \
         "${PY_SHEBANG}" \
         "${PY_ENCODING}" \
-        "" \
         '""" Test Configuration File' \
         "" \
         '"""' \
@@ -119,13 +123,11 @@ conftest() {
         "" \
         "import pytest" \
         "" \
-        "" \
         "TEST_TIME = datetime.datetime(2019, 12, 25, 8, 16, 32)" \
         "" \
         "" \
         "@pytest.fixture" \
         "def patch_datetime(monkeypatch):" \
-        "" \
         "    class CustomDatetime:" \
         "        @classmethod" \
         "        def now(cls):" \
@@ -199,7 +201,6 @@ db() {
     printf "%s\n" \
         "${PY_SHEBANG}" \
         "${PY_ENCODING}" \
-        "" \
         '""" Database Module' \
         "" \
         '"""' \
@@ -212,7 +213,6 @@ db() {
         "from sqlalchemy.sql import select" \
         "" \
         "from ${SOURCE_DIR}.utils import docker_secret" \
-        "" \
         "" \
         "logger = logging.getLogger('package')" \
         "" \
@@ -237,11 +237,9 @@ db() {
         "    - **tables**: *list* tables in database" \
         "    - **user**: *str* username" \
         '    """' \
-        "" \
-        "    def __init__(" \
-        "            self," \
-        "            host: Optional[str] = None," \
-        "            database: Optional[str] = None):" \
+        "    def __init__(self," \
+        "                 host: Optional[str] = None," \
+        "                 database: Optional[str] = None):" \
         "        self.dialect = 'postgresql'" \
         "        self.driver = None" \
         "        self.db_name = database if database else docker_secret('db-database')" \
@@ -251,12 +249,11 @@ db() {
         "        self.port = 5432" \
         "        self.user = docker_secret('db-username')" \
         "" \
-        "        self.dialect = (f'{self.dialect}+{self.driver}' if self.driver" \
-        "                        else self.dialect)" \
+        "        self.dialect = (f'{self.dialect}+{self.driver}'" \
+        "                        if self.driver else self.dialect)" \
         "        self.engine = sa.create_engine(" \
         "            f'{self.dialect}://{self.user}:{self.password}'" \
-        "            f'@{self.host}:{self.port}/{self.db_name}'" \
-        "        )" \
+        "            f'@{self.host}:{self.port}/{self.db_name}')" \
         "        self.conn = self.engine.connect()" \
         "        self.session = sessionmaker(bind=self.engine)" \
         "        self.tables = self.engine.table_names()" \
@@ -286,7 +283,6 @@ db() {
         "    - **user_df**: *DataFrame* table with base user information" \
         "    - **pref_df**: *DataFrame* table with user preferences" \
         '    """' \
-        "" \
         "    def __init__(self):" \
         "        super(User, self).__init__()" \
         "        self._user = sa.Table(" \
@@ -294,16 +290,16 @@ db() {
         "            sa.Column('user_id', sa.Integer, primary_key=True)," \
         "            sa.Column('User_name', sa.String(16), nullable=False)," \
         "            sa.Column('email_address', sa.String(60), key='email')," \
-        "            sa.Column('password', sa.String(20), nullable=False)" \
-        "        )" \
+        "            sa.Column('password', sa.String(20), nullable=False))" \
         "        self._pref = sa.Table(" \
         "            'user_pref', self.meta," \
         "            sa.Column('pref_id', sa.Integer, primary_key=True)," \
-        "            sa.Column('user_id', sa.Integer, sa.ForeignKey(\"user.user_id\")," \
+        "            sa.Column('user_id'," \
+        "                      sa.Integer," \
+        "                      sa.ForeignKey(\"user.user_id\")," \
         "                      nullable=False)," \
         "            sa.Column('pref_name', sa.String(40), nullable=False)," \
-        "            sa.Column('pref_value', sa.String(100))" \
-        "        )" \
+        "            sa.Column('pref_value', sa.String(100)))" \
         "        self.meta.create_all(self.engine)" \
         "" \
         "        self._user_df = pd.read_sql(select([self._user]), self.engine)" \
@@ -323,12 +319,12 @@ db() {
         "" \
         "" \
         "def sql_data(" \
-        "        host: str," \
-        "        database: str," \
-        "        schema: str," \
-        "        table_name: str," \
-        "        query: Callable," \
-        "        ) -> pd.DataFrame:" \
+        "    host: str," \
+        "    database: str," \
+        "    schema: str," \
+        "    table_name: str," \
+        "    query: Callable," \
+        ") -> pd.DataFrame:" \
         '    """' \
         "    Retrieve data from a database table." \
         "" \
@@ -361,13 +357,13 @@ db() {
         "" \
         "" \
         "def sql_table(" \
-        "        host: str," \
-        "        database: str," \
-        "        schema: str," \
-        "        table_name: str," \
-        "        columns: Optional[Union[str, Iterable[str]]] = None," \
-        "        date_columns: Optional[Union[str, Iterable[str]]] = None," \
-        "        ) -> pd.DataFrame:" \
+        "    host: str," \
+        "    database: str," \
+        "    schema: str," \
+        "    table_name: str," \
+        "    columns: Optional[Union[str, Iterable[str]]] = None," \
+        "    date_columns: Optional[Union[str, Iterable[str]]] = None," \
+        ") -> pd.DataFrame:" \
         '    """' \
         "    Retrieve data from a database table." \
         "" \
@@ -380,8 +376,8 @@ db() {
         "    :return: data frame containing data from table" \
         '    """' \
         "    columns = [columns] if isinstance(columns, str) else columns" \
-        "    date_columns = ([date_columns] if isinstance(date_columns, str)" \
-        "                    else date_columns)" \
+        "    date_columns = ([date_columns]" \
+        "                    if isinstance(date_columns, str) else date_columns)" \
         "    with Connect(host=host, database=database) as c:" \
         "        df = pd.read_sql_table(" \
         "            table_name=table_name," \
@@ -558,7 +554,7 @@ docker_pytorch() {
 
 docker_tensorflow() {
     printf "%b\n" \
-        "FROM nvcr.io/nvidia/tensorflow:19.12-tf2-py3" \
+        "FROM nvcr.io/nvidia/tensorflow:20.09-tf2-py3" \
         "" \
         "WORKDIR /usr/src/${SOURCE_DIR}" \
         "" \
@@ -595,7 +591,6 @@ exceptions() {
     printf "%s\n" \
         "${PY_SHEBANG}" \
         "${PY_ENCODING}" \
-        "" \
         '""" Exception Module' \
         "" \
         '"""' \
@@ -609,7 +604,6 @@ exceptions() {
         "    - **expression**: *str* input expression in which the error occurred" \
         "    - **message**: *str* explanation of the error" \
         '    """' \
-        "" \
         "    def __init__(self, expression: str, message: str):" \
         "        self.expression = expression" \
         "        self.message = message" \
@@ -780,7 +774,7 @@ makefile() {
         "NOTEBOOK_CMD=\"\${BROWSER} \$\$(docker container exec \$(USER)_notebook_\$(PORT) jupyter notebook list | grep -o '^http\S*')\"" \
         "NOTEBOOK_DELAY=3" \
         "" \
-        ".PHONY: docs upgrade-packages" \
+        ".PHONY: docs format-style upgrade-packages" \
         "" \
         "deploy: docker-up" \
         "\tdocker container exec \$(PROJECT)_python \\\\" \
@@ -881,6 +875,9 @@ makefile() {
         "" \
         "docs-view: docker-up" \
         "\t\${BROWSER} http://localhost:8080" \
+        "" \
+        "format-style: docker-up" \
+        "\tdocker container exec \$(PROJECT)_python yapf -i -p -r --style \"pep8\" \${SRC_DIR}" \
         "" \
         "ipython: docker-up" \
         "\tdocker container exec -it \$(PROJECT)_python ipython" \
@@ -987,7 +984,7 @@ makefile() {
         "\tgit clone https://github.com/tensorflow/models.git \${MODELS}" \
         "endif" \
         "" \
-        "test: docker-up" \
+        "test: docker-up format-style" \
         "\tdocker container exec \$(PROJECT)_python \\\\" \
         "\t\t/bin/bash -c \"py.test\\\\" \
         "\t\t\t\t--basetemp=pytest \\\\" \
@@ -1055,12 +1052,10 @@ pkg_globals() {
     printf "%s\n" \
             "${PY_SHEBANG}" \
             "${PY_ENCODING}" \
-            "" \
             '""" Global Variable Module' \
             "" \
             '"""' \
             "from pathlib import Path" \
-            "" \
             "" \
             "PACKAGE_ROOT = Path(__file__).parents[1]" \
             "" \
@@ -1090,7 +1085,6 @@ pkg_globals() {
             "        'color': 'black'," \
             "    }," \
             "}" \
-            "" \
             "" \
             "if __name__ == '__main__':" \
             "    pass" \
@@ -1218,7 +1212,6 @@ setup() {
         "" \
         "from setuptools import setup, find_packages" \
         "" \
-        "" \
         "dependencies = {" \
         "    'build': {" \
         "        'setuptools'," \
@@ -1261,65 +1254,60 @@ setup() {
         "" \
         "" \
         "with open('${SOURCE_DIR}${FILE_SEP}__init__.py', 'r') as fd:" \
-        "    version = re.search(r'^__version__\s*=\s*[\'\"]([^\'\"]*)[\'\"]'," \
-        "                        fd.read(), re.MULTILINE).group(1)" \
+        "    version = re.search(r'^__version__\s*=\s*[\'\"]([^\'\"]*)[\'\"]', fd.read()," \
+        "                        re.MULTILINE).group(1)" \
         "" \
         "here = Path(__file__).absolute().parent" \
         "with open(here / 'README.md', encoding='utf-8') as f:" \
         "    long_description = f.read()" \
         "" \
-        "setup(" \
-        "    name='${MAIN_DIR}'," \
-        "    version=version," \
-        "    description='Modules related to EnterDescriptionHere'," \
-        "    author='${AUTHOR}'," \
-        "    author_email='${EMAIL}'," \
-        "    license='BSD'," \
-        "    classifiers=[" \
-        "        'Development Status :: 1 - Planning'," \
-        "        'Environment :: Console'," \
-        "        'Intended Audience :: Developers'," \
-        "        'License :: OSI Approved'," \
-        "        'Natural Language :: English'," \
-        "        'Operating System :: OS Independent'," \
-        "        'Programming Language :: Python :: ${PYTHON_VERSION%%.*}'," \
-        "        'Programming Language :: Python :: ${PYTHON_VERSION}'," \
-        "        'Topic :: Software Development :: Build Tools'," \
-        "        ]," \
-        "    keywords='EnterKeywordsHere'," \
-        "    packages=find_packages(exclude=[" \
-        "        'data'," \
-        "        'docker'," \
-        "        'docs'," \
-        "        'notebooks'," \
-        "        'wheels'," \
-        "        '*tests'," \
-        "        ]" \
-        "    )," \
-        "    install_requires=[" \
-        "        'click'," \
-        "        'matplotlib'," \
-        "        'pandas'," \
-        "        'psycopg2'," \
-        "        'sqlalchemy'," \
-        "    ]," \
-        "    extras_require={" \
-        "         'all': combine_dependencies(dependencies.keys())," \
-        "         'build': combine_dependencies(('build', 'test'))," \
-        "         'docs': combine_dependencies('docs')," \
-        "         'jupyter': combine_dependencies('jupyter')," \
-        "         'profile': combine_dependencies('profile')," \
-        "         'test': combine_dependencies('test')," \
-        "    }," \
-        "    package_dir={'${MAIN_DIR}': '${SOURCE_DIR}'}," \
-        "    include_package_data=True," \
-        "    entry_points={" \
-        "        'console_scripts': [" \
-        "            'count=${SOURCE_DIR}.cli:count'," \
-        "        ]" \
-        "    }" \
-        ")" \
-        "" \
+        "setup(name='${MAIN_DIR}'," \
+        "      version=version," \
+        "      description='Modules related to EnterDescriptionHere'," \
+        "      author='${AUTHOR}'," \
+        "      author_email='${EMAIL}'," \
+        "      license='BSD'," \
+        "      classifiers=[" \
+        "          'Development Status :: 1 - Planning'," \
+        "          'Environment :: Console'," \
+        "          'Intended Audience :: Developers'," \
+        "          'License :: OSI Approved'," \
+        "          'Natural Language :: English'," \
+        "          'Operating System :: OS Independent'," \
+        "          'Programming Language :: Python :: ${PYTHON_VERSION%%.*}'," \
+        "          'Programming Language :: Python :: ${PYTHON_VERSION}'," \
+        "          'Topic :: Software Development :: Build Tools'," \
+        "      ]," \
+        "      keywords='EnterKeywordsHere'," \
+        "      packages=find_packages(exclude=[" \
+        "          'data'," \
+        "          'docker'," \
+        "          'docs'," \
+        "          'notebooks'," \
+        "          'wheels'," \
+        "          '*tests'," \
+        "      ])," \
+        "      install_requires=[" \
+        "          'click'," \
+        "          'matplotlib'," \
+        "          'pandas'," \
+        "          'psycopg2'," \
+        "          'sqlalchemy'," \
+        "          'yapf'," \
+        "      ]," \
+        "      extras_require={" \
+        "          'all': combine_dependencies(dependencies.keys())," \
+        "          'build': combine_dependencies(('build', 'test'))," \
+        "          'docs': combine_dependencies('docs')," \
+        "          'jupyter': combine_dependencies('jupyter')," \
+        "          'profile': combine_dependencies('profile')," \
+        "          'test': combine_dependencies('test')," \
+        "      }," \
+        "      package_dir={'${MAIN_DIR}': '${SOURCE_DIR}'}," \
+        "      include_package_data=True," \
+        "      entry_points={'console_scripts': [" \
+        "          'count=${SOURCE_DIR}.cli:count'," \
+        "      ]})" \
         "" \
         "if __name__ == '__main__':" \
         "    pass" \
@@ -1331,7 +1319,6 @@ test_cli() {
     printf "%s\n" \
         "${PY_SHEBANG}" \
         "${PY_ENCODING}" \
-        "" \
         '""" Command Line Interface Unit Tests' \
         "" \
         '"""' \
@@ -1352,7 +1339,6 @@ test_conftest() {
     printf "%s\n" \
         "${PY_SHEBANG}" \
         "${PY_ENCODING}" \
-        "" \
         '""" pytest Fixtures Unit Tests' \
         "" \
         '"""' \
@@ -1380,7 +1366,7 @@ test_db() {
     "" \
     "DATABASE = '${MAIN_DIR}'" \
     "HOST = '${MAIN_DIR}_postgres'" \
-    "TABLE_NAME = '<enter_table_name_in_${MAIN_DIR}_db>'"
+    "TABLE_NAME = '<enter_table_name_in_${MAIN_DIR}_db>'" \
     "" \
     "" \
     "# Test Connect.__repr__()" \
@@ -1397,39 +1383,24 @@ test_db() {
     "    assert not c.engine.pool.checkedout()" \
     "" \
     "" \
-    "# Test Connect.reflect_tables()" \
-    "reflect_tables = {" \
-    "    'single table': 'table_name_1'," \
-    "    'multiple tables': ('table_name_1', 'table_name_2')," \
-    "}" \
-    "" \
-    "" \
-    "@pytest.mark.parametrize('tables'," \
-    "                         list(reflect_tables.values())," \
-    "                         ids=list(reflect_tables.keys()))" \
-    "def test_connect_reflect_tables(tables):" \
-    "    with db.Connect(host=HOST, database=DATABASE) as c:" \
-    "        c.tables = {'schema_name': tables}" \
-    "        c.reflect_tables()" \
-    "        tables = [tables] if isinstance(tables, str) else tables" \
-    "        for t in tables:" \
-    "            assert f'schema_name.{t}' in c.meta.tables.keys()" \
-    "" \
-    "" \
     "# Test sql_data()" \
     "def test_sql_data():" \
-    "" \
     "    def col_query(session, table):" \
     "        return session.query(table.c['column_name']).statement" \
     "" \
-    "    df = db.sql_data(host=HOST, database=DATABASE, schema='schema_name'," \
-    "                     table_name=TABLE_NAME, query=col_query)" \
+    "    df = db.sql_data(host=HOST," \
+    "                     database=DATABASE," \
+    "                     schema='schema_name'," \
+    "                     table_name=TABLE_NAME," \
+    "                     query=col_query)" \
     "    assert 'column_name' in df.columns" \
     "" \
     "" \
     "# Test sql_table()" \
     "def test_sql_table():" \
-    "    df = db.sql_table(host=HOST, database=DATABASE, schema='schema_name'," \
+    "    df = db.sql_table(host=HOST," \
+    "                      database=DATABASE," \
+    "                      schema='schema_name'," \
     "                      table_name=TABLE_NAME)" \
     "    assert 'column_name' in df.columns" \
         > "${TEST_PATH}test_db.py"
@@ -1440,25 +1411,20 @@ test_utils() {
     printf "%s\n" \
         "${PY_SHEBANG}" \
         "${PY_ENCODING}" \
-        "" \
         '""" Utilities Unit Tests' \
         "" \
         '"""' \
         "from pathlib import Path" \
         "import logging" \
-        "import os" \
         "import warnings" \
         "" \
         "import numpy as np" \
         "import pytest" \
         "" \
         "from .. import exceptions" \
-        "from ..pkg_globals import PACKAGE_ROOT" \
         "from .. import utils" \
         "" \
-        "" \
         "LOGGER = logging.getLogger(__name__)" \
-        "" \
         "" \
         "# Test docker_secret()" \
         "docker_secret = {" \
@@ -1553,8 +1519,7 @@ test_utils() {
         "rle = {" \
         "    'None': ([], (None, None, None))," \
         "    'int': ([1, 0, 0, 1, 1, 1], ([0, 1, 3], [1, 2, 3], [1, 0, 1]))," \
-        "    'string': (['a', 'b', 'b', 'c', 'c', 'c']," \
-        "               ([0, 1, 3], [1, 2, 3], ['a', 'b', 'c']))," \
+        "    'string': (['a', 'b', 'b'], ([0, 1], [1, 2], ['a', 'b']))," \
         "}" \
         "" \
         "" \
@@ -1572,7 +1537,6 @@ test_utils() {
         "" \
         "# Test status()" \
         "def test_status(caplog):" \
-        "" \
         "    @utils.status(LOGGER)" \
         "    def foo():" \
         "        return 5" \
@@ -1594,7 +1558,6 @@ utils() {
     printf "%s\n" \
         "${PY_SHEBANG}" \
         "${PY_ENCODING}" \
-        "" \
         '""" Package Utilities Module' \
         "" \
         '"""' \
@@ -1603,9 +1566,6 @@ utils() {
         "import logging.config" \
         "import functools" \
         "import operator" \
-        "from pathlib import Path" \
-        "import os" \
-        "import re" \
         "import time" \
         "from typing import Any, Dict, List, Optional, Tuple, Union" \
         "import warnings" \
@@ -1723,7 +1683,8 @@ utils() {
         "    nested_get(nested_dict, key_path[:-1])[key_path[-1]] = value" \
         "" \
         "" \
-        "def progress_str(n: int, total: int,"\
+        "def progress_str(n: int," \
+        "                 total: int,"\
         "                 msg: Union[None, str] = 'Progress') -> str:" \
         '    """' \
         "    Generate progress percentage message." \
@@ -1767,9 +1728,7 @@ utils() {
         "" \
         "    :param status_logger: name of logger to record status output" \
         '    """' \
-        "" \
         "    def status_decorator(func):" \
-        "" \
         "        @functools.wraps(func)" \
         "        def wrapper(*args, **kwargs):" \
         "            name = func.__name__" \
@@ -1781,6 +1740,7 @@ utils() {
         "            return result" \
         "" \
         "        return wrapper" \
+        "" \
         "    return status_decorator" \
         "" \
         "" \
@@ -1791,7 +1751,6 @@ utils() {
         "    ..note:: For new formats add helper functions then update the \\" \
         "        \`warnings.formatwarning\` call." \
         '    """' \
-        "" \
         "    def message_only(message, category, filename, lineno, line=''):" \
         "        return f'{message}\n'" \
         "" \
