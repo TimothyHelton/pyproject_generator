@@ -1290,8 +1290,9 @@ setup() {
         "      install_requires=[" \
         "          'click'," \
         "          'matplotlib'," \
+        "          'opencv-python-headless'," \
         "          'pandas'," \
-        "          'psycopg2'," \
+        "          'psycopg2-binary'," \
         "          'sqlalchemy'," \
         "          'yapf'," \
         "      ]," \
