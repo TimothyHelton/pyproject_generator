@@ -1429,7 +1429,7 @@ test_utils() {
         "" \
         "# Test docker_secret()" \
         "docker_secret = {" \
-        "    'database': ('db-database', 'junk')," \
+        "    'database': ('db-database', ${MAIN_DIR})," \
         "}" \
         "" \
         "" \
