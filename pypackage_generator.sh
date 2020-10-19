@@ -187,6 +187,7 @@ coveragerc() {
         "" \
         "[report]" \
         "omit =" \
+        "    setup.py" \
         "    */__init__.py" \
         "    */tests/*" \
         "" \
@@ -996,7 +997,7 @@ makefile() {
         "\t\t\t\t-r all \\\\" \
         "\t\t\t\t-vvv\"" \
         "" \
-        "tests-coverage: test" \
+        "test-coverage: test" \
 	    "\t\${BROWSER} htmlcov/index.html"\
         "" \
         "upgrade-packages: docker-up" \
