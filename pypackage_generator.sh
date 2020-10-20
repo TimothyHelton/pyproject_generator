@@ -937,7 +937,7 @@ makefile() {
         "\tdocker container rm -f \$\$(docker container ls -f name=snakeviz -q)" \
         "" \
         "snakeviz-server: docker-up" \
-        "\tdocker container run -d --rm \\\\" \
+        "\tdocker container run -dit --rm \\\\" \
         "\t\t--name snakeviz_\$(PORT) \\\\" \
         "\t\t-p \$(PORT):\$(PORT) \\\\" \
         "\t\t-w /usr/src/\$(PROJECT)/profiles \\\\" \
