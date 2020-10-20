@@ -187,6 +187,7 @@ coveragerc() {
         "" \
         "[report]" \
         "omit =" \
+        "    setup.py" \
         "    */__init__.py" \
         "    */tests/*" \
         "" \
@@ -936,7 +937,7 @@ makefile() {
         "\tdocker container rm -f \$\$(docker container ls -f name=snakeviz -q)" \
         "" \
         "snakeviz-server: docker-up" \
-        "\tdocker container run -d --rm \\\\" \
+        "\tdocker container run -dit --rm \\\\" \
         "\t\t--name snakeviz_\$(PORT) \\\\" \
         "\t\t-p \$(PORT):\$(PORT) \\\\" \
         "\t\t-w /usr/src/\$(PROJECT)/profiles \\\\" \
@@ -996,7 +997,7 @@ makefile() {
         "\t\t\t\t-r all \\\\" \
         "\t\t\t\t-vvv\"" \
         "" \
-        "tests-coverage: test" \
+        "test-coverage: test" \
 	    "\t\${BROWSER} htmlcov/index.html"\
         "" \
         "upgrade-packages: docker-up" \
@@ -1429,7 +1430,7 @@ test_utils() {
         "" \
         "# Test docker_secret()" \
         "docker_secret = {" \
-        "    'database': ('db-database', 'junk')," \
+        "    'database': ('db-database', ${MAIN_DIR})," \
         "}" \
         "" \
         "" \
