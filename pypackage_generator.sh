@@ -986,16 +986,7 @@ makefile() {
         "endif" \
         "" \
         "test: docker-up format-style" \
-        "\tdocker container exec \$(PROJECT)_python \\\\" \
-        "\t\t/bin/bash -c \"py.test\\\\" \
-        "\t\t\t\t--basetemp=pytest \\\\" \
-        "\t\t\t\t--cov=. \\\\" \
-        "\t\t\t\t--cov-report html \\\\" \
-        "\t\t\t\t--doctest-modules \\\\" \
-        "\t\t\t\t--ff \\\\" \
-        "\t\t\t\t--pycodestyle \\\\" \
-        "\t\t\t\t-r all \\\\" \
-        "\t\t\t\t-vvv\"" \
+        "\tdocker container exec \$(PROJECT)_python py.test \$(PROJECT)" \
         "" \
         "test-coverage: test" \
 	    "\t\${BROWSER} htmlcov/index.html"\
@@ -1200,7 +1191,51 @@ secret_db_username() {
 }
 
 
-setup() {
+setup_cfg() {
+    printf "%s\n" \
+        "# Test coverage" \
+        "[coverage:run]" \
+        "parallel = True" \
+        "" \
+        "[coverage:paths]" \
+        "source =" \
+        "    ${MAIN_DIR}/" \
+        "" \
+        "[coverage:report]" \
+        "omit =" \
+        "    docs/*" \
+        "    scripts/*" \
+        "    setup.py" \
+        "    */__init__.py" \
+        "    */tests/*" \
+        "" \
+        "[coverage:html]" \
+        "directory = htmlcov" \
+        "title = clat Test Coverage" \
+        "" \
+        "# pytest" \
+        "[tool:pytest]" \
+        "addopts =" \
+        "    -rvvv" \
+        "    --basetemp pytest" \
+        "    --cov ." \
+        "    --cov-report html" \
+        "    --doctest-modules" \
+        "    --ff" \
+        "    --ignore" \
+        "        data" \
+        "        docker" \
+        "        docs" \
+        "        htmlcov" \
+        "        notebooks" \
+        "        profiles" \
+        "        wheels" \
+        "    --pycodestyle" \
+        "" \
+        > "${MAIN_DIR}${FILE_SEP}setup.cfg"
+}
+
+setup_py() {
     printf "%s\n" \
         "${PY_SHEBANG}" \
         "${PY_ENCODING}" \
@@ -1770,7 +1805,6 @@ cli
 conftest
 constructor_pkg
 constructor_test
-coveragerc
 db
 docker_compose
 docker_python
@@ -1791,7 +1825,8 @@ requirements
 secret_db_database
 secret_db_password
 secret_db_username
-setup
+setup_cfg
+setup_py
 test_cli
 test_conftest
 test_db
