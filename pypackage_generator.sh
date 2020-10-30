@@ -16,6 +16,7 @@ SOURCE_DIR="${2:-$1}"
 : "${NODEJS_VERSION:=10}"
 : "${NOTEBOOK_DIR:=notebooks}"
 : "${PROFILE_DIR:=profiles}"
+: "${SCRIPTS_DIR:=scripts}"
 : "${SECRETS_DIR:=secrets}"
 : "${TEST_DIR:=tests}"
 : "${WHEEL_DIR:=wheels}"
@@ -38,6 +39,7 @@ SUB_DIRECTORIES=("${DATA_DIR}" \
                  "${DOCS_DIR}" \
                  "${NOTEBOOK_DIR}" \
                  "${PROFILE_DIR}" \
+                 "${SCRIPTS_DIR}" \
                  "${SOURCE_DIR}" \
                  "${WHEEL_DIR}" \
                  ".github")
