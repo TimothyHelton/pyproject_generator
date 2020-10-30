@@ -1235,6 +1235,7 @@ setup_cfg() {
         > "${MAIN_DIR}${FILE_SEP}setup.cfg"
 }
 
+
 setup_py() {
     printf "%s\n" \
         "${PY_SHEBANG}" \
@@ -1800,6 +1801,22 @@ utils() {
 }
 
 
+yapf_ignore() {
+    printf "%s\n" \
+        "*/*.egg-info/" \
+        "*/data/" \
+        "*/docker/" \
+        "*/docs/*/" \
+        "*/htmlcov/" \
+        "*/.ipynb_checkpoints/" \
+        "*/notebooks/" \
+        "*/profiles/" \
+        "*/wheels/" \
+        "" \
+    > "${MAIN_DIR}${FILE_SEP}.yapfignore"
+}
+
+
 directories
 cli
 conftest
@@ -1832,4 +1849,5 @@ test_conftest
 test_db
 test_utils
 utils
+yapf_ignore
 git_init
