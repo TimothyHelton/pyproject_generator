@@ -93,6 +93,7 @@ cli() {
         "" \
         "if __name__ == '__main__':" \
         "    pass" \
+        "" \
         > "${SRC_PATH}cli.py"
 }
 
@@ -136,6 +137,7 @@ conftest() {
         "            return TEST_TIME" \
         "" \
         "    monkeypatch.setattr(datetime, 'datetime', CustomDatetime)" \
+        "" \
         > "${TEST_PATH}conftest.py"
 }
 
@@ -166,6 +168,7 @@ constructor_pkg() {
         "    __version__ = 'Please install this project with setup.py'" \
         "else:" \
         "    __version__ = _dist.version" \
+        "" \
         > "${SRC_PATH}__init__.py"
 }
 
@@ -174,6 +177,7 @@ constructor_test() {
     printf "%s\n" \
         "${PY_SHEBANG}" \
         "${PY_ENCODING}" \
+        "" \
         > "${TEST_PATH}__init__.py"
 }
 
@@ -395,6 +399,7 @@ db() {
         "" \
         "if __name__ == '__main__':" \
         "    pass" \
+        "" \
         > "${SRC_PATH}db.py"
 }
 
@@ -586,6 +591,7 @@ docker_tensorflow() {
         "ENV PYTHONPATH \$PYTHONPATH:/opt/models/research:/opt/models/research/slim:/opt/models/research/object_detection" \
         "" \
         "CMD [ \"/bin/bash\" ]" \
+        "" \
         > "${DOCKER_PATH}tensorflow.Dockerfile"
 }
 
@@ -614,6 +620,7 @@ exceptions() {
         "" \
         "class InputError(Error):" \
         '    """Exception raised for errors in the input."""' \
+        "" \
         > "${SRC_PATH}exceptions.py"
 }
 
@@ -1082,6 +1089,7 @@ pkg_globals() {
             "" \
             "if __name__ == '__main__':" \
             "    pass" \
+            "" \
             > "${SRC_PATH}pkg_globals.py"
     }
 
@@ -1351,6 +1359,7 @@ setup_py() {
         "" \
         "if __name__ == '__main__':" \
         "    pass" \
+        "" \
         > "${MAIN_DIR}${FILE_SEP}setup.py"
 }
 
@@ -1371,6 +1380,7 @@ test_cli() {
         "    runner = CliRunner()" \
         "    result = runner.invoke(cli.count, ['1'])" \
         "    assert result.exit_code == 0" \
+        "" \
         > "${TEST_PATH}test_cli.py"
 }
 
@@ -1389,6 +1399,7 @@ test_conftest() {
         "" \
         "def test_patch_datetime(patch_datetime):" \
         "    assert datetime.datetime.now() == TEST_TIME" \
+        "" \
         > "${TEST_PATH}test_conftest.py"
 }
 
@@ -1443,6 +1454,7 @@ test_db() {
     "                      schema='schema_name'," \
     "                      table_name=TABLE_NAME)" \
     "    assert 'column_name' in df.columns" \
+    "" \
         > "${TEST_PATH}test_db.py"
 }
 
@@ -1590,6 +1602,7 @@ test_utils() {
         "    utils.warning_format()" \
         "    with pytest.warns(UserWarning):" \
         "        warnings.warn('test', UserWarning)" \
+        "" \
         > "${TEST_PATH}test_utils.py"
 }
 
@@ -1799,6 +1812,7 @@ utils() {
         "" \
         "if __name__ == '__main__':" \
         "    pass" \
+        "" \
         > "${SRC_PATH}utils.py"
 }
 
