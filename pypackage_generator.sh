@@ -520,6 +520,19 @@ docker_compose() {
 }
 
 
+docker_ignore() {
+    printf "%s\n" \
+        "*.egg-info" \
+        ".idea" \
+        ".pytest_cache" \
+        "data" \
+        ".pytest" \
+        "wheels" \
+        "" \
+        > "${MAIN_DIR}${FILE_SEP}.dockerignore"
+}
+
+
 docker_python() {
     printf "%b\n" \
         "FROM python:latest" \
@@ -1840,6 +1853,7 @@ constructor_pkg
 constructor_test
 db
 docker_compose
+docker_ignore
 docker_python
 docker_pytorch
 docker_tensorflow
