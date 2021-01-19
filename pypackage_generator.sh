@@ -13,7 +13,7 @@ SOURCE_DIR="${2:-$1}"
 : "${DOCKER_DIR:=docker}"
 : "${DOCS_DIR:=docs}"
 : "${FILE_SEP:=/}"
-: "${NODEJS_VERSION:=10}"
+: "${NODEJS_VERSION:=12}"
 : "${NOTEBOOK_DIR:=notebooks}"
 : "${PROFILE_DIR:=profiles}"
 : "${SCRIPTS_DIR:=scripts}"
@@ -42,6 +42,7 @@ SUB_DIRECTORIES=("${DATA_DIR}" \
                  "${SCRIPTS_DIR}" \
                  "${SOURCE_DIR}" \
                  "${WHEEL_DIR}" \
+                 "htmlcov" \
                  ".github")
 
 PY_SHEBANG="#! /usr/bin/env python3"
@@ -93,7 +94,6 @@ cli() {
         "" \
         "if __name__ == '__main__':" \
         "    pass" \
-        "" \
         > "${SRC_PATH}cli.py"
 }
 
@@ -106,7 +106,7 @@ common_image() {
         "\t&& apt-get install -y \\\\" \
         "\t\tapt-utils \\\\" \
         "\t\tnodejs \\\\" \
-        "\t&& jupyter labextension install @telamonian/theme-darcula \\\\" \
+        "\t# && jupyter labextension install @telamonian/theme-darcula \\\\" \
         "\t# && jupyter labextension install jupyterlab-plotly \\\\" \
         "\t# && jupyter labextension install jupyterlab-toc \\\\" \
         "\t&& rm -rf /tmp/* \\\\" \
@@ -123,10 +123,18 @@ conftest() {
         "" \
         '"""' \
         "import datetime" \
+        "import time" \
         "" \
+        "import numpy as np" \
         "import pytest" \
         "" \
-        "TEST_TIME = datetime.datetime(2019, 12, 25, 8, 16, 32)" \
+        "from ..pkg_globals import TIME_FORMAT" \
+        "" \
+        "TEST_ARRAY = np.linspace(0, 255, 9, dtype=np.uint8).reshape(3, 3)" \
+        "TEST_LABEL = 'test_string'" \
+        "TEST_TIME = (2019, 12, 25, 8, 16, 32)" \
+        "TEST_DATETIME = datetime.datetime(*TEST_TIME)" \
+        "TEST_STRFTIME = TEST_DATETIME.strftime(TIME_FORMAT)" \
         "" \
         "" \
         "@pytest.fixture" \
@@ -134,10 +142,17 @@ conftest() {
         "    class CustomDatetime:" \
         "        @classmethod" \
         "        def now(cls):" \
-        "            return TEST_TIME" \
+        "            return TEST_DATETIME" \
         "" \
         "    monkeypatch.setattr(datetime, 'datetime', CustomDatetime)" \
         "" \
+        "" \
+        "@pytest.fixture" \
+        "def patch_strftime(monkeypatch):" \
+        "    def custom_strftime(fmt):" \
+        "        return fmt.rstrip(TIME_FORMAT) + TEST_STRFTIME" \
+        "" \
+        "    monkeypatch.setattr(time, 'strftime', custom_strftime)" \
         > "${TEST_PATH}conftest.py"
 }
 
@@ -168,7 +183,6 @@ constructor_pkg() {
         "    __version__ = 'Please install this project with setup.py'" \
         "else:" \
         "    __version__ = _dist.version" \
-        "" \
         > "${SRC_PATH}__init__.py"
 }
 
@@ -177,7 +191,6 @@ constructor_test() {
     printf "%s\n" \
         "${PY_SHEBANG}" \
         "${PY_ENCODING}" \
-        "" \
         > "${TEST_PATH}__init__.py"
 }
 
@@ -399,7 +412,6 @@ db() {
         "" \
         "if __name__ == '__main__':" \
         "    pass" \
-        "" \
         > "${SRC_PATH}db.py"
 }
 
@@ -633,7 +645,6 @@ exceptions() {
         "" \
         "class InputError(Error):" \
         '    """Exception raised for errors in the input."""' \
-        "" \
         > "${SRC_PATH}exceptions.py"
 }
 
@@ -1100,9 +1111,9 @@ pkg_globals() {
             "    }," \
             "}" \
             "" \
+            "TIME_FORMAT = '%Y_%m_%d_%H_%M_%S'" \
             "if __name__ == '__main__':" \
             "    pass" \
-            "" \
             > "${SRC_PATH}pkg_globals.py"
     }
 
@@ -1234,7 +1245,7 @@ setup_cfg() {
         "" \
         "[coverage:html]" \
         "directory = htmlcov" \
-        "title = clat Test Coverage" \
+        "title = ${MAIN_DIR} Test Coverage" \
         "" \
         "# pytest" \
         "[tool:pytest]" \
@@ -1372,7 +1383,6 @@ setup_py() {
         "" \
         "if __name__ == '__main__':" \
         "    pass" \
-        "" \
         > "${MAIN_DIR}${FILE_SEP}setup.py"
 }
 
@@ -1393,7 +1403,6 @@ test_cli() {
         "    runner = CliRunner()" \
         "    result = runner.invoke(cli.count, ['1'])" \
         "    assert result.exit_code == 0" \
-        "" \
         > "${TEST_PATH}test_cli.py"
 }
 
@@ -1406,13 +1415,20 @@ test_conftest() {
         "" \
         '"""' \
         "import datetime" \
+        "import time" \
         "" \
-        "from .conftest import TEST_TIME" \
+        "from .conftest import TEST_ARRAY, TEST_LABEL, TEST_DATETIME, TEST_STRFTIME" \
+        "from ..pkg_globals import TIME_FORMAT" \
         "" \
         "" \
+        "# Test patch_datetime()" \
         "def test_patch_datetime(patch_datetime):" \
-        "    assert datetime.datetime.now() == TEST_TIME" \
+        "    assert datetime.datetime.now() == TEST_DATETIME" \
         "" \
+        "" \
+        "# Test patch_strftime()" \
+        "def test_patch_strftime(patch_strftime):" \
+        "    assert time.strftime(TIME_FORMAT) == TEST_STRFTIME" \
         > "${TEST_PATH}test_conftest.py"
 }
 
@@ -1421,53 +1437,51 @@ test_db() {
     printf "%s\n" \
         "${PY_SHEBANG}" \
         "${PY_ENCODING}" \
-    '""" Database Unit Tests' \
-    "" \
-    '"""' \
-    "import pytest" \
-    "" \
-    "from .. import db" \
-    "" \
-    "DATABASE = '${MAIN_DIR}'" \
-    "HOST = '${MAIN_DIR}_postgres'" \
-    "TABLE_NAME = '<enter_table_name_in_${MAIN_DIR}_db>'" \
-    "" \
-    "" \
-    "# Test Connect.__repr__()" \
-    "def test_connect_repr():" \
-    "    c = db.Connect(host=HOST, database=DATABASE)" \
-    "    assert repr(c) == f\"<Connect(host='{HOST}', database='{DATABASE}')>\"" \
-    "" \
-    "" \
-    "# Test Connect.__enter__() and Connect.__exit__()" \
-    "def test_connect_context_manager():" \
-    "    with db.Connect(host=HOST, database=DATABASE) as c:" \
-    "        _ = c.engine.connect()" \
-    "        assert c.engine.pool.checkedout()" \
-    "    assert not c.engine.pool.checkedout()" \
-    "" \
-    "" \
-    "# Test sql_data()" \
-    "def test_sql_data():" \
-    "    def col_query(session, table):" \
-    "        return session.query(table.c['column_name']).statement" \
-    "" \
-    "    df = db.sql_data(host=HOST," \
-    "                     database=DATABASE," \
-    "                     schema='schema_name'," \
-    "                     table_name=TABLE_NAME," \
-    "                     query=col_query)" \
-    "    assert 'column_name' in df.columns" \
-    "" \
-    "" \
-    "# Test sql_table()" \
-    "def test_sql_table():" \
-    "    df = db.sql_table(host=HOST," \
-    "                      database=DATABASE," \
-    "                      schema='schema_name'," \
-    "                      table_name=TABLE_NAME)" \
-    "    assert 'column_name' in df.columns" \
-    "" \
+        '""" Database Unit Tests' \
+        "" \
+        '"""' \
+        "import pytest" \
+        "" \
+        "from .. import db" \
+        "" \
+        "DATABASE = '${MAIN_DIR}'" \
+        "HOST = '${MAIN_DIR}_postgres'" \
+        "TABLE_NAME = '<enter_table_name_in_${MAIN_DIR}_db>'" \
+        "" \
+        "" \
+        "# Test Connect.__repr__()" \
+        "def test_connect_repr():" \
+        "    c = db.Connect(host=HOST, database=DATABASE)" \
+        "    assert repr(c) == f\"<Connect(host='{HOST}', database='{DATABASE}')>\"" \
+        "" \
+        "" \
+        "# Test Connect.__enter__() and Connect.__exit__()" \
+        "def test_connect_context_manager():" \
+        "    with db.Connect(host=HOST, database=DATABASE) as c:" \
+        "        _ = c.engine.connect()" \
+        "        assert c.engine.pool.checkedout()" \
+        "    assert not c.engine.pool.checkedout()" \
+        "" \
+        "" \
+        "# Test sql_data()" \
+        "# def test_sql_data():" \
+        "#     def col_query(session, table):" \
+        "#         return session.query(table.c['column_name']).statement" \
+        "" \
+        "#     df = db.sql_data(host=HOST," \
+        "#                      database=DATABASE," \
+        "#                      schema='schema_name'," \
+        "#                      table_name=TABLE_NAME," \
+        "#                      query=col_query)" \
+        "#     assert 'column_name' in df.columns" \
+        "" \
+        "# Test sql_table()" \
+        "# def test_sql_table():" \
+        "#     df = db.sql_table(host=HOST," \
+        "#                       database=DATABASE," \
+        "#                       schema='schema_name'," \
+        "#                       table_name=TABLE_NAME)" \
+        "#     assert 'column_name' in df.columns" \
         > "${TEST_PATH}test_db.py"
 }
 
@@ -1479,21 +1493,23 @@ test_utils() {
         '""" Utilities Unit Tests' \
         "" \
         '"""' \
-        "from pathlib import Path" \
         "import logging" \
+        "from pathlib import Path" \
         "import warnings" \
         "" \
         "import numpy as np" \
         "import pytest" \
         "" \
+        "from .conftest import TEST_STRFTIME" \
         "from .. import exceptions" \
+        "from ..pkg_globals import FONT_SIZE, TIME_FORMAT" \
         "from .. import utils" \
         "" \
         "LOGGER = logging.getLogger(__name__)" \
         "" \
         "# Test docker_secret()" \
         "docker_secret = {" \
-        "    'database': ('db-database', ${MAIN_DIR})," \
+        "    'database': ('db-database', '${MAIN_DIR}')," \
         "}" \
         "" \
         "" \
@@ -1511,14 +1527,14 @@ test_utils() {
         "# Test logger_setup()" \
         "logger_setup = {" \
         "    'default args': (None, Path('info.log'))," \
-        "    'file_path': ('test_p', Path('test_p_2019-12-25_08:16:32.log'))," \
+        "    'file_path': ('test_p', Path('test_p-2019_12_25_08_16_32.log'))," \
         "}" \
         "" \
         "" \
         "@pytest.mark.parametrize('file_path, log_file'," \
         "                         list(logger_setup.values())," \
         "                         ids=list(logger_setup.keys()))" \
-        "def test_logger_setup(patch_datetime, file_path, log_file):" \
+        "def test_logger_setup(patch_strftime, file_path, log_file):" \
         "    logger = utils.logger_setup(file_path)" \
         "    assert isinstance(logger, logging.Logger)" \
         "    assert log_file in list(Path().glob('*.log'))" \
@@ -1610,12 +1626,26 @@ test_utils() {
         "    assert 'Initiated: foo' in caplog.text" \
         "" \
         "" \
+        "# Test timestamp_dir()" \
+        "timestamp_dir = {" \
+        "    'no desc': (None, TEST_STRFTIME)," \
+        "    'desc': ('test', f'test-{TEST_STRFTIME}')" \
+        "}" \
+        "" \
+        "" \
+        "@pytest.mark.parametrize('desc, log_dir'," \
+        "                         list(timestamp_dir.values())," \
+        "                         ids=list(timestamp_dir.keys()))" \
+        "def test_timestamp_dir(patch_strftime, desc, log_dir):" \
+        "    base_dir = Path('/test1/test2')" \
+        "    assert utils.timestamp_dir(base_dir, desc) == base_dir / log_dir" \
+        "" \
+        "" \
         "# Test warning_format()" \
         "def test_warning_format(patch_datetime):" \
         "    utils.warning_format()" \
         "    with pytest.warns(UserWarning):" \
         "        warnings.warn('test', UserWarning)" \
-        "" \
         > "${TEST_PATH}test_utils.py"
 }
 
@@ -1632,6 +1662,7 @@ utils() {
         "import logging.config" \
         "import functools" \
         "import operator" \
+        "from pathlib import Path" \
         "import time" \
         "from typing import Any, Dict, List, Optional, Tuple, Union" \
         "import warnings" \
@@ -1639,7 +1670,7 @@ utils() {
         "import matplotlib.pyplot as plt" \
         "import numpy as np" \
         "" \
-        "from ${SOURCE_DIR}.pkg_globals import FONT_SIZE" \
+        "from ${SOURCE_DIR}.pkg_globals import FONT_SIZE, TIME_FORMAT" \
         "from ${SOURCE_DIR}.exceptions import InputError" \
         "" \
         "" \
@@ -1657,16 +1688,23 @@ utils() {
         "        return None" \
         "" \
         "" \
-        "def logger_setup(file_path: Union[None, str] = None," \
+        "def logger_setup(file_path: Union[None, Path, str] = None," \
         "                 logger_name: str = 'package') -> logging.Logger:" \
         '    """' \
         "    Configure logger with console and file handlers." \
         "" \
         "    :param file_path: if supplied the path will be appended by a timestamp \\" \
-        "        and \".log\" else the default name of \"info.log\" will be saved in the \\" \
+        '        and ".log" else the default name of "info.log" will be saved in the \\' \
         "        location of the caller." \
         "    :param logger_name: name to be assigned to logger" \
         '    """' \
+        "    if file_path:" \
+        "        file_path = (Path(file_path).absolute()" \
+        "                     if isinstance(file_path, str) else file_path.absolute())" \
+        "        file_path = (timestamp_dir(file_path.parent," \
+        "                                   file_path.name).with_suffix('.log'))" \
+        "    else:" \
+        "        file_path = 'info.log'" \
         "    config = {" \
         "        'version': 1," \
         "        'disable_existing_loggers': False," \
@@ -1691,7 +1729,7 @@ utils() {
         "                'class': 'logging.handlers.RotatingFileHandler'," \
         "                'encoding': 'utf8'," \
         "                'level': 'DEBUG'," \
-        "                'filename': 'info.log'," \
+        "                'filename': file_path," \
         "                'formatter': 'file'," \
         "                'mode': 'w'," \
         "            }," \
@@ -1708,10 +1746,6 @@ utils() {
         "            'handlers': ['console']," \
         "        }," \
         "    }" \
-        "    if file_path:" \
-        "        time_stamp = datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')" \
-        "        file_path = f'{file_path}_{time_stamp}.log'" \
-        "        nested_set(config, ['handlers', 'file', 'filename'], file_path)" \
         "    logging.config.dictConfig(config)" \
         "    return logging.getLogger(logger_name)" \
         "" \
@@ -1810,6 +1844,18 @@ utils() {
         "    return status_decorator" \
         "" \
         "" \
+        "def timestamp_dir(base_dir: Path, desc: Optional[str] = None):" \
+        '    """' \
+        "    Generate path to new directory with a timestamp." \
+        "" \
+        "    :param base_dir: path to base directory" \
+        "    :param desc: run description" \
+        "    :return: file path with timestamp and optional description" \
+        '    """' \
+        "    desc = '' if desc is None else f'{desc}-'" \
+        "    return base_dir / time.strftime(f'{desc}{TIME_FORMAT}')" \
+        "" \
+        "" \
         "def warning_format():" \
         '    """' \
         "    Set warning output message format." \
@@ -1825,7 +1871,6 @@ utils() {
         "" \
         "if __name__ == '__main__':" \
         "    pass" \
-        "" \
         > "${SRC_PATH}utils.py"
 }
 
