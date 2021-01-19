@@ -1815,6 +1815,18 @@ utils() {
         "    return status_decorator" \
         "" \
         "" \
+        "def timestamp_dir(base_dir: Path, desc: Optional[str] = None):" \
+        '    """' \
+        "    Generate path to new directory with a timestamp." \
+        "" \
+        "    :param base_dir: path to base directory" \
+        "    :param desc: run description" \
+        "    :return: file path with timestamp and optional description" \
+        '    """' \
+        "    desc = '' if desc is None else f'{desc}-'" \
+        "    return base_dir / time.strftime(f'{desc}{TIME_FORMAT}')" \
+        "" \
+        "" \
         "def warning_format():" \
         '    """' \
         "    Set warning output message format." \
