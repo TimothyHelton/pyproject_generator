@@ -93,7 +93,6 @@ cli() {
         "" \
         "if __name__ == '__main__':" \
         "    pass" \
-        "" \
         > "${SRC_PATH}cli.py"
 }
 
@@ -132,6 +131,7 @@ conftest() {
         "TEST_DATETIME = datetime.datetime(*TEST_TIME)" \
         "TEST_STRFTIME = TEST_DATETIME.strftime(TIME_FORMAT)" \
         "" \
+        "" \
         "@pytest.fixture" \
         "def patch_datetime(monkeypatch):" \
         "    class CustomDatetime:" \
@@ -141,13 +141,13 @@ conftest() {
         "" \
         "    monkeypatch.setattr(datetime, 'datetime', CustomDatetime)" \
         "" \
+        "" \
         "@pytest.fixture" \
         "def patch_strftime(monkeypatch):" \
         "    def custom_strftime(fmt):" \
         "        return fmt.rstrip(TIME_FORMAT) + TEST_STRFTIME" \
         "" \
         "    monkeypatch.setattr(time, 'strftime', custom_strftime)" \
-        "" \
         > "${TEST_PATH}conftest.py"
 }
 
@@ -178,7 +178,6 @@ constructor_pkg() {
         "    __version__ = 'Please install this project with setup.py'" \
         "else:" \
         "    __version__ = _dist.version" \
-        "" \
         > "${SRC_PATH}__init__.py"
 }
 
@@ -187,7 +186,6 @@ constructor_test() {
     printf "%s\n" \
         "${PY_SHEBANG}" \
         "${PY_ENCODING}" \
-        "" \
         > "${TEST_PATH}__init__.py"
 }
 
@@ -409,7 +407,6 @@ db() {
         "" \
         "if __name__ == '__main__':" \
         "    pass" \
-        "" \
         > "${SRC_PATH}db.py"
 }
 
@@ -643,7 +640,6 @@ exceptions() {
         "" \
         "class InputError(Error):" \
         '    """Exception raised for errors in the input."""' \
-        "" \
         > "${SRC_PATH}exceptions.py"
 }
 
@@ -1113,7 +1109,6 @@ pkg_globals() {
             "TIME_FORMAT = '%Y_%m_%d_%H_%M_%S'" \
             "if __name__ == '__main__':" \
             "    pass" \
-            "" \
             > "${SRC_PATH}pkg_globals.py"
     }
 
@@ -1383,7 +1378,6 @@ setup_py() {
         "" \
         "if __name__ == '__main__':" \
         "    pass" \
-        "" \
         > "${MAIN_DIR}${FILE_SEP}setup.py"
 }
 
@@ -1404,7 +1398,6 @@ test_cli() {
         "    runner = CliRunner()" \
         "    result = runner.invoke(cli.count, ['1'])" \
         "    assert result.exit_code == 0" \
-        "" \
         > "${TEST_PATH}test_cli.py"
 }
 
@@ -1420,14 +1413,15 @@ test_conftest() {
         "                       TEST_STRFTIME)" \
         "from clat.pkg_globals import TIME_FORMAT" \
         "" \
+        "" \
         "# Test patch_datetime()" \
         "def test_patch_datetime(patch_datetime):" \
         "    assert datetime.datetime.now() == TEST_DATETIME" \
         "" \
+        "" \
         "# Test patch_strftime()" \
         "def test_patch_strftime(patch_strftime):" \
         "    assert time.strftime(TIME_FORMAT) == TEST_STRFTIME" \
-        "" \
         > "${TEST_PATH}test_conftest.py"
 }
 
@@ -1436,53 +1430,52 @@ test_db() {
     printf "%s\n" \
         "${PY_SHEBANG}" \
         "${PY_ENCODING}" \
-    '""" Database Unit Tests' \
-    "" \
-    '"""' \
-    "import pytest" \
-    "" \
-    "from .. import db" \
-    "" \
-    "DATABASE = '${MAIN_DIR}'" \
-    "HOST = '${MAIN_DIR}_postgres'" \
-    "TABLE_NAME = '<enter_table_name_in_${MAIN_DIR}_db>'" \
-    "" \
-    "" \
-    "# Test Connect.__repr__()" \
-    "def test_connect_repr():" \
-    "    c = db.Connect(host=HOST, database=DATABASE)" \
-    "    assert repr(c) == f\"<Connect(host='{HOST}', database='{DATABASE}')>\"" \
-    "" \
-    "" \
-    "# Test Connect.__enter__() and Connect.__exit__()" \
-    "def test_connect_context_manager():" \
-    "    with db.Connect(host=HOST, database=DATABASE) as c:" \
-    "        _ = c.engine.connect()" \
-    "        assert c.engine.pool.checkedout()" \
-    "    assert not c.engine.pool.checkedout()" \
-    "" \
-    "" \
-    "# Test sql_data()" \
-    "def test_sql_data():" \
-    "    def col_query(session, table):" \
-    "        return session.query(table.c['column_name']).statement" \
-    "" \
-    "    df = db.sql_data(host=HOST," \
-    "                     database=DATABASE," \
-    "                     schema='schema_name'," \
-    "                     table_name=TABLE_NAME," \
-    "                     query=col_query)" \
-    "    assert 'column_name' in df.columns" \
-    "" \
-    "" \
-    "# Test sql_table()" \
-    "def test_sql_table():" \
-    "    df = db.sql_table(host=HOST," \
-    "                      database=DATABASE," \
-    "                      schema='schema_name'," \
-    "                      table_name=TABLE_NAME)" \
-    "    assert 'column_name' in df.columns" \
-    "" \
+        '""" Database Unit Tests' \
+        "" \
+        '"""' \
+        "import pytest" \
+        "" \
+        "from .. import db" \
+        "" \
+        "DATABASE = '${MAIN_DIR}'" \
+        "HOST = '${MAIN_DIR}_postgres'" \
+        "TABLE_NAME = '<enter_table_name_in_${MAIN_DIR}_db>'" \
+        "" \
+        "" \
+        "# Test Connect.__repr__()" \
+        "def test_connect_repr():" \
+        "    c = db.Connect(host=HOST, database=DATABASE)" \
+        "    assert repr(c) == f\"<Connect(host='{HOST}', database='{DATABASE}')>\"" \
+        "" \
+        "" \
+        "# Test Connect.__enter__() and Connect.__exit__()" \
+        "def test_connect_context_manager():" \
+        "    with db.Connect(host=HOST, database=DATABASE) as c:" \
+        "        _ = c.engine.connect()" \
+        "        assert c.engine.pool.checkedout()" \
+        "    assert not c.engine.pool.checkedout()" \
+        "" \
+        "" \
+        "# Test sql_data()" \
+        "def test_sql_data():" \
+        "    def col_query(session, table):" \
+        "        return session.query(table.c['column_name']).statement" \
+        "" \
+        "    df = db.sql_data(host=HOST," \
+        "                     database=DATABASE," \
+        "                     schema='schema_name'," \
+        "                     table_name=TABLE_NAME," \
+        "                     query=col_query)" \
+        "    assert 'column_name' in df.columns" \
+        "" \
+        "" \
+        "# Test sql_table()" \
+        "def test_sql_table():" \
+        "    df = db.sql_table(host=HOST," \
+        "                      database=DATABASE," \
+        "                      schema='schema_name'," \
+        "                      table_name=TABLE_NAME)" \
+        "    assert 'column_name' in df.columns" \
         > "${TEST_PATH}test_db.py"
 }
 
@@ -1646,7 +1639,6 @@ test_utils() {
         "    utils.warning_format()" \
         "    with pytest.warns(UserWarning):" \
         "        warnings.warn('test', UserWarning)" \
-        "" \
         > "${TEST_PATH}test_utils.py"
 }
 
@@ -1693,17 +1685,16 @@ utils() {
         '    """' \
         "    Configure logger with console and file handlers." \
         "" \
-        "    :param file_path: if supplied the path will be appended by a timestamp \" \
-        "        and ".log" else the default name of "info.log" will be saved in the \" \
+        "    :param file_path: if supplied the path will be appended by a timestamp \\" \
+        '        and ".log" else the default name of "info.log" will be saved in the \\' \
         "        location of the caller." \
         "    :param logger_name: name to be assigned to logger" \
         '    """' \
         "    if file_path:" \
         "        file_path = (Path(file_path).absolute()" \
-        "                     if isinstance(file_path, str)" \
-        "                     else file_path.absolute())" \
-        "        file_path = (timestamp_dir(file_path.parent, file_path.name)" \
-        "                     .with_suffix('.log'))" \
+        "                     if isinstance(file_path, str) else file_path.absolute())" \
+        "        file_path = (timestamp_dir(file_path.parent," \
+        "                                   file_path.name).with_suffix('.log'))" \
         "    else:" \
         "        file_path = 'info.log'" \
         "    config = {" \
@@ -1872,7 +1863,6 @@ utils() {
         "" \
         "if __name__ == '__main__':" \
         "    pass" \
-        "" \
         > "${SRC_PATH}utils.py"
 }
 
