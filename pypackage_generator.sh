@@ -42,6 +42,7 @@ SUB_DIRECTORIES=("${DATA_DIR}" \
                  "${SCRIPTS_DIR}" \
                  "${SOURCE_DIR}" \
                  "${WHEEL_DIR}" \
+                 "htmlcov" \
                  ".github")
 
 PY_SHEBANG="#! /usr/bin/env python3"
@@ -1244,7 +1245,7 @@ setup_cfg() {
         "" \
         "[coverage:html]" \
         "directory = htmlcov" \
-        "title = clat Test Coverage" \
+        "title = ${MAIN_DIR} Test Coverage" \
         "" \
         "# pytest" \
         "[tool:pytest]" \
