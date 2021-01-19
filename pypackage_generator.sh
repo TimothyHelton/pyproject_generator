@@ -1527,14 +1527,14 @@ test_utils() {
         "# Test logger_setup()" \
         "logger_setup = {" \
         "    'default args': (None, Path('info.log'))," \
-        "    'file_path': ('test_p', Path('test_p_2019-12-25_08:16:32.log'))," \
+        "    'file_path': ('test_p', Path('test_p-2019_12_25_08_16_32.log'))," \
         "}" \
         "" \
         "" \
         "@pytest.mark.parametrize('file_path, log_file'," \
         "                         list(logger_setup.values())," \
         "                         ids=list(logger_setup.keys()))" \
-        "def test_logger_setup(patch_datetime, file_path, log_file):" \
+        "def test_logger_setup(patch_strftime, file_path, log_file):" \
         "    logger = utils.logger_setup(file_path)" \
         "    assert isinstance(logger, logging.Logger)" \
         "    assert log_file in list(Path().glob('*.log'))" \
@@ -1688,16 +1688,24 @@ utils() {
         "        return None" \
         "" \
         "" \
-        "def logger_setup(file_path: Union[None, str] = None," \
+        "def logger_setup(file_path: Union[None, Path, str] = None," \
         "                 logger_name: str = 'package') -> logging.Logger:" \
         '    """' \
         "    Configure logger with console and file handlers." \
         "" \
-        "    :param file_path: if supplied the path will be appended by a timestamp \\" \
-        "        and \".log\" else the default name of \"info.log\" will be saved in the \\" \
+        "    :param file_path: if supplied the path will be appended by a timestamp \" \
+        "        and ".log" else the default name of "info.log" will be saved in the \" \
         "        location of the caller." \
         "    :param logger_name: name to be assigned to logger" \
         '    """' \
+        "    if file_path:" \
+        "        file_path = (Path(file_path).absolute()" \
+        "                     if isinstance(file_path, str)" \
+        "                     else file_path.absolute())" \
+        "        file_path = (timestamp_dir(file_path.parent, file_path.name)" \
+        "                     .with_suffix('.log'))" \
+        "    else:" \
+        "        file_path = 'info.log'" \
         "    config = {" \
         "        'version': 1," \
         "        'disable_existing_loggers': False," \
@@ -1722,7 +1730,7 @@ utils() {
         "                'class': 'logging.handlers.RotatingFileHandler'," \
         "                'encoding': 'utf8'," \
         "                'level': 'DEBUG'," \
-        "                'filename': 'info.log'," \
+        "                'filename': file_path," \
         "                'formatter': 'file'," \
         "                'mode': 'w'," \
         "            }," \
@@ -1739,10 +1747,6 @@ utils() {
         "            'handlers': ['console']," \
         "        }," \
         "    }" \
-        "    if file_path:" \
-        "        time_stamp = datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')" \
-        "        file_path = f'{file_path}_{time_stamp}.log'" \
-        "        nested_set(config, ['handlers', 'file', 'filename'], file_path)" \
         "    logging.config.dictConfig(config)" \
         "    return logging.getLogger(logger_name)" \
         "" \
