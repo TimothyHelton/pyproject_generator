@@ -126,7 +126,11 @@ conftest() {
         "" \
         "import pytest" \
         "" \
-        "TEST_TIME = datetime.datetime(2019, 12, 25, 8, 16, 32)" \
+        "TEST_ARRAY = np.linspace(0, 255, 9, dtype=np.uint8).reshape(3, 3)" \
+        "TEST_LABEL = 'test_string'" \
+        "TEST_TIME = (2019, 12, 25, 8, 16, 32)" \
+        "TEST_DATETIME = datetime.datetime(*TEST_TIME)" \
+        "TEST_STRFTIME = TEST_DATETIME.strftime(TIME_FORMAT)" \
         "" \
         "" \
         "@pytest.fixture" \
@@ -1100,6 +1104,7 @@ pkg_globals() {
             "    }," \
             "}" \
             "" \
+            "TIME_FORMAT = '%Y_%m_%d_%H_%M_%S'" \
             "if __name__ == '__main__':" \
             "    pass" \
             "" \
