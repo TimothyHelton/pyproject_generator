@@ -132,15 +132,21 @@ conftest() {
         "TEST_DATETIME = datetime.datetime(*TEST_TIME)" \
         "TEST_STRFTIME = TEST_DATETIME.strftime(TIME_FORMAT)" \
         "" \
-        "" \
         "@pytest.fixture" \
         "def patch_datetime(monkeypatch):" \
         "    class CustomDatetime:" \
         "        @classmethod" \
         "        def now(cls):" \
-        "            return TEST_TIME" \
+        "            return TEST_DATETIME" \
         "" \
         "    monkeypatch.setattr(datetime, 'datetime', CustomDatetime)" \
+        "" \
+        "@pytest.fixture" \
+        "def patch_strftime(monkeypatch):" \
+        "    def custom_strftime(fmt):" \
+        "        return fmt.rstrip(TIME_FORMAT) + TEST_STRFTIME" \
+        "" \
+        "    monkeypatch.setattr(time, 'strftime', custom_strftime)" \
         "" \
         > "${TEST_PATH}conftest.py"
 }
