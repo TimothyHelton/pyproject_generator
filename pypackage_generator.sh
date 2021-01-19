@@ -1416,13 +1416,17 @@ test_conftest() {
         '""" pytest Fixtures Unit Tests' \
         "" \
         '"""' \
-        "import datetime" \
+        "from .conftest import (make_zip, TEST_ARRAY, TEST_LABEL, TEST_DATETIME," \
+        "                       TEST_STRFTIME)" \
+        "from clat.pkg_globals import TIME_FORMAT" \
         "" \
-        "from .conftest import TEST_TIME" \
-        "" \
-        "" \
+        "# Test patch_datetime()" \
         "def test_patch_datetime(patch_datetime):" \
-        "    assert datetime.datetime.now() == TEST_TIME" \
+        "    assert datetime.datetime.now() == TEST_DATETIME" \
+        "" \
+        "# Test patch_strftime()" \
+        "def test_patch_strftime(patch_strftime):" \
+        "    assert time.strftime(TIME_FORMAT) == TEST_STRFTIME" \
         "" \
         > "${TEST_PATH}test_conftest.py"
 }
