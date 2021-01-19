@@ -106,7 +106,7 @@ common_image() {
         "\t&& apt-get install -y \\\\" \
         "\t\tapt-utils \\\\" \
         "\t\tnodejs \\\\" \
-        "\t&& jupyter labextension install @telamonian/theme-darcula \\\\" \
+        "\t# && jupyter labextension install @telamonian/theme-darcula \\\\" \
         "\t# && jupyter labextension install jupyterlab-plotly \\\\" \
         "\t# && jupyter labextension install jupyterlab-toc \\\\" \
         "\t&& rm -rf /tmp/* \\\\" \
