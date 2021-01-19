@@ -122,8 +122,12 @@ conftest() {
         "" \
         '"""' \
         "import datetime" \
+        "import time" \
         "" \
+        "import numpy as np" \
         "import pytest" \
+        "" \
+        "from ..pkg_globals import TIME_FORMAT" \
         "" \
         "TEST_ARRAY = np.linspace(0, 255, 9, dtype=np.uint8).reshape(3, 3)" \
         "TEST_LABEL = 'test_string'" \
@@ -1409,9 +1413,11 @@ test_conftest() {
         '""" pytest Fixtures Unit Tests' \
         "" \
         '"""' \
-        "from .conftest import (make_zip, TEST_ARRAY, TEST_LABEL, TEST_DATETIME," \
-        "                       TEST_STRFTIME)" \
-        "from clat.pkg_globals import TIME_FORMAT" \
+        "import datetime" \
+        "import time" \
+        "" \
+        "from .conftest import TEST_ARRAY, TEST_LABEL, TEST_DATETIME, TEST_STRFTIME" \
+        "from ..pkg_globals import TIME_FORMAT" \
         "" \
         "" \
         "# Test patch_datetime()" \
@@ -1494,6 +1500,7 @@ test_utils() {
         "import numpy as np" \
         "import pytest" \
         "" \
+        "from .conftest import TEST_STRFTIME" \
         "from .. import exceptions" \
         "from ..pkg_globals import FONT_SIZE, TIME_FORMAT" \
         "from .. import utils" \
@@ -1655,6 +1662,7 @@ utils() {
         "import logging.config" \
         "import functools" \
         "import operator" \
+        "from pathlib import Path" \
         "import time" \
         "from typing import Any, Dict, List, Optional, Tuple, Union" \
         "import warnings" \
@@ -1662,7 +1670,7 @@ utils() {
         "import matplotlib.pyplot as plt" \
         "import numpy as np" \
         "" \
-        "from ${SOURCE_DIR}.pkg_globals import FONT_SIZE" \
+        "from ${SOURCE_DIR}.pkg_globals import FONT_SIZE, TIME_FORMAT" \
         "from ${SOURCE_DIR}.exceptions import InputError" \
         "" \
         "" \
