@@ -1494,14 +1494,15 @@ test_utils() {
         '""" Utilities Unit Tests' \
         "" \
         '"""' \
-        "from pathlib import Path" \
         "import logging" \
+        "from pathlib import Path" \
         "import warnings" \
         "" \
         "import numpy as np" \
         "import pytest" \
         "" \
         "from .. import exceptions" \
+        "from ..pkg_globals import FONT_SIZE, TIME_FORMAT" \
         "from .. import utils" \
         "" \
         "LOGGER = logging.getLogger(__name__)" \
@@ -1623,6 +1624,21 @@ test_utils() {
         "" \
         "    foo()" \
         "    assert 'Initiated: foo' in caplog.text" \
+        "" \
+        "" \
+        "# Test timestamp_dir()" \
+        "timestamp_dir = {" \
+        "    'no desc': (None, TEST_STRFTIME)," \
+        "    'desc': ('test', f'test-{TEST_STRFTIME}')" \
+        "}" \
+        "" \
+        "" \
+        "@pytest.mark.parametrize('desc, log_dir'," \
+        "                         list(timestamp_dir.values())," \
+        "                         ids=list(timestamp_dir.keys()))" \
+        "def test_timestamp_dir(patch_strftime, desc, log_dir):" \
+        "    base_dir = Path('/test1/test2')" \
+        "    assert utils.timestamp_dir(base_dir, desc) == base_dir / log_dir" \
         "" \
         "" \
         "# Test warning_format()" \
