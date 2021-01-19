@@ -1464,25 +1464,24 @@ test_db() {
         "" \
         "" \
         "# Test sql_data()" \
-        "def test_sql_data():" \
-        "    def col_query(session, table):" \
-        "        return session.query(table.c['column_name']).statement" \
+        "# def test_sql_data():" \
+        "#     def col_query(session, table):" \
+        "#         return session.query(table.c['column_name']).statement" \
         "" \
-        "    df = db.sql_data(host=HOST," \
-        "                     database=DATABASE," \
-        "                     schema='schema_name'," \
-        "                     table_name=TABLE_NAME," \
-        "                     query=col_query)" \
-        "    assert 'column_name' in df.columns" \
-        "" \
+        "#     df = db.sql_data(host=HOST," \
+        "#                      database=DATABASE," \
+        "#                      schema='schema_name'," \
+        "#                      table_name=TABLE_NAME," \
+        "#                      query=col_query)" \
+        "#     assert 'column_name' in df.columns" \
         "" \
         "# Test sql_table()" \
-        "def test_sql_table():" \
-        "    df = db.sql_table(host=HOST," \
-        "                      database=DATABASE," \
-        "                      schema='schema_name'," \
-        "                      table_name=TABLE_NAME)" \
-        "    assert 'column_name' in df.columns" \
+        "# def test_sql_table():" \
+        "#     df = db.sql_table(host=HOST," \
+        "#                       database=DATABASE," \
+        "#                       schema='schema_name'," \
+        "#                       table_name=TABLE_NAME)" \
+        "#     assert 'column_name' in df.columns" \
         > "${TEST_PATH}test_db.py"
 }
 
@@ -1510,7 +1509,7 @@ test_utils() {
         "" \
         "# Test docker_secret()" \
         "docker_secret = {" \
-        "    'database': ('db-database', ${MAIN_DIR})," \
+        "    'database': ('db-database', '${MAIN_DIR}')," \
         "}" \
         "" \
         "" \
