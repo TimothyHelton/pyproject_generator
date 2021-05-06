@@ -425,6 +425,8 @@ directories() {
     done
     # Secrets directory
     mkdir "${SECRETS_PATH}"
+    # Sphinx Documentation directory
+    mkdir -p "${MAIN_DIR}${FILE_SEP}docs${FILE_SEP}_build${FILE_SEP}html"
     # Test directory
     mkdir "${SRC_PATH}${TEST_DIR}"
 }
