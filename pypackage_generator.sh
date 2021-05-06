@@ -806,7 +806,7 @@ makefile() {
         "\t\t\tgrep \"^__version__\" | \\\\" \
         "\t\t\tcut -d = -f 2))" \
         "NOTEBOOK_CMD=\"\${BROWSER} \$\$(docker container exec \$(USER)_notebook_\$(PORT) jupyter notebook list | grep -o '^http\S*')\"" \
-        "NOTEBOOK_DELAY=3" \
+        "NOTEBOOK_DELAY=10" \
         "" \
         ".PHONY: docs format-style upgrade-packages" \
         "" \
@@ -919,10 +919,10 @@ makefile() {
         "latexmk: docker-up" \
         "\tdocker container exec -w \$(TEX_WORKING_DIR) \$(PROJECT)_latex \\\\" \
         "\t\t/bin/bash -c \"latexmk -f -pdf \$(TEX_FILE) && latexmk -c\"" \
+        "" \
         "notebook: docker-up notebook-server" \
         "\tsleep 2" \
-        "\teval \${NOTEBOOK_CMD} || sleep \${NOTEBOOK_DELAY}" \
-        "\teval \${NOTEBOOK_CMD}" \
+        "\t(eval \${NOTEBOOK_CMD} || sleep \${NOTEBOOK_DELAY}) \${NOTEBOOK_CMD}" \
         "" \
         "notebook-remove:" \
         "\tdocker container rm -f \$\$(docker container ls -f name=\$(USER)_notebook -q)" \
