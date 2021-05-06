@@ -1658,7 +1658,6 @@ utils() {
         '""" Package Utilities Module' \
         "" \
         '"""' \
-        "import datetime" \
         "import logging" \
         "import logging.config" \
         "import functools" \
