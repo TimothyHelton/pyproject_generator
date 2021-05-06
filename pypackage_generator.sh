@@ -1113,6 +1113,7 @@ pkg_globals() {
             "}" \
             "" \
             "TIME_FORMAT = '%Y_%m_%d_%H_%M_%S'" \
+            "" \
             "if __name__ == '__main__':" \
             "    pass" \
             > "${SRC_PATH}pkg_globals.py"
@@ -1445,23 +1446,23 @@ test_db() {
         "" \
         "from .. import db" \
         "" \
-        "DATABASE = '${MAIN_DIR}'" \
-        "HOST = '${MAIN_DIR}_postgres'" \
-        "TABLE_NAME = '<enter_table_name_in_${MAIN_DIR}_db>'" \
+        "#DATABASE = '${MAIN_DIR}'" \
+        "#HOST = '${MAIN_DIR}_postgres'" \
+        "#TABLE_NAME = '<enter_table_name_in_${MAIN_DIR}_db>'" \
         "" \
         "" \
         "# Test Connect.__repr__()" \
-        "def test_connect_repr():" \
-        "    c = db.Connect(host=HOST, database=DATABASE)" \
-        "    assert repr(c) == f\"<Connect(host='{HOST}', database='{DATABASE}')>\"" \
+        "#def test_connect_repr():" \
+        "#    c = db.Connect(host=HOST, database=DATABASE)" \
+        "#    assert repr(c) == f\"<Connect(host='{HOST}', database='{DATABASE}')>\"" \
         "" \
         "" \
         "# Test Connect.__enter__() and Connect.__exit__()" \
-        "def test_connect_context_manager():" \
-        "    with db.Connect(host=HOST, database=DATABASE) as c:" \
-        "        _ = c.engine.connect()" \
-        "        assert c.engine.pool.checkedout()" \
-        "    assert not c.engine.pool.checkedout()" \
+        "#def test_connect_context_manager():" \
+        "#    with db.Connect(host=HOST, database=DATABASE) as c:" \
+        "#        _ = c.engine.connect()" \
+        "#        assert c.engine.pool.checkedout()" \
+        "#    assert not c.engine.pool.checkedout()" \
         "" \
         "" \
         "# Test sql_data()" \
@@ -1658,7 +1659,6 @@ utils() {
         '""" Package Utilities Module' \
         "" \
         '"""' \
-        "import datetime" \
         "import logging" \
         "import logging.config" \
         "import functools" \
