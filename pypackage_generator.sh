@@ -589,7 +589,7 @@ docker_pytorch() {
 
 docker_tensorflow() {
     printf "%b\n" \
-        "FROM nvcr.io/nvidia/tensorflow:20.09-tf2-py3" \
+        "FROM nvcr.io/nvidia/tensorflow:21.04-tf2-py3" \
         "" \
         "WORKDIR /usr/src/${SOURCE_DIR}" \
         "" \
