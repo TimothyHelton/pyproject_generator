@@ -425,6 +425,8 @@ directories() {
     done
     # Secrets directory
     mkdir "${SECRETS_PATH}"
+    # Sphinx Documentation directory
+    mkdir -p "${MAIN_DIR}${FILE_SEP}docs${FILE_SEP}_build${FILE_SEP}html"
     # Test directory
     mkdir "${SRC_PATH}${TEST_DIR}"
 }
@@ -587,7 +589,7 @@ docker_pytorch() {
 
 docker_tensorflow() {
     printf "%b\n" \
-        "FROM nvcr.io/nvidia/tensorflow:20.09-tf2-py3" \
+        "FROM nvcr.io/nvidia/tensorflow:21.04-tf2-py3" \
         "" \
         "WORKDIR /usr/src/${SOURCE_DIR}" \
         "" \
@@ -865,8 +867,8 @@ makefile() {
         "\t\t\t && sed -i \\\\\"/# sys.path.insert(0, os.path.abspath('.'))/d\\\\\" \\\\" \
         "\t\t\t\tconf.py \\\\" \
         "\t\t\t && sed -i -e \\\\\"/import sys/a \\\\" \
-        "\t\t\t\tsys.path.insert(0, os.path.abspath('../${SOURCE_DIR}')) \\\\" \
-        "\t\t\t\t\\\\n\\\\nfrom ${SOURCE_DIR} import __version__\\\\\" \\\\" \
+        "\t\t\t\tfrom ${SOURCE_DIR} import __version__ \\\\" \
+        "\t\t\t\t\\\\n\\\\nsys.path.insert(0, os.path.abspath('../${SOURCE_DIR}'))\\\\\" \\\\" \
         "\t\t\t\tconf.py \\\\" \
         "\t\t\t && sed -i -e \\\\\"s/version = '0.1.0'/version = __version__/g\\\\\" \\\\" \
         "\t\t\t\tconf.py \\\\" \
@@ -874,6 +876,8 @@ makefile() {
         "\t\t\t\tconf.py \\\\" \
         "\t\t\t && sed -i -e \\\\\"s/alabaster/sphinx_rtd_theme/g\\\\\" \\\\" \
         "\t\t\t\tconf.py \\\\" \
+        "\t\t\t && sed -i -e 's/[ \\\\t]*\$\$//g' conf.py \\\\" \
+        "\t\t\t && echo >> conf.py \\\\" \
         "\t\t\t && sed -i \\\\\"/   :caption: Contents:/a \\\\" \
         "\t\t\t\t\\\\\\\\\\\\\\\\\\\\n   package\\\\\" \\\\" \
         "\t\t\t\tindex.rst\"" \
@@ -923,7 +927,7 @@ makefile() {
         "" \
         "notebook: docker-up notebook-server" \
         "\tsleep 2" \
-        "\t(eval \${NOTEBOOK_CMD} || sleep \${NOTEBOOK_DELAY}) \${NOTEBOOK_CMD}" \
+        "\t(eval \${NOTEBOOK_CMD} || sleep \${NOTEBOOK_DELAY}) || eval \${NOTEBOOK_CMD}" \
         "" \
         "notebook-remove:" \
         "\tdocker container rm -f \$\$(docker container ls -f name=\$(USER)_notebook -q)" \
@@ -1446,23 +1450,23 @@ test_db() {
         "" \
         "from .. import db" \
         "" \
-        "#DATABASE = '${MAIN_DIR}'" \
-        "#HOST = '${MAIN_DIR}_postgres'" \
-        "#TABLE_NAME = '<enter_table_name_in_${MAIN_DIR}_db>'" \
+        "# DATABASE = '${MAIN_DIR}'" \
+        "# HOST = '${MAIN_DIR}_postgres'" \
+        "# TABLE_NAME = '<enter_table_name_in_${MAIN_DIR}_db>'" \
         "" \
         "" \
         "# Test Connect.__repr__()" \
-        "#def test_connect_repr():" \
-        "#    c = db.Connect(host=HOST, database=DATABASE)" \
-        "#    assert repr(c) == f\"<Connect(host='{HOST}', database='{DATABASE}')>\"" \
+        "# def test_connect_repr():" \
+        "#     c = db.Connect(host=HOST, database=DATABASE)" \
+        "#     assert repr(c) == f\"<Connect(host='{HOST}', database='{DATABASE}')>\"" \
         "" \
         "" \
         "# Test Connect.__enter__() and Connect.__exit__()" \
-        "#def test_connect_context_manager():" \
-        "#    with db.Connect(host=HOST, database=DATABASE) as c:" \
-        "#        _ = c.engine.connect()" \
-        "#        assert c.engine.pool.checkedout()" \
-        "#    assert not c.engine.pool.checkedout()" \
+        "# def test_connect_context_manager():" \
+        "#     with db.Connect(host=HOST, database=DATABASE) as c:" \
+        "#         _ = c.engine.connect()" \
+        "#         assert c.engine.pool.checkedout()" \
+        "#     assert not c.engine.pool.checkedout()" \
         "" \
         "" \
         "# Test sql_data()" \
