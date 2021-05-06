@@ -840,7 +840,7 @@ makefile() {
         "\t\${BROWSER} http://localhost:8080\n" \
         "" \
         "docs-init: docker-up" \
-        "\trm -rf docs/*" \
+        "\tfind docs -maxdepth 1 -type f -delete" \
         "\tdocker container exec \$(PROJECT)_python \\\\" \
         "\t\t/bin/bash -c \\\\" \
         "\t\t\t\"cd docs \\\\" \
