@@ -923,7 +923,7 @@ makefile() {
         "" \
         "notebook: docker-up notebook-server" \
         "\tsleep 2" \
-        "\t(eval \${NOTEBOOK_CMD} || sleep \${NOTEBOOK_DELAY}) \${NOTEBOOK_CMD}" \
+        "\t(eval \${NOTEBOOK_CMD} || sleep \${NOTEBOOK_DELAY}) || eval \${NOTEBOOK_CMD}" \
         "" \
         "notebook-remove:" \
         "\tdocker container rm -f \$\$(docker container ls -f name=\$(USER)_notebook -q)" \
