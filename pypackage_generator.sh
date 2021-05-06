@@ -805,7 +805,8 @@ makefile() {
         "VERSION=\$(shell echo \$(shell cat ${SOURCE_DIR}/__init__.py | \\\\" \
         "\t\t\tgrep \"^__version__\" | \\\\" \
         "\t\t\tcut -d = -f 2))" \
-        "NOTEBOOK_CMD=\"\${BROWSER} \$\$(docker container exec \$(USER)_notebook_\$(PORT) jupyter notebook list | grep -o '^http\S*')\"" \
+        "JUPYTER=\"lab\"" \
+        "NOTEBOOK_CMD=\"\${BROWSER} \$\$(docker container exec \$(USER)_notebook_\$(PORT) jupyter \$(JUPYTER) list | grep -o '^http\S*')\"" \
         "NOTEBOOK_DELAY=10" \
         "" \
         ".PHONY: docs format-style upgrade-packages" \
@@ -933,7 +934,7 @@ makefile() {
         "\t\t-p \$(PORT):\$(PORT) \\\\" \
         "\t\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\" \
         "\t\t\$(PROJECT)_python \\\\" \
-        "\t\t/bin/bash -c \"jupyter lab \\\\" \
+        "\t\t/bin/bash -c \"jupyter \$(JUPYTER) \\\\" \
         "\t\t\t\t--allow-root \\\\" \
         "\t\t\t\t--ip=0.0.0.0 \\\\" \
         "\t\t\t\t--no-browser \\\\" \
