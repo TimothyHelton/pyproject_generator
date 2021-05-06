@@ -1113,6 +1113,7 @@ pkg_globals() {
             "}" \
             "" \
             "TIME_FORMAT = '%Y_%m_%d_%H_%M_%S'" \
+            "" \
             "if __name__ == '__main__':" \
             "    pass" \
             > "${SRC_PATH}pkg_globals.py"
