@@ -807,8 +807,8 @@ makefile() {
         "VERSION=\$(shell echo \$(shell cat ${SOURCE_DIR}/__init__.py | \\\\" \
         "\t\t\tgrep \"^__version__\" | \\\\" \
         "\t\t\tcut -d = -f 2))" \
-        "JUPYTER=\"lab\"" \
-        "NOTEBOOK_CMD=\"\${BROWSER} \$\$(docker container exec \$(USER)_notebook_\$(PORT) jupyter notebook list | grep -o '^http\S*')\"" \
+        "JUPYTER=lab" \
+        "NOTEBOOK_CMD=\"\${BROWSER} \$\$(docker container exec \$(USER)_notebook_\$(PORT) jupyter \$(JUPYTER) list | grep -o '^http\S*')\"" \
         "NOTEBOOK_DELAY=10" \
         "" \
         ".PHONY: docs format-style upgrade-packages" \
@@ -937,6 +937,7 @@ makefile() {
         "\t\t--name \$(NOTEBOOK_NAME) \\\\" \
         "\t\t-p \$(PORT):\$(PORT) \\\\" \
         "\t\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\" \
+        "\t\t-w /usr/src/\$(PROJECT)/\$(PROJECT) \\\\" \
         "\t\t\$(PROJECT)_python \\\\" \
         "\t\t/bin/bash -c \"jupyter \$(JUPYTER) \\\\" \
         "\t\t\t\t--allow-root \\\\" \
@@ -988,9 +989,9 @@ makefile() {
         "\t\t\t\t--server\"" \
         "\tdocker network connect \$(PROJECT) snakeviz_\$(PORT)" \
         "" \
-        "tensorflow: tensorflow-docker docker-rebuild" \
+        "tensorflow: tensorflow-updates docker-rebuild" \
         "" \
-        "tensorflow-docker:" \
+        "tensorflow-updates:" \
         "\tdocker container run --rm \\\\" \
         "\t\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\" \
         "\t\t-w /usr/src/\$(PROJECT) \\\\" \
@@ -1002,6 +1003,7 @@ makefile() {
         "\t\t\t\tdocker/docker-compose.yaml \\\\" \
         "\t\t\t && sed -i -e 's/PKG_MANAGER=conda/PKG_MANAGER=pip/g' \\\\" \
         "\t\t\t\tMakefile \\\\" \
+        "\t\t\t && sed -i -e 's/JUPYTER=lab/JUPYTER=notebook/g' Makefile \\\\" \
         "\t\t\t && echo '*********************************************************************************' \\\\" \
         "\t\t\t && echo '*********************************************************************************' \\\\" \
         "\t\t\t && echo \\" \
