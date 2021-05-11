@@ -600,22 +600,12 @@ docker_tensorflow() {
         "\t#&& apt-get upgrade -y \\\\  Do not upgrade NVIDIA image OS" \
         "\t&& apt-get install -y \\\\" \
         "\t\tapt-utils \\\\" \
-        "\t\tprotobuf-compiler \\\\" \
-        "\t&& git clone \\\\" \
-        "\t\t--branch master \\\\" \
-        "\t\t--single-branch \\\\" \
-        "\t\t--depth 1 \\\\" \
-        "\t\thttps://github.com/tensorflow/models.git \\\\" \
-        "\t&& cd /opt/models/research \\\\" \
-        "\t&& protoc object_detection/protos/*.proto --python_out=. \\\\" \
         "\t&& cd /usr/src/${SOURCE_DIR} \\\\" \
         "\t&& pip install --upgrade pip \\\\" \
         "\t&& pip install -e .[all] \\\\" \
         "\t&& rm -rf /tmp/* \\\\" \
         "\t&& rm -rf /var/lib/apt/lists/* \\\\" \
         "\t&& apt-get clean" \
-        "" \
-        "ENV PYTHONPATH \$PYTHONPATH:/opt/models/research:/opt/models/research/slim:/opt/models/research/object_detection" \
         "" \
         "CMD [ \"/bin/bash\" ]" \
         "" \
@@ -937,7 +927,6 @@ makefile() {
         "\t\t--name \$(NOTEBOOK_NAME) \\\\" \
         "\t\t-p \$(PORT):\$(PORT) \\\\" \
         "\t\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\" \
-        "\t\t-w /usr/src/\$(PROJECT)/\$(PROJECT) \\\\" \
         "\t\t\$(PROJECT)_python \\\\" \
         "\t\t/bin/bash -c \"jupyter \$(JUPYTER) \\\\" \
         "\t\t\t\t--allow-root \\\\" \
