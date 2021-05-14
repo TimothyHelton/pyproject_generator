@@ -70,21 +70,19 @@ cli() {
         "@click.command()" \
         "@click.argument('number')" \
         "@click.option('-q'," \
-        "              '--quiet'," \
-        "              is_flag=True," \
-        "              multiple=True," \
+        "              count=True," \
+        "              required=False," \
         "              help='Decrease output level one (-q) or multiple times (-qqq).')" \
         "@click.option('-v'," \
-        "              '--verbose'," \
-        "              is_flag=True," \
-        "              multiple=True," \
+        "              count=True," \
+        "              required=False," \
         "              help='Increase output level one (-v) or multiple times (-vvv).')" \
-        "def count(number: int, quiet, verbose):" \
+        "def count(number: int, q, v):" \
         '    """' \
         "    Display progressbar while counting to the user provided integer \`number\`." \
         '    """' \
         "    click.clear()" \
-        "    logging_level = logging.INFO + 10 * len(quiet) - 10 * len(verbose)" \
+        "    logging_level = logging.INFO + 10 * q - 10 * v" \
         "    logging.basicConfig(level=logging_level)" \
         "    with click.progressbar(range(int(number)), label='Counting') as bar:" \
         "        for n in bar:" \
