@@ -779,6 +779,8 @@ makefile() {
         "PROJECT=${MAIN_DIR}" \
         "ifeq (\"\$(shell uname -s)\", \"Linux*\")" \
         "\tBROWSER=/usr/bin/firefox" \
+        "else ifeq (\"\$(shell uname -s)\", \"Linux\")" \
+        "\tBROWSER=/usr/bin/firefox" \
         "else" \
         "\tBROWSER=open" \
         "endif" \
