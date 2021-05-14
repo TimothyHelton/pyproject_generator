@@ -1001,22 +1001,6 @@ makefile() {
         "\t\t\t && echo '*********************************************************************************' \\\\" \
         "\t\t\t && echo '*********************************************************************************'\"" \
         "" \
-        "tensorflow-models: tensorflow docker-rebuild" \
-        "ifneq (\$(wildcard \${MODELS}), )" \
-        "\techo \"Updating TensorFlow Models Repository\"" \
-        "\tcd \${MODELS} \\\\" \
-        "\t&& git checkout master \\\\" \
-        "\t&& git pull" \
-        "\tcd \${MOUNT_DIR}" \
-        "else" \
-        "\techo \"Cloning TensorFlow Models Repository to \${MODELS}\"" \
-        "\tmkdir -p \${MODELS}" \
-        "\tgit clone https://github.com/tensorflow/models.git \${MODELS}" \
-        "endif" \
-        "" \
-        "test: docker-up format-style" \
-        "\tdocker container exec \$(PROJECT)_python py.test \$(PROJECT)" \
-        "" \
         "test-coverage: test" \
 	    "\t\${BROWSER} htmlcov/index.html"\
         "" \
