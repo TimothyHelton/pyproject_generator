@@ -1001,8 +1001,11 @@ makefile() {
         "\t\t\t && echo '*********************************************************************************' \\\\" \
         "\t\t\t && echo '*********************************************************************************'\"" \
         "" \
+        "test: docker-up format-style" \
+        "\tdocker container exec \$(PROJECT)_python py.test \$(PROJECT)" \
+        "" \
         "test-coverage: test" \
-	    "\t\${BROWSER} htmlcov/index.html"\
+	      "\t\${BROWSER} htmlcov/index.html"\
         "" \
         "upgrade-packages: docker-up" \
         "ifeq (\"\${PKG_MANAGER}\", \"pip\")" \
