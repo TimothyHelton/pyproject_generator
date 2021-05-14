@@ -70,21 +70,19 @@ cli() {
         "@click.command()" \
         "@click.argument('number')" \
         "@click.option('-q'," \
-        "              '--quiet'," \
-        "              is_flag=True," \
-        "              multiple=True," \
+        "              count=True," \
+        "              required=False," \
         "              help='Decrease output level one (-q) or multiple times (-qqq).')" \
         "@click.option('-v'," \
-        "              '--verbose'," \
-        "              is_flag=True," \
-        "              multiple=True," \
+        "              count=True," \
+        "              required=False," \
         "              help='Increase output level one (-v) or multiple times (-vvv).')" \
-        "def count(number: int, quiet, verbose):" \
+        "def count(number: int, q, v):" \
         '    """' \
         "    Display progressbar while counting to the user provided integer \`number\`." \
         '    """' \
         "    click.clear()" \
-        "    logging_level = logging.INFO + 10 * len(quiet) - 10 * len(verbose)" \
+        "    logging_level = logging.INFO + 10 * q - 10 * v" \
         "    logging.basicConfig(level=logging_level)" \
         "    with click.progressbar(range(int(number)), label='Counting') as bar:" \
         "        for n in bar:" \
@@ -781,6 +779,8 @@ makefile() {
         "PROJECT=${MAIN_DIR}" \
         "ifeq (\"\$(shell uname -s)\", \"Linux*\")" \
         "\tBROWSER=/usr/bin/firefox" \
+        "else ifeq (\"\$(shell uname -s)\", \"Linux\")" \
+        "\tBROWSER=/usr/bin/firefox" \
         "else" \
         "\tBROWSER=open" \
         "endif" \
@@ -1001,8 +1001,11 @@ makefile() {
         "\t\t\t && echo '*********************************************************************************' \\\\" \
         "\t\t\t && echo '*********************************************************************************'\"" \
         "" \
+        "test: docker-up format-style" \
+        "\tdocker container exec \$(PROJECT)_python py.test \$(PROJECT)" \
+        "" \
         "test-coverage: test" \
-	    "\t\${BROWSER} htmlcov/index.html"\
+	      "\t\${BROWSER} htmlcov/index.html"\
         "" \
         "upgrade-packages: docker-up" \
         "ifeq (\"\${PKG_MANAGER}\", \"pip\")" \
