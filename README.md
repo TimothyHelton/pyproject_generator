@@ -1,10 +1,5 @@
 # pypackage_generator
 
-[Timothy Helton](https://timothyhelton.github.io/)
-
-[@T1M_Helton](https://twitter.com/T1M_Helton)
-
-
 ## Installation
 All you need are the files **new_pyproject.sh** and **envfile_template**.
 
@@ -33,7 +28,7 @@ All you need are the files **new_pyproject.sh** and **envfile_template**.
         ```
     1. Enter your email address in the email argument
         ```bash
-        export EMAIL="timothy.j.helton@gmail.com"
+        export EMAIL="thelton@deloitte.com"
         ```
 
 ### Execution
