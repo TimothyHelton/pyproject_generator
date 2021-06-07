@@ -2,7 +2,7 @@
 
 : "${AUTHOR:=EnterAuthorName}"
 : "${EMAIL:=EnterAuthorEmail}"
-: "${PYTHON_VERSION:=3.7}"
+: "${PYTHON_VERSION:=3.9}"
 : "${PKG_VERSION:=0.1.0}"
 
 ###############################################################################
