@@ -950,6 +950,7 @@ makefile() {
         "\t\t\t\t\$(PROFILE_PY)\"" \
         "psql: docker-up" \
         "\tdocker container exec -it \$(PROJECT)_postgres \\\\" \
+        "" \
         "\t\tpsql -U \${POSTGRES_USER} \$(PROJECT)" \
         "" \
         "pytorch: pytorch-docker docker-rebuild" \
@@ -967,7 +968,7 @@ makefile() {
         "\t\t\t && sed -i -e 's/PKG_MANAGER=pip/PKG_MANAGER=conda/g' \\\\" \
         "\t\t\t\tMakefile\"" \
         "" \
-        "snakeviz: docker-up snakeviz-server" \
+        "snakeviz: docker-up profile snakeviz-server" \
         "\tsleep 0.5" \
         "\t\${BROWSER} http://0.0.0.0:\$(PORT)/snakeviz/" \
         "" \
