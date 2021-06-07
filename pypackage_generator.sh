@@ -975,14 +975,14 @@ makefile() {
         "\tdocker container rm -f \$\$(docker container ls -f name=snakeviz -q)" \
         "" \
         "snakeviz-server: docker-up" \
-        "\tdocker container run -dit --rm \\\\" \
+        "\tdocker container run -d --rm \\\\" \
         "\t\t--name snakeviz_\$(PORT) \\\\" \
         "\t\t-p \$(PORT):\$(PORT) \\\\" \
         "\t\t-w /usr/src/\$(PROJECT)/profiles \\\\" \
         "\t\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\" \
         "\t\t\$(PROJECT)_python \\\\" \
         "\t\t/bin/bash -c \\\\" \
-        "\t\t\t\"snakeviz profile.prof \\\\" \
+        "\t\t\t\"snakeviz \$(PROFILE_PROF) \\\\" \
         "\t\t\t\t--hostname 0.0.0.0 \\\\" \
         "\t\t\t\t--port \$(PORT) \\\\" \
         "\t\t\t\t--server\"" \
