@@ -789,6 +789,9 @@ makefile() {
         "PKG_MANAGER=pip" \
         "PORT:=\$(shell awk -v min=16384 -v max=32768 'BEGIN{srand(); print int(min+rand()*(max-min+1))}')" \
         "NOTEBOOK_NAME=\$(USER)_notebook_\$(PORT)" \
+        'PROFILE_PY:=""' \
+        "PROFILE_PROF:=\$(notdir \$(PROFILE_PY:.py=.prof))" \
+        "PROFILE_PATH:=profiles/\$(PROFILE_PROF)" \
         "SRC_DIR=/usr/src/${SOURCE_DIR}" \
         "TEX_DIR:=\"\"" \
         "TEX_FILE:=\"*.tex\"" \
@@ -938,6 +941,13 @@ makefile() {
         "pgadmin: docker-up" \
         "\t\${BROWSER} http://localhost:5000" \
         "" \
+        "profile: docker-up" \
+        "\tdocker container exec \$(PROJECT)_python \\\\" \
+        "\t\t/bin/bash -c \\\\" \
+        "\t\t\t\"python \\\\" \
+        "\t\t\t\t-m cProfile \\\\" \
+        "\t\t\t\t-o \$(PROFILE_PATH) \\\\" \
+        "\t\t\t\t\$(PROFILE_PY)\"" \
         "psql: docker-up" \
         "\tdocker container exec -it \$(PROJECT)_postgres \\\\" \
         "\t\tpsql -U \${POSTGRES_USER} \$(PROJECT)" \
