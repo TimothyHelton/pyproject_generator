@@ -789,6 +789,9 @@ makefile() {
         "PKG_MANAGER=pip" \
         "PORT:=\$(shell awk -v min=16384 -v max=32768 'BEGIN{srand(); print int(min+rand()*(max-min+1))}')" \
         "NOTEBOOK_NAME=\$(USER)_notebook_\$(PORT)" \
+        'PROFILE_PY:=""' \
+        "PROFILE_PROF:=\$(notdir \$(PROFILE_PY:.py=.prof))" \
+        "PROFILE_PATH:=profiles/\$(PROFILE_PROF)" \
         "SRC_DIR=/usr/src/${SOURCE_DIR}" \
         "TEX_DIR:=\"\"" \
         "TEX_FILE:=\"*.tex\"" \
@@ -938,8 +941,16 @@ makefile() {
         "pgadmin: docker-up" \
         "\t\${BROWSER} http://localhost:5000" \
         "" \
+        "profile: docker-up" \
+        "\tdocker container exec \$(PROJECT)_python \\\\" \
+        "\t\t/bin/bash -c \\\\" \
+        "\t\t\t\"python \\\\" \
+        "\t\t\t\t-m cProfile \\\\" \
+        "\t\t\t\t-o \$(PROFILE_PATH) \\\\" \
+        "\t\t\t\t\$(PROFILE_PY)\"" \
         "psql: docker-up" \
         "\tdocker container exec -it \$(PROJECT)_postgres \\\\" \
+        "" \
         "\t\tpsql -U \${POSTGRES_USER} \$(PROJECT)" \
         "" \
         "pytorch: pytorch-docker docker-rebuild" \
@@ -957,7 +968,7 @@ makefile() {
         "\t\t\t && sed -i -e 's/PKG_MANAGER=pip/PKG_MANAGER=conda/g' \\\\" \
         "\t\t\t\tMakefile\"" \
         "" \
-        "snakeviz: docker-up snakeviz-server" \
+        "snakeviz: docker-up profile snakeviz-server" \
         "\tsleep 0.5" \
         "\t\${BROWSER} http://0.0.0.0:\$(PORT)/snakeviz/" \
         "" \
@@ -965,14 +976,14 @@ makefile() {
         "\tdocker container rm -f \$\$(docker container ls -f name=snakeviz -q)" \
         "" \
         "snakeviz-server: docker-up" \
-        "\tdocker container run -dit --rm \\\\" \
+        "\tdocker container run -d --rm \\\\" \
         "\t\t--name snakeviz_\$(PORT) \\\\" \
         "\t\t-p \$(PORT):\$(PORT) \\\\" \
         "\t\t-w /usr/src/\$(PROJECT)/profiles \\\\" \
         "\t\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\" \
         "\t\t\$(PROJECT)_python \\\\" \
         "\t\t/bin/bash -c \\\\" \
-        "\t\t\t\"snakeviz profile.prof \\\\" \
+        "\t\t\t\"snakeviz \$(PROFILE_PROF) \\\\" \
         "\t\t\t\t--hostname 0.0.0.0 \\\\" \
         "\t\t\t\t--port \$(PORT) \\\\" \
         "\t\t\t\t--server\"" \
