@@ -960,9 +960,9 @@ makefile() {
         "\t\t\t\t-m cProfile \\\\" \
         "\t\t\t\t-o \$(PROFILE_PATH) \\\\" \
         "\t\t\t\t\$(PROFILE_PY)\"" \
+        "" \
         "psql: docker-up" \
         "\tdocker container exec -it \$(PROJECT)_postgres \\\\" \
-        "" \
         "\t\tpsql -U \${POSTGRES_USER} \$(PROJECT)" \
         "" \
         "pytorch: pytorch-docker docker-rebuild" \
