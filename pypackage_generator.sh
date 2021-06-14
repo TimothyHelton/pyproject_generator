@@ -460,6 +460,21 @@ docker_compose() {
         "    volumes:" \
         "      - ../docs/_build/html:/usr/share/nginx/html:ro" \
         "" \
+        "  pgadmin:" \
+        "    container_name: ${MAIN_DIR}_pgadmin" \
+        "    image: dpage/pgadmin4" \
+        "    depends_on:" \
+        "      - postgres" \
+        "    environment:" \
+        "      PGADMIN_DEFAULT_EMAIL: \${PGADMIN_DEFAULT_EMAIL:-pgadmin@pgadmin.org}" \
+        "      PGADMIN_DEFAULT_PASSWORD: \${PGADMIN_DEFAULT_PASSWORD:-admin}" \
+        "    external_links:" \
+        "      - ${MAIN_DIR}_postgres:${MAIN_DIR}_postgres" \
+        "    networks:"\
+        "      - ${MAIN_DIR}-network" \
+        "    ports:" \
+        "      - 5000:80" \
+        "" \
         "  postgres:" \
         "    container_name: ${MAIN_DIR}_postgres" \
         "    image: postgres:alpine" \
@@ -479,29 +494,15 @@ docker_compose() {
         "    volumes:" \
         "      - ${MAIN_DIR}-db:/var/lib/postgresql/data" \
         "" \
-        "  pgadmin:" \
-        "    container_name: ${MAIN_DIR}_pgadmin" \
-        "    image: dpage/pgadmin4" \
-        "    depends_on:" \
-        "      - postgres" \
-        "    environment:" \
-        "      PGADMIN_DEFAULT_EMAIL: \${PGADMIN_DEFAULT_EMAIL:-pgadmin@pgadmin.org}" \
-        "      PGADMIN_DEFAULT_PASSWORD: \${PGADMIN_DEFAULT_PASSWORD:-admin}" \
-        "    external_links:" \
-        "      - ${MAIN_DIR}_postgres:${MAIN_DIR}_postgres" \
-        "    networks:"\
-        "      - ${MAIN_DIR}-network" \
-        "    ports:" \
-        "      - 5000:80" \
-        "" \
         "  python:" \
         "    container_name: ${MAIN_DIR}_python" \
+        "    image: ${MAIN_DIR}_python" \
         "    build:" \
         "      context: .." \
         "      dockerfile: docker/python.Dockerfile" \
         "    depends_on:" \
+        "      - mongodb" \
         "      - postgres" \
-        "    image: ${MAIN_DIR}_python" \
         "    networks:"\
         "      - ${MAIN_DIR}-network" \
         "    ports:" \
@@ -1048,6 +1049,32 @@ makefile() {
         "\t\t\t && pip freeze > requirements.txt \\\\" \
         "\t\t\t && sed -i -e '/^-e/d' requirements.txt\"" \
         "endif" \
+        "" \
+        "use-mongo:" \
+        "\tdocker container run --rm \\\\" \
+        "\t\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\" \
+        "\t\t-w /usr/src/\$(PROJECT) \\\\" \
+        "\t\tubuntu \\\\" \
+        "\t\t\t/bin/bash -c \\\\" \
+        "\t\t\t\t\"sed -i '/psycopg2-binary/d' setup.py \\\\" \
+        "\t\t\t\t&& sed -i '/sqlalchemy/d' setup.py \\\\" \
+        "\t\t\t\t&& sed '/[ ]*pgadmin:/,/postgresql\/data/d' docker/docker-compose.yaml | \\\\" \
+        "\t\t\t\t\tsed '/- postgres/d' | \\\\" \
+        "\t\t\t\t\tcat -s > temp \\\\" \
+        "\t\t\t\t&& mv temp docker/docker-compose.yaml\"" \
+        "" \
+        "use-postres:" \
+        "\tdocker container run --rm \\\\" \
+        "\t\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\" \
+        "\t\t-w /usr/src/\$(PROJECT) \\\\" \
+        "\t\tubuntu \\\\" \
+        "\t\t\t/bin/bash -c \\\\" \
+        "\t\t\t\t\"sed -i '/pymongo/d' setup.py \\\\" \
+        "\t\t\t\t&& sed '/[ ]*mongodb:/,/mongodb\/data/d' docker/docker-compose.yaml | \\\\" \
+        "\t\t\t\t\tsed '/- mongodb/d' | \\\\" \
+        "\t\t\t\t\tcat -s > temp \\\\" \
+        "\t\t\t\t&& mv temp docker/docker-compose.yaml\"" \
+        "" \
         > "${MAIN_DIR}${FILE_SEP}Makefile"
 }
 
