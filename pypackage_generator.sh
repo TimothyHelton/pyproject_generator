@@ -509,6 +509,8 @@ docker_compose() {
         "    restart: always" \
         "    secrets:" \
         "      - db-database" \
+        "      - db-init-password" \
+        "      - db-init-username" \
         "      - db-password" \
         "      - db-username" \
         "    tty: true" \
@@ -524,6 +526,10 @@ docker_compose() {
         "secrets:" \
         "  db-database:" \
         "    file: secrets/db_database.txt" \
+        "  db-init-password:" \
+        "    file: secrets/db_init_password.txt" \
+        "  db-init-username:" \
+        "    file: secrets/db_init_username.txt" \
         "  db-password:" \
         "    file: secrets/db_password.txt" \
         "  db-username:" \
@@ -1211,16 +1217,30 @@ secret_db_database() {
 }
 
 
+secret_db_init_password() {
+    printf "%s" \
+        "password" \
+        > "${SECRETS_PATH}db_init_password.txt"
+}
+
+
+secret_db_init_username() {
+    printf "%s" \
+        "admin" \
+        > "${SECRETS_PATH}db_init_username.txt"
+}
+
+
 secret_db_password() {
     printf "%s" \
-        "postgres" \
+        "password" \
         > "${SECRETS_PATH}db_password.txt"
 }
 
 
 secret_db_username() {
     printf "%s" \
-        "postgres" \
+        "user" \
         > "${SECRETS_PATH}db_username.txt"
 }
 
@@ -1914,6 +1934,8 @@ readme
 release_history
 requirements
 secret_db_database
+secret_db_init_password
+secret_db_init_username
 secret_db_password
 secret_db_username
 setup_cfg
