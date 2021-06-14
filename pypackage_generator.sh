@@ -445,6 +445,8 @@ docker_compose() {
         "    tty: true" \
         "    volumes:" \
         "      - ..:/usr/src/${MAIN_DIR}" \
+        "      - secret:/usr/src/${MAIN_DIR}/.git" \
+        "      - secret:/usr/src/${MAIN_DIR}/docker/secrets" \
         "    working_dir: /usr/src/${MAIN_DIR}" \
         "" \
         "  nginx:" \
@@ -512,6 +514,8 @@ docker_compose() {
         "    tty: true" \
         "    volumes:" \
         "      - ..:/usr/src/${MAIN_DIR}" \
+        "      - secret:/usr/src/${MAIN_DIR}/.git" \
+        "      - secret:/usr/src/${MAIN_DIR}/docker/secrets" \
         "" \
         "networks:" \
         "  ${MAIN_DIR}-network:" \
@@ -527,6 +531,7 @@ docker_compose() {
         "" \
         "volumes:" \
         "  ${MAIN_DIR}-db:" \
+        "  secret:" \
         "" \
         > "${DOCKER_PATH}docker-compose.yaml"
 }
@@ -535,11 +540,11 @@ docker_compose() {
 docker_ignore() {
     printf "%s\n" \
         "*.egg-info" \
+        ".git" \
         ".idea" \
         ".pytest_cache" \
-        "data" \
+        "docker/secrets" \
         ".pytest" \
-        "wheels" \
         "" \
         > "${MAIN_DIR}${FILE_SEP}.dockerignore"
 }
