@@ -13,6 +13,7 @@ SOURCE_DIR="${2:-$1}"
 : "${DOCKER_DIR:=docker}"
 : "${DOCS_DIR:=docs}"
 : "${FILE_SEP:=/}"
+: "${MONGO_INIT_DIR:=mongo_init}"
 : "${NODEJS_VERSION:=12}"
 : "${NOTEBOOK_DIR:=notebooks}"
 : "${PROFILE_DIR:=profiles}"
@@ -49,6 +50,7 @@ PY_SHEBANG="#! /usr/bin/env python3"
 PY_ENCODING="# -*- coding: utf-8 -*-"
 
 DOCKER_PATH="${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}"
+MONGO_INIT_PATH="${DOCKER_PATH}${MONGO_INIT_DIR}${FILE_SEP}"
 SECRETS_PATH="${DOCKER_PATH}${SECRETS_DIR}${FILE_SEP}"
 SRC_PATH="${MAIN_DIR}${FILE_SEP}${SOURCE_DIR}${FILE_SEP}"
 TEST_PATH="${SRC_PATH}${TEST_DIR}${FILE_SEP}"
@@ -421,6 +423,8 @@ directories() {
     for dir in "${SUB_DIRECTORIES[@]}"; do
         mkdir "${MAIN_DIR}${FILE_SEP}${dir}"
     done
+    # MongoDB Initialization directory
+    mkdir "${MONGO_INIT_PATH}"
     # Secrets directory
     mkdir "${SECRETS_PATH}"
     # Sphinx Documentation directory
@@ -448,6 +452,29 @@ docker_compose() {
         "      - secret:/usr/src/${MAIN_DIR}/.git" \
         "      - secret:/usr/src/${MAIN_DIR}/docker/secrets" \
         "    working_dir: /usr/src/${MAIN_DIR}" \
+        "" \
+        "  mongodb:" \
+        "    container_name: ${MAIN_DIR}_mongodb" \
+        "    image: mongo" \
+        "    environment:" \
+        "      MONGO_INITDB_ROOT_PASSWORD: /run/secrets/db-init-password" \
+        "      MONGO_INITDB_ROOT_USERNAME: /run/secrets/db-init-username" \
+        "      MONGO_INITDB_PASSWORD: /run/secrets/db-password" \
+        "      MONGO_INITDB_USERNAME: /run/secrets/db-username" \
+        "    networks:" \
+        "      - ${MAIN_DIR}-network" \
+        "    ports:" \
+        "      - 27017:27017" \
+        "    restart: always" \
+        "    secrets:" \
+        "      - db-database" \
+        "      - db-init-password" \
+        "      - db-init-username" \
+        "      - db-password" \
+        "      - db-username" \
+        "    volumes:" \
+        "      - ${MAIN_DIR}-db:/var/lib/mongodb/data" \
+        "      - ./${MONGO_INIT_DIR}:/docker-entrypoint-initdb.d" \
         "" \
         "  nginx:" \
         "    container_name: ${MAIN_DIR}_nginx" \
@@ -1086,6 +1113,28 @@ manifest() {
 }
 
 
+mongo_init() {
+    printf "%s\n" \
+        "#!/bin/bash" \
+        "" \
+        "mongo admin -u \$MONGO_INITDB_ROOT_USERNAME -p \$MONGO_INITDB_ROOT_PASSWORD -- << EOF" \
+        "var admin_db=db.getSiblingDB('admin')" \
+        "var password='\$MONGO_INITDB_PASSWORD'" \
+        "var username='\$MONGO_INITDB_USERNAME'" \
+        "" \
+        "admin_db.createUser(" \
+        "    {" \
+        "        user: username," \
+        "        pwd: password," \
+        "        roles: [{role: 'root', db: 'admin'}]" \
+        "    }" \
+        ")" \
+        "EOF" \
+        "" \
+        > "${MONGO_INIT_PATH}create_root_user.sh"
+}
+
+
 pull_request_template() {
     printf "%s\n" \
         "# Summary" \
@@ -1411,6 +1460,7 @@ setup_py() {
         "          'opencv-python-headless'," \
         "          'pandas'," \
         "          'psycopg2-binary'," \
+        "          'pymongo'," \
         "          'sqlalchemy'," \
         "          'yapf'," \
         "      ]," \
@@ -1952,6 +2002,7 @@ exceptions
 git_attributes
 git_config
 git_ignore
+mongo_init
 pkg_globals
 license
 makefile
