@@ -459,19 +459,14 @@ docker_compose() {
         "    environment:" \
         "      MONGO_INITDB_ROOT_PASSWORD: /run/secrets/db-init-password" \
         "      MONGO_INITDB_ROOT_USERNAME: /run/secrets/db-init-username" \
-        "      MONGO_INITDB_PASSWORD: /run/secrets/db-password" \
-        "      MONGO_INITDB_USERNAME: /run/secrets/db-username" \
         "    networks:" \
         "      - ${MAIN_DIR}-network" \
         "    ports:" \
         "      - 27017:27017" \
         "    restart: always" \
         "    secrets:" \
-        "      - db-database" \
         "      - db-init-password" \
         "      - db-init-username" \
-        "      - db-password" \
-        "      - db-username" \
         "    volumes:" \
         "      - ${MAIN_DIR}-db:/var/lib/mongodb/data" \
         "      - ./${MONGO_INIT_DIR}:/docker-entrypoint-initdb.d" \
@@ -823,8 +818,9 @@ makefile() {
         "else" \
         "\tBROWSER=open" \
         "endif" \
-        'DB_USERNAME:=""' \
-        'DB_PASSWORD:=""' \
+        '#DB:=""' \
+        '#DB_PASSWORD:=""' \
+        '#DB_USERNAME:=""' \
         "MOUNT_DIR=\$(shell pwd)" \
         "MODELS=/opt/models" \
         "PKG_MANAGER=pip" \
@@ -958,6 +954,24 @@ makefile() {
         "latexmk: docker-up" \
         "\tdocker container exec -w \$(TEX_WORKING_DIR) \$(PROJECT)_latex \\\\" \
         "\t\t/bin/bash -c \"latexmk -f -pdf \$(TEX_FILE) && latexmk -c\"" \
+        "" \
+        "# TODO: This logic only works from within the MongoDB container." \
+        "#mongo-add-admin: docker-up" \
+        "#\tdocker container exec \$(PROJECT)_mongodb \\\\" \
+        "#\t\t/bin/bash -c \\\\" \
+        "#\t\t\t\"mongo admin \\\\" \
+        "#\t\t\t\t-u \$\$(MONGO_INITDB_ROOT_USERNAME) \\\\" \
+        "#\t\t\t\t-p \$\$(MONGO_INITDB_ROOT_PASSWORD) \\\\" \
+        "#\t\t\t\tdocker-entrypoint-initdb.d/mongo_create_admin.js\"" \
+        "" \
+        "# TODO: This logic only works from within the MongoDB container." \
+        "#mongo-add-user: docker-up mongo-add-admin" \
+        "#\tdocker container exec \$(PROJECT)_mongodb \\\\" \
+        "#\t\t/bin/bash -c \\\\" \
+        "#\t\t\t\"sed 's/EnterUsername/\$\$(DB_USERNAME)/' docker-entrypoint-initdb.d/mongo_create_user.js | \\\\" \
+        "#\t\t\t sed 's/EnterPassword/\$\$(DB_PASSWORD)/' | \\\\" \
+        "#\t\t\t sed 's/EnterDatabase/\$\$(DB)/' | \\\\" \
+        "#\t\t\t mongo admin -u admin -p admin\"" \
         "" \
         "notebook: docker-up notebook-server" \
         "\tsleep 2" \
@@ -1125,25 +1139,32 @@ manifest() {
 }
 
 
-mongo_init() {
+mongo_create_admin() {
     printf "%s\n" \
-        "#!/bin/bash" \
-        "" \
-        "mongo admin -u \$MONGO_INITDB_ROOT_USERNAME -p \$MONGO_INITDB_ROOT_PASSWORD -- << EOF" \
-        "var admin_db=db.getSiblingDB('admin')" \
-        "var password='\$MONGO_INITDB_PASSWORD'" \
-        "var username='\$MONGO_INITDB_USERNAME'" \
-        "" \
-        "admin_db.createUser(" \
-        "    {" \
-        "        user: username," \
-        "        pwd: password," \
-        "        roles: [{role: 'root', db: 'admin'}]" \
-        "    }" \
-        ")" \
-        "EOF" \
-        "" \
-        > "${MONGO_INIT_PATH}create_root_user.sh"
+        "db.createUser(" \
+        "  {" \
+        '    user: "admin",' \
+        '    pwd: "admin",' \
+        '    roles: [{role: "root", db: "admin"}]' \
+        '  }' \
+        ');' \
+        > "${MONGO_INIT_PATH}mongo_create_admin.js"
+}
+
+
+mongo_create_user() {
+    printf "%s\n" \
+        'var username = "EnterUsername"' \
+        'var password = "EnterPassword"' \
+        'var database = "EnterDatabase"' \
+        "db.createUser(" \
+        "  {" \
+        '    user: username,' \
+        '    pwd: password,' \
+        '    roles: [{role: "readWrite", db: database}]' \
+        '  }' \
+        ');' \
+        > "${MONGO_INIT_PATH}mongo_create_user.js"
 }
 
 
@@ -2014,7 +2035,8 @@ exceptions
 git_attributes
 git_config
 git_ignore
-mongo_init
+mongo_create_admin
+mongo_create_user
 pkg_globals
 license
 makefile
