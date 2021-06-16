@@ -13,6 +13,7 @@ SOURCE_DIR="${2:-$1}"
 : "${DOCKER_DIR:=docker}"
 : "${DOCS_DIR:=docs}"
 : "${FILE_SEP:=/}"
+: "${MONGO_INIT_DIR:=mongo_init}"
 : "${NODEJS_VERSION:=12}"
 : "${NOTEBOOK_DIR:=notebooks}"
 : "${PROFILE_DIR:=profiles}"
@@ -49,6 +50,7 @@ PY_SHEBANG="#! /usr/bin/env python3"
 PY_ENCODING="# -*- coding: utf-8 -*-"
 
 DOCKER_PATH="${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}"
+MONGO_INIT_PATH="${DOCKER_PATH}${MONGO_INIT_DIR}${FILE_SEP}"
 SECRETS_PATH="${DOCKER_PATH}${SECRETS_DIR}${FILE_SEP}"
 SRC_PATH="${MAIN_DIR}${FILE_SEP}${SOURCE_DIR}${FILE_SEP}"
 TEST_PATH="${SRC_PATH}${TEST_DIR}${FILE_SEP}"
@@ -421,6 +423,8 @@ directories() {
     for dir in "${SUB_DIRECTORIES[@]}"; do
         mkdir "${MAIN_DIR}${FILE_SEP}${dir}"
     done
+    # MongoDB Initialization directory
+    mkdir "${MONGO_INIT_PATH}"
     # Secrets directory
     mkdir "${SECRETS_PATH}"
     # Sphinx Documentation directory
@@ -445,7 +449,27 @@ docker_compose() {
         "    tty: true" \
         "    volumes:" \
         "      - ..:/usr/src/${MAIN_DIR}" \
+        "      - secret:/usr/src/${MAIN_DIR}/.git" \
+        "      - secret:/usr/src/${MAIN_DIR}/docker/secrets" \
         "    working_dir: /usr/src/${MAIN_DIR}" \
+        "" \
+        "  mongodb:" \
+        "    container_name: ${MAIN_DIR}_mongodb" \
+        "    image: mongo" \
+        "    environment:" \
+        "      MONGO_INITDB_ROOT_PASSWORD: /run/secrets/db-init-password" \
+        "      MONGO_INITDB_ROOT_USERNAME: /run/secrets/db-init-username" \
+        "    networks:" \
+        "      - ${MAIN_DIR}-network" \
+        "    ports:" \
+        "      - 27017:27017" \
+        "    restart: always" \
+        "    secrets:" \
+        "      - db-init-password" \
+        "      - db-init-username" \
+        "    volumes:" \
+        "      - ${MAIN_DIR}-db:/var/lib/mongodb/data" \
+        "      - ./${MONGO_INIT_DIR}:/docker-entrypoint-initdb.d" \
         "" \
         "  nginx:" \
         "    container_name: ${MAIN_DIR}_nginx" \
@@ -457,6 +481,21 @@ docker_compose() {
         "    restart: always" \
         "    volumes:" \
         "      - ../docs/_build/html:/usr/share/nginx/html:ro" \
+        "" \
+        "  pgadmin:" \
+        "    container_name: ${MAIN_DIR}_pgadmin" \
+        "    image: dpage/pgadmin4" \
+        "    depends_on:" \
+        "      - postgres" \
+        "    environment:" \
+        "      PGADMIN_DEFAULT_EMAIL: \${PGADMIN_DEFAULT_EMAIL:-pgadmin@pgadmin.org}" \
+        "      PGADMIN_DEFAULT_PASSWORD: \${PGADMIN_DEFAULT_PASSWORD:-admin}" \
+        "    external_links:" \
+        "      - ${MAIN_DIR}_postgres:${MAIN_DIR}_postgres" \
+        "    networks:"\
+        "      - ${MAIN_DIR}-network" \
+        "    ports:" \
+        "      - 5000:80" \
         "" \
         "  postgres:" \
         "    container_name: ${MAIN_DIR}_postgres" \
@@ -477,29 +516,15 @@ docker_compose() {
         "    volumes:" \
         "      - ${MAIN_DIR}-db:/var/lib/postgresql/data" \
         "" \
-        "  pgadmin:" \
-        "    container_name: ${MAIN_DIR}_pgadmin" \
-        "    image: dpage/pgadmin4" \
-        "    depends_on:" \
-        "      - postgres" \
-        "    environment:" \
-        "      PGADMIN_DEFAULT_EMAIL: \${PGADMIN_DEFAULT_EMAIL:-pgadmin@pgadmin.org}" \
-        "      PGADMIN_DEFAULT_PASSWORD: \${PGADMIN_DEFAULT_PASSWORD:-admin}" \
-        "    external_links:" \
-        "      - ${MAIN_DIR}_postgres:${MAIN_DIR}_postgres" \
-        "    networks:"\
-        "      - ${MAIN_DIR}-network" \
-        "    ports:" \
-        "      - 5000:80" \
-        "" \
         "  python:" \
         "    container_name: ${MAIN_DIR}_python" \
+        "    image: ${MAIN_DIR}_python" \
         "    build:" \
         "      context: .." \
         "      dockerfile: docker/python.Dockerfile" \
         "    depends_on:" \
+        "      - mongodb" \
         "      - postgres" \
-        "    image: ${MAIN_DIR}_python" \
         "    networks:"\
         "      - ${MAIN_DIR}-network" \
         "    ports:" \
@@ -507,11 +532,15 @@ docker_compose() {
         "    restart: always" \
         "    secrets:" \
         "      - db-database" \
+        "      - db-init-password" \
+        "      - db-init-username" \
         "      - db-password" \
         "      - db-username" \
         "    tty: true" \
         "    volumes:" \
         "      - ..:/usr/src/${MAIN_DIR}" \
+        "      - secret:/usr/src/${MAIN_DIR}/.git" \
+        "      - secret:/usr/src/${MAIN_DIR}/docker/secrets" \
         "" \
         "networks:" \
         "  ${MAIN_DIR}-network:" \
@@ -520,6 +549,10 @@ docker_compose() {
         "secrets:" \
         "  db-database:" \
         "    file: secrets/db_database.txt" \
+        "  db-init-password:" \
+        "    file: secrets/db_init_password.txt" \
+        "  db-init-username:" \
+        "    file: secrets/db_init_username.txt" \
         "  db-password:" \
         "    file: secrets/db_password.txt" \
         "  db-username:" \
@@ -527,6 +560,7 @@ docker_compose() {
         "" \
         "volumes:" \
         "  ${MAIN_DIR}-db:" \
+        "  secret:" \
         "" \
         > "${DOCKER_PATH}docker-compose.yaml"
 }
@@ -535,11 +569,11 @@ docker_compose() {
 docker_ignore() {
     printf "%s\n" \
         "*.egg-info" \
+        ".git" \
         ".idea" \
         ".pytest_cache" \
-        "data" \
+        "docker/secrets" \
         ".pytest" \
-        "wheels" \
         "" \
         > "${MAIN_DIR}${FILE_SEP}.dockerignore"
 }
@@ -784,10 +818,13 @@ makefile() {
         "else" \
         "\tBROWSER=open" \
         "endif" \
+        '#DB:=""' \
+        '#DB_PASSWORD:=""' \
+        '#DB_USERNAME:=""' \
         "MOUNT_DIR=\$(shell pwd)" \
         "MODELS=/opt/models" \
         "PKG_MANAGER=pip" \
-        "PORT:=\$(shell awk -v min=16384 -v max=32768 'BEGIN{srand(); print int(min+rand()*(max-min+1))}')" \
+        "PORT:=\$(shell awk -v min=16384 -v max=27000 'BEGIN{srand(); print int(min+rand()*(max-min+1))}')" \
         "NOTEBOOK_NAME=\$(USER)_notebook_\$(PORT)" \
         'PROFILE_PY:=""' \
         "PROFILE_PROF:=\$(notdir \$(PROFILE_PY:.py=.prof))" \
@@ -918,6 +955,24 @@ makefile() {
         "\tdocker container exec -w \$(TEX_WORKING_DIR) \$(PROJECT)_latex \\\\" \
         "\t\t/bin/bash -c \"latexmk -f -pdf \$(TEX_FILE) && latexmk -c\"" \
         "" \
+        "# TODO: This logic only works from within the MongoDB container." \
+        "#mongo-add-admin: docker-up" \
+        "#\tdocker container exec \$(PROJECT)_mongodb \\\\" \
+        "#\t\t/bin/bash -c \\\\" \
+        "#\t\t\t\"mongo admin \\\\" \
+        "#\t\t\t\t-u \$\$(MONGO_INITDB_ROOT_USERNAME) \\\\" \
+        "#\t\t\t\t-p \$\$(MONGO_INITDB_ROOT_PASSWORD) \\\\" \
+        "#\t\t\t\tdocker-entrypoint-initdb.d/mongo_create_admin.js\"" \
+        "" \
+        "# TODO: This logic only works from within the MongoDB container." \
+        "#mongo-add-user: docker-up mongo-add-admin" \
+        "#\tdocker container exec \$(PROJECT)_mongodb \\\\" \
+        "#\t\t/bin/bash -c \\\\" \
+        "#\t\t\t\"sed 's/EnterUsername/\$\$(DB_USERNAME)/' docker-entrypoint-initdb.d/mongo_create_user.js | \\\\" \
+        "#\t\t\t sed 's/EnterPassword/\$\$(DB_PASSWORD)/' | \\\\" \
+        "#\t\t\t sed 's/EnterDatabase/\$\$(DB)/' | \\\\" \
+        "#\t\t\t mongo admin -u admin -p admin\"" \
+        "" \
         "notebook: docker-up notebook-server" \
         "\tsleep 2" \
         "\t(eval \${NOTEBOOK_CMD} || sleep \${NOTEBOOK_DELAY}) || eval \${NOTEBOOK_CMD}" \
@@ -948,9 +1003,9 @@ makefile() {
         "\t\t\t\t-m cProfile \\\\" \
         "\t\t\t\t-o \$(PROFILE_PATH) \\\\" \
         "\t\t\t\t\$(PROFILE_PY)\"" \
+        "" \
         "psql: docker-up" \
         "\tdocker container exec -it \$(PROJECT)_postgres \\\\" \
-        "" \
         "\t\tpsql -U \${POSTGRES_USER} \$(PROJECT)" \
         "" \
         "pytorch: pytorch-docker docker-rebuild" \
@@ -967,6 +1022,16 @@ makefile() {
         "\t\t\t\tdocker/docker-compose.yaml \\\\" \
         "\t\t\t && sed -i -e 's/PKG_MANAGER=pip/PKG_MANAGER=conda/g' \\\\" \
         "\t\t\t\tMakefile\"" \
+        "" \
+        "secret_templates:" \
+        "	docker container run --rm \\\\" \
+        "\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\" \
+        "\t-w /usr/src/\$(PROJECT)/docker/secrets \\\\" \
+        "\tubuntu \\\\" \
+        "\t\t/bin/bash -c \\\\" \
+        "\t\t\t\"printf '%s' \$(DB_USERNAME) >> 'db_username.txt' \\\\" \
+        "\t\t\t && printf '%s' \$(DB_PASSWORD) >> 'db_password.txt' \"" \
+        "\tsudo chown -R \$(USER) docker/secrets" \
         "" \
         "snakeviz: docker-up profile snakeviz-server" \
         "\tsleep 0.5" \
@@ -1037,6 +1102,32 @@ makefile() {
         "\t\t\t && pip freeze > requirements.txt \\\\" \
         "\t\t\t && sed -i -e '/^-e/d' requirements.txt\"" \
         "endif" \
+        "" \
+        "use-mongo:" \
+        "\tdocker container run --rm \\\\" \
+        "\t\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\" \
+        "\t\t-w /usr/src/\$(PROJECT) \\\\" \
+        "\t\tubuntu \\\\" \
+        "\t\t\t/bin/bash -c \\\\" \
+        "\t\t\t\t\"sed -i '/psycopg2-binary/d' setup.py \\\\" \
+        "\t\t\t\t&& sed -i '/sqlalchemy/d' setup.py \\\\" \
+        "\t\t\t\t&& sed '/[ ]*pgadmin:/,/postgresql\/data/d' docker/docker-compose.yaml | \\\\" \
+        "\t\t\t\t\tsed '/- postgres/d' | \\\\" \
+        "\t\t\t\t\tcat -s > temp \\\\" \
+        "\t\t\t\t&& mv temp docker/docker-compose.yaml\"" \
+        "" \
+        "use-postres:" \
+        "\tdocker container run --rm \\\\" \
+        "\t\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\" \
+        "\t\t-w /usr/src/\$(PROJECT) \\\\" \
+        "\t\tubuntu \\\\" \
+        "\t\t\t/bin/bash -c \\\\" \
+        "\t\t\t\t\"sed -i '/pymongo/d' setup.py \\\\" \
+        "\t\t\t\t&& sed '/[ ]*mongodb:/,/mongodb\/data/d' docker/docker-compose.yaml | \\\\" \
+        "\t\t\t\t\tsed '/- mongodb/d' | \\\\" \
+        "\t\t\t\t\tcat -s > temp \\\\" \
+        "\t\t\t\t&& mv temp docker/docker-compose.yaml\"" \
+        "" \
         > "${MAIN_DIR}${FILE_SEP}Makefile"
 }
 
@@ -1045,6 +1136,35 @@ manifest() {
     printf "%s\n" \
         "include LICENSE.txt" \
         > "${MAIN_DIR}${FILE_SEP}MANIFEST.in"
+}
+
+
+mongo_create_admin() {
+    printf "%s\n" \
+        "db.createUser(" \
+        "  {" \
+        '    user: "admin",' \
+        '    pwd: "admin",' \
+        '    roles: [{role: "root", db: "admin"}]' \
+        '  }' \
+        ');' \
+        > "${MONGO_INIT_PATH}mongo_create_admin.js"
+}
+
+
+mongo_create_user() {
+    printf "%s\n" \
+        'var username = "EnterUsername"' \
+        'var password = "EnterPassword"' \
+        'var database = "EnterDatabase"' \
+        "db.createUser(" \
+        "  {" \
+        '    user: username,' \
+        '    pwd: password,' \
+        '    roles: [{role: "readWrite", db: database}]' \
+        '  }' \
+        ');' \
+        > "${MONGO_INIT_PATH}mongo_create_user.js"
 }
 
 
@@ -1206,16 +1326,30 @@ secret_db_database() {
 }
 
 
+secret_db_init_password() {
+    printf "%s" \
+        "password" \
+        > "${SECRETS_PATH}db_init_password.txt"
+}
+
+
+secret_db_init_username() {
+    printf "%s" \
+        "admin" \
+        > "${SECRETS_PATH}db_init_username.txt"
+}
+
+
 secret_db_password() {
     printf "%s" \
-        "postgres" \
+        "password" \
         > "${SECRETS_PATH}db_password.txt"
 }
 
 
 secret_db_username() {
     printf "%s" \
-        "postgres" \
+        "user" \
         > "${SECRETS_PATH}db_username.txt"
 }
 
@@ -1359,6 +1493,7 @@ setup_py() {
         "          'opencv-python-headless'," \
         "          'pandas'," \
         "          'psycopg2-binary'," \
+        "          'pymongo'," \
         "          'sqlalchemy'," \
         "          'yapf'," \
         "      ]," \
@@ -1900,6 +2035,8 @@ exceptions
 git_attributes
 git_config
 git_ignore
+mongo_create_admin
+mongo_create_user
 pkg_globals
 license
 makefile
@@ -1909,6 +2046,8 @@ readme
 release_history
 requirements
 secret_db_database
+secret_db_init_password
+secret_db_init_username
 secret_db_password
 secret_db_username
 setup_cfg
