@@ -823,6 +823,8 @@ makefile() {
         "else" \
         "\tBROWSER=open" \
         "endif" \
+        'DB_USERNAME:=""' \
+        'DB_PASSWORD:=""' \
         "MOUNT_DIR=\$(shell pwd)" \
         "MODELS=/opt/models" \
         "PKG_MANAGER=pip" \
@@ -1006,6 +1008,16 @@ makefile() {
         "\t\t\t\tdocker/docker-compose.yaml \\\\" \
         "\t\t\t && sed -i -e 's/PKG_MANAGER=pip/PKG_MANAGER=conda/g' \\\\" \
         "\t\t\t\tMakefile\"" \
+        "" \
+        "secret_templates:" \
+        "	docker container run --rm \\\\" \
+        "\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\" \
+        "\t-w /usr/src/\$(PROJECT)/docker/secrets \\\\" \
+        "\tubuntu \\\\" \
+        "\t\t/bin/bash -c \\\\" \
+        "\t\t\t\"printf '%s' \$(DB_USERNAME) >> 'db_username.txt' \\\\" \
+        "\t\t\t && printf '%s' \$(DB_PASSWORD) >> 'db_password.txt' \"" \
+        "\tsudo chown -R \$(USER) docker/secrets" \
         "" \
         "snakeviz: docker-up profile snakeviz-server" \
         "\tsleep 0.5" \
