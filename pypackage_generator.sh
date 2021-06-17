@@ -449,8 +449,8 @@ docker_compose() {
         "    tty: true" \
         "    volumes:" \
         "      - ..:/usr/src/${MAIN_DIR}" \
-        "      - secret:/usr/src/${MAIN_DIR}/.git" \
-        "      - secret:/usr/src/${MAIN_DIR}/docker/secrets" \
+        "      - ${MAIN_DIR}-secret:/usr/src/${MAIN_DIR}/.git" \
+        "      - ${MAIN_DIR}-secret:/usr/src/${MAIN_DIR}/docker/secrets" \
         "    working_dir: /usr/src/${MAIN_DIR}" \
         "" \
         "  mongodb:" \
@@ -539,8 +539,8 @@ docker_compose() {
         "    tty: true" \
         "    volumes:" \
         "      - ..:/usr/src/${MAIN_DIR}" \
-        "      - secret:/usr/src/${MAIN_DIR}/.git" \
-        "      - secret:/usr/src/${MAIN_DIR}/docker/secrets" \
+        "      - ${MAIN_DIR}-secret:/usr/src/${MAIN_DIR}/.git" \
+        "      - ${MAIN_DIR}-secret:/usr/src/${MAIN_DIR}/docker/secrets" \
         "" \
         "networks:" \
         "  ${MAIN_DIR}-network:" \
@@ -560,7 +560,7 @@ docker_compose() {
         "" \
         "volumes:" \
         "  ${MAIN_DIR}-db:" \
-        "  secret:" \
+        "  ${MAIN_DIR}-secret:" \
         "" \
         > "${DOCKER_PATH}docker-compose.yaml"
 }
