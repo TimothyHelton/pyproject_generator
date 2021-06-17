@@ -449,8 +449,8 @@ docker_compose() {
         "    tty: true" \
         "    volumes:" \
         "      - ..:/usr/src/${MAIN_DIR}" \
-        "      - secret:/usr/src/${MAIN_DIR}/.git" \
-        "      - secret:/usr/src/${MAIN_DIR}/docker/secrets" \
+        "      - ${MAIN_DIR}-secret:/usr/src/${MAIN_DIR}/.git" \
+        "      - ${MAIN_DIR}-secret:/usr/src/${MAIN_DIR}/docker/secrets" \
         "    working_dir: /usr/src/${MAIN_DIR}" \
         "" \
         "  mongodb:" \
@@ -539,8 +539,8 @@ docker_compose() {
         "    tty: true" \
         "    volumes:" \
         "      - ..:/usr/src/${MAIN_DIR}" \
-        "      - secret:/usr/src/${MAIN_DIR}/.git" \
-        "      - secret:/usr/src/${MAIN_DIR}/docker/secrets" \
+        "      - ${MAIN_DIR}-secret:/usr/src/${MAIN_DIR}/.git" \
+        "      - ${MAIN_DIR}-secret:/usr/src/${MAIN_DIR}/docker/secrets" \
         "" \
         "networks:" \
         "  ${MAIN_DIR}-network:" \
@@ -560,7 +560,7 @@ docker_compose() {
         "" \
         "volumes:" \
         "  ${MAIN_DIR}-db:" \
-        "  secret:" \
+        "  ${MAIN_DIR}-secret:" \
         "" \
         > "${DOCKER_PATH}docker-compose.yaml"
 }
@@ -1115,6 +1115,7 @@ makefile() {
         "\t\t\t\t\tsed '/- postgres/d' | \\\\" \
         "\t\t\t\t\tcat -s > temp \\\\" \
         "\t\t\t\t&& mv temp docker/docker-compose.yaml\"" \
+        "\tsudo chown \$(USER) docker/docker-compose.yaml" \
         "" \
         "use-postres:" \
         "\tdocker container run --rm \\\\" \
@@ -1127,6 +1128,7 @@ makefile() {
         "\t\t\t\t\tsed '/- mongodb/d' | \\\\" \
         "\t\t\t\t\tcat -s > temp \\\\" \
         "\t\t\t\t&& mv temp docker/docker-compose.yaml\"" \
+        "\tsudo chown \$(USER) docker/docker-compose.yaml" \
         "" \
         > "${MAIN_DIR}${FILE_SEP}Makefile"
 }
