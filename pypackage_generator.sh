@@ -1115,6 +1115,7 @@ makefile() {
         "\t\t\t\t\tsed '/- postgres/d' | \\\\" \
         "\t\t\t\t\tcat -s > temp \\\\" \
         "\t\t\t\t&& mv temp docker/docker-compose.yaml\"" \
+        "\tsudo chown \$(USER) docker/docker-compose.yaml" \
         "" \
         "use-postres:" \
         "\tdocker container run --rm \\\\" \
@@ -1127,6 +1128,7 @@ makefile() {
         "\t\t\t\t\tsed '/- mongodb/d' | \\\\" \
         "\t\t\t\t\tcat -s > temp \\\\" \
         "\t\t\t\t&& mv temp docker/docker-compose.yaml\"" \
+        "\tsudo chown \$(USER) docker/docker-compose.yaml" \
         "" \
         > "${MAIN_DIR}${FILE_SEP}Makefile"
 }
