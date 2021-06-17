@@ -1143,30 +1143,57 @@ manifest() {
 
 mongo_create_admin() {
     printf "%s\n" \
-        "db.createUser(" \
-        "  {" \
-        '    user: "admin",' \
-        '    pwd: "admin",' \
-        '    roles: [{role: "root", db: "admin"}]' \
-        '  }' \
-        ');' \
-        > "${MONGO_INIT_PATH}mongo_create_admin.js"
+        "#!/bin/bash" \
+        "" \
+        "# Create Administrator" \
+        "mongo admin -u \$MONGO_INITDB_ROOT_USERNAME -p \$MONGO_INITDB_ROOT_PASSWORD << EOF" \
+        '    db.createUser({user: "admin", pwd: "admin", roles: ["root"]});' \
+        "EOF" \
+        "" \
+        > "${MONGO_INIT_PATH}create_admin.sh"
 }
 
 
 mongo_create_user() {
     printf "%s\n" \
-        'var username = "EnterUsername"' \
-        'var password = "EnterPassword"' \
-        'var database = "EnterDatabase"' \
-        "db.createUser(" \
-        "  {" \
-        '    user: username,' \
-        '    pwd: password,' \
-        '    roles: [{role: "readWrite", db: database}]' \
-        '  }' \
-        ');' \
-        > "${MONGO_INIT_PATH}mongo_create_user.js"
+        "#!/bin/bash" \
+        "" \
+        "help_function()" \
+        "{" \
+        '   echo ""' \
+        '   echo "Script will create a MongoDB database user with supplied password."' \
+        '   echo ""' \
+        '   echo "Usage: $0 -u username -p password -db database"' \
+        '   echo -e "\t-u username"' \
+        '   echo -e "\t-p password"' \
+        '   echo -e "\t-d database"' \
+        "   exit 1" \
+        "}" \
+        "" \
+        'while getopts "u:p:d:" opt' \
+        "do" \
+        '   case "$opt" in' \
+        '      u ) username="$OPTARG" ;;' \
+        '      p ) password="$OPTARG" ;;' \
+        '      d ) database="$OPTARG" ;;' \
+        '      ? ) help_function ;;' \
+        "   esac" \
+        "done" \
+        "" \
+        "# Print help_function in case parameters are empty" \
+        'if [ -z "$username" ] || [ -z "$password" ] || [ -z "$database" ]' \
+        "then" \
+        '   echo ""' \
+        '   echo "Missing Parameters: All parameters are required.";' \
+        "   help_function" \
+        "fi" \
+        "" \
+        "# Create User" \
+        "mongo admin -u \$MONGO_INITDB_ROOT_USERNAME -p \$MONGO_INITDB_ROOT_PASSWORD << EOF" \
+        '    db.createUser({user: "${username}", pwd: "${password}", roles: ["readWrite"]});' \
+        "EOF" \
+        "" \
+        > "${MONGO_INIT_PATH}create_user.sh"
 }
 
 
