@@ -534,9 +534,6 @@ docker_compose() {
         "      - 8888:8080" \
         "    restart: always" \
         "    secrets:" \
-        "      - db-database" \
-        "      - db-init-password" \
-        "      - db-init-username" \
         "      - db-password" \
         "      - db-username" \
         "    tty: true" \
