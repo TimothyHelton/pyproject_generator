@@ -1027,8 +1027,11 @@ makefile() {
         "\t-w /usr/src/\$(PROJECT)/docker/secrets \\\\" \
         "\tubuntu \\\\" \
         "\t\t/bin/bash -c \\\\" \
-        "\t\t\t\"printf '%s' \$(DB_USERNAME) >> 'db_username.txt' \\\\" \
-        "\t\t\t && printf '%s' \$(DB_PASSWORD) >> 'db_password.txt' \"" \
+        "\t\t\t\"printf '%s' $(PROJECT) >> 'db_database.txt' \\\\" \
+        "\t\t\t && printf '%s' \"password\" >> 'db_init_password.txt' \\\\" \
+        "\t\t\t && printf '%s' \"admin\" >> 'db_init_username.txt' \\\\" \
+        "\t\t\t && printf '%s' \"password\" >> 'db_password.txt' \\\\" \
+        "\t\t\t && printf '%s' \"user\" >> 'db_username.txt' \"" \
         "\tsudo chown -R \$(USER) docker/secrets" \
         "" \
         "snakeviz: docker-up profile snakeviz-server" \
