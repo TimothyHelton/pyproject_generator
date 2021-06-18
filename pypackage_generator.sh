@@ -103,12 +103,12 @@ cli() {
 
 common_image() {
     printf "%s\n" \
-        "\t&& curl -sL https://deb.nodesource.com/setup_${NODEJS_VERSION}.x | bash - \\\\" \
-        "\t&& apt-get update -y \\\\" \
-        "\t&& apt-get upgrade -y \\\\" \
-        "\t&& apt-get install -y \\\\" \
-        "\t\tapt-utils \\\\" \
-        "\t\tnodejs \\\\" \
+        "\t# && curl -sL https://deb.nodesource.com/setup_${NODEJS_VERSION}.x | bash - \\\\" \
+        "\t# && apt-get update -y \\\\" \
+        "\t# && apt-get upgrade -y \\\\" \
+        "\t# && apt-get install -y \\\\" \
+        "\t\t# apt-utils \\\\" \
+        "\t\t# nodejs \\\\" \
         "\t# && jupyter labextension install @telamonian/theme-darcula \\\\" \
         "\t# && jupyter labextension install jupyterlab-plotly \\\\" \
         "\t# && jupyter labextension install jupyterlab-toc \\\\" \
@@ -534,9 +534,6 @@ docker_compose() {
         "      - 8888:8080" \
         "    restart: always" \
         "    secrets:" \
-        "      - db-database" \
-        "      - db-init-password" \
-        "      - db-init-username" \
         "      - db-password" \
         "      - db-username" \
         "    tty: true" \
@@ -952,6 +949,18 @@ makefile() {
         "format-style: docker-up" \
         "\tdocker container exec \$(PROJECT)_python yapf -i -p -r --style \"pep8\" \${SRC_DIR}" \
         "" \
+        "getting-started: lambda-image secret_templates docs-init" \
+        "\t\$(warning )" \
+        "\t\$(warning )" \
+        "\t\$(warning )" \
+        "\t\$(warning !!!!!!!!!! ADDITIONAL ACTION REQUIRED !!!!!!!!!!)" \
+        "\t\$(warning )" \
+        "\t\$(warning Update db_username.txt and db_password.txt in docker/secrets then call:)" \
+        "\t\$(warning )" \
+        "\t\$(warning make mongo-create-user)" \
+        "\t\$(warning )" \
+        "\t\$(warning !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)" \
+        "" \
         "ipython: docker-up" \
         "\tdocker container exec -it \$(PROJECT)_python ipython" \
         "" \
@@ -1027,8 +1036,11 @@ makefile() {
         "\t-w /usr/src/\$(PROJECT)/docker/secrets \\\\" \
         "\tubuntu \\\\" \
         "\t\t/bin/bash -c \\\\" \
-        "\t\t\t\"printf '%s' \$(DB_USERNAME) >> 'db_username.txt' \\\\" \
-        "\t\t\t && printf '%s' \$(DB_PASSWORD) >> 'db_password.txt' \"" \
+        "\t\t\t\"printf '%s' $(PROJECT) >> 'db_database.txt' \\\\" \
+        "\t\t\t && printf '%s' \"password\" >> 'db_init_password.txt' \\\\" \
+        "\t\t\t && printf '%s' \"admin\" >> 'db_init_username.txt' \\\\" \
+        "\t\t\t && printf '%s' \"password\" >> 'db_password.txt' \\\\" \
+        "\t\t\t && printf '%s' \"user\" >> 'db_username.txt' \"" \
         "\tsudo chown -R \$(USER) docker/secrets" \
         "" \
         "snakeviz: docker-up profile snakeviz-server" \
