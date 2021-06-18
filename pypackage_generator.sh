@@ -949,6 +949,18 @@ makefile() {
         "format-style: docker-up" \
         "\tdocker container exec \$(PROJECT)_python yapf -i -p -r --style \"pep8\" \${SRC_DIR}" \
         "" \
+        "getting-started: lambda-image secret_templates docs-init" \
+        "\t\$(warning )" \
+        "\t\$(warning )" \
+        "\t\$(warning )" \
+        "\t\$(warning !!!!!!!!!! ADDITIONAL ACTION REQUIRED !!!!!!!!!!)" \
+        "\t\$(warning )" \
+        "\t\$(warning Update db_username.txt and db_password.txt in docker/secrets then call:)" \
+        "\t\$(warning )" \
+        "\t\$(warning make mongo-create-user)" \
+        "\t\$(warning )" \
+        "\t\$(warning !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)" \
+        "" \
         "ipython: docker-up" \
         "\tdocker container exec -it \$(PROJECT)_python ipython" \
         "" \
