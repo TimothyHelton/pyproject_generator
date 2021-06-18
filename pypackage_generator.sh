@@ -13,6 +13,9 @@ SOURCE_DIR="${2:-$1}"
 : "${DOCKER_DIR:=docker}"
 : "${DOCS_DIR:=docs}"
 : "${FILE_SEP:=/}"
+: "${LAMBDA_STACK_DOCKER_FILE:=Dockerfile.focal}"
+: "${LAMBDA_STACK_URL:=git://github.com/lambdal/lambda-stack-dockerfiles.git}"
+: "${LAMBDA_STACK_VERSION:=20.04}"
 : "${MONGO_INIT_DIR:=mongo_init}"
 : "${NODEJS_VERSION:=12}"
 : "${NOTEBOOK_DIR:=notebooks}"
@@ -821,6 +824,7 @@ makefile() {
         'DB:="admin"' \
         "DB_PASSWORD:=\$(file < docker/secrets/db_password.txt)" \
         "DB_USERNAME:=\$(file < docker/secrets/db_username.txt)" \
+        "LAMBDA_STACK_IMAGE:=lambda-stack:${LAMBDA_STACK_VERSION}" \
         "MOUNT_DIR=\$(shell pwd)" \
         "MODELS=/opt/models" \
         "PKG_MANAGER=pip" \
@@ -950,6 +954,12 @@ makefile() {
         "" \
         "ipython: docker-up" \
         "\tdocker container exec -it \$(PROJECT)_python ipython" \
+        "" \
+        "lambda-image:" \
+        "\tsudo apt-get update" \
+        "\tsudo apt-get upgrade" \
+        "\tdocker build -t \$(LAMBDA_STACK_IMAGE) -f ${LAMBDA_STACK_DOCKER_FILE} ${LAMBDA_STACK_URL}" \
+        "\tsed -i 's/FROM.*/FROM \$(LAMBDA_STACK_IMAGE)/' docker/python.Dockerfile" \
         "" \
         "latexmk: docker-up" \
         "\tdocker container exec -w \$(TEX_WORKING_DIR) \$(PROJECT)_latex \\\\" \
