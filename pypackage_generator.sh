@@ -895,18 +895,13 @@ makefile() {
         "\t\t/bin/bash -c \\\\" \
         "\t\t\t\"sed -i -e 's/# import os/import os/g' conf.py \\\\" \
         "\t\t\t && sed -i -e 's/# import sys/import sys/g' conf.py \\\\" \
-        "\t\t\t && sed -i \\\\\"/# sys.path.insert(0, os.path.abspath('.'))/d\\\\\" \\\\" \
-        "\t\t\t\tconf.py \\\\" \
+        "\t\t\t && sed -i \\\\\"/# sys.path.insert(0, os.path.abspath('.'))/d\\\\\" conf.py \\\\" \
         "\t\t\t && sed -i -e \\\\\"/import sys/a \\\\" \
         "\t\t\t\tfrom ${SOURCE_DIR} import __version__ \\\\" \
-        "\t\t\t\t\\\\n\\\\nsys.path.insert(0, os.path.abspath('../${SOURCE_DIR}'))\\\\\" \\\\" \
-        "\t\t\t\tconf.py \\\\" \
-        "\t\t\t && sed -i -e \\\\\"s/version = '0.1.0'/version = __version__/g\\\\\" \\\\" \
-        "\t\t\t\tconf.py \\\\" \
-        "\t\t\t && sed -i -e \\\\\"s/release = '0.1.0'/release = __version__/g\\\\\" \\\\" \
-        "\t\t\t\tconf.py \\\\" \
-        "\t\t\t && sed -i -e \\\\\"s/alabaster/sphinx_rtd_theme/g\\\\\" \\\\" \
-        "\t\t\t\tconf.py \\\\" \
+        "\t\t\t\t\\\\n\\\\nsys.path.insert(0, os.path.abspath('../${SOURCE_DIR}'))\\\\\" conf.py \\\\" \
+        "\t\t\t && sed -i -e \\\\\"s/version = '0.1.0'/version = __version__/g\\\\\" conf.py \\\\" \
+        "\t\t\t && sed -i -e \\\\\"s/release = '0.1.0'/release = __version__/g\\\\\" conf.py \\\\" \
+        "\t\t\t && sed -i -e \\\\\"s/alabaster/sphinx_rtd_theme/g\\\\\" conf.py \\\\" \
         "\t\t\t && sed -i -e 's/[ \\\\t]*\$\$//g' conf.py \\\\" \
         "\t\t\t && echo >> conf.py \\\\" \
         "\t\t\t && sed -i \\\\\"/   :caption: Contents:/a \\\\" \
