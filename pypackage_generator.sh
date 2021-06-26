@@ -903,7 +903,12 @@ makefile() {
         "\t\t\t && sed -i -e \\\\\"s/release = '0.1.0'/release = __version__/g\\\\\" conf.py \\\\" \
         "\t\t\t && sed -i -e \\\\\"s/alabaster/sphinx_rtd_theme/g\\\\\" conf.py \\\\" \
         "\t\t\t && sed -i -e 's/[ \\\\t]*\$\$//g' conf.py \\\\" \
+        "\t\t\t && sed -i -e \\\\\"/html_static_path/a html_css_files = ['custom.css']\\\\\" conf.py \\\\" \
         "\t\t\t && echo >> conf.py \\\\" \
+        "\t\t\t && printf '%s\\\\n' \\\\" \
+			 	"\t\t\t\t'.wy-nav-content {' \\\\" \
+				"\t\t\t\t'  max-width: 1200px !important;' \\\\" \
+				"\t\t\t\t'}' >> '_static/custom.css' \\\\" \
         "\t\t\t && sed -i \\\\\"/   :caption: Contents:/a \\\\" \
         "\t\t\t\t\\\\\\\\\\\\\\\\\\\\n   package\\\\\" \\\\" \
         "\t\t\t\tindex.rst\"" \
@@ -1031,7 +1036,7 @@ makefile() {
         "\t-w /usr/src/\$(PROJECT)/docker/secrets \\\\" \
         "\tubuntu \\\\" \
         "\t\t/bin/bash -c \\\\" \
-        "\t\t\t\"printf '%s' $(PROJECT) >> 'db_database.txt' \\\\" \
+        "\t\t\t\"printf '%s' \$(PROJECT) >> 'db_database.txt' \\\\" \
         "\t\t\t && printf '%s' \"password\" >> 'db_init_password.txt' \\\\" \
         "\t\t\t && printf '%s' \"admin\" >> 'db_init_username.txt' \\\\" \
         "\t\t\t && printf '%s' \"password\" >> 'db_password.txt' \\\\" \
