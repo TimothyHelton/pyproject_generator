@@ -1398,6 +1398,8 @@ setup_cfg() {
         "# Test coverage" \
         "[coverage:run]" \
         "parallel = True" \
+        "omit =" \
+        "    docs/*" \
         "" \
         "[coverage:paths]" \
         "source =" \
@@ -1432,6 +1434,8 @@ setup_cfg() {
         "        notebooks" \
         "        profiles" \
         "        wheels" \
+        "    --ignore-glob" \
+        "        docs/*" \
         "    --pycodestyle" \
         "" \
         > "${MAIN_DIR}${FILE_SEP}setup.cfg"
