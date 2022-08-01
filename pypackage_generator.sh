@@ -56,9 +56,11 @@ SUB_DIRECTORIES=("${DATA_DIR}" \
 PY_SHEBANG="#! /usr/bin/env python3"
 PY_ENCODING="# -*- coding: utf-8 -*-"
 
-DOCKER_PATH="${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}"
+ROOT_PATH="${MAIN_DIR}${FILE_SEP}"
+DOCKER_PATH="${ROOT_PATH}${DOCKER_DIR}${FILE_SEP}"
+SCRIPTS_PATH="${ROOT_PATH}${FILE_SEP}"
 SECRETS_PATH="${DOCKER_PATH}${SECRETS_DIR}${FILE_SEP}"
-SRC_PATH="${MAIN_DIR}${FILE_SEP}${SOURCE_DIR}${FILE_SEP}"
+SRC_PATH="${ROOT_PATH}${SOURCE_DIR}${FILE_SEP}"
 TEST_PATH="${SRC_PATH}${TEST_DIR}${FILE_SEP}"
 
 
@@ -219,7 +221,7 @@ coveragerc() {
         "[html]" \
         "directory = htmlcov" \
         "title = ${MAIN_DIR} Test Coverage" \
-        > "${MAIN_DIR}${FILE_SEP}.coveragerc"
+        > "${ROOT_PATH}.coveragerc"
 }
 
 
@@ -427,12 +429,12 @@ directories() {
     mkdir "${MAIN_DIR}"
     # Subdirectories
     for dir in "${SUB_DIRECTORIES[@]}"; do
-        mkdir "${MAIN_DIR}${FILE_SEP}${dir}"
+        mkdir "${ROOT_PATH}${dir}"
     done
     # Secrets directory
     mkdir "${SECRETS_PATH}"
     # Sphinx Documentation directory
-    mkdir -p "${MAIN_DIR}${FILE_SEP}docs${FILE_SEP}_build${FILE_SEP}html"
+    mkdir -p "${ROOT_PATH}docs${FILE_SEP}_build${FILE_SEP}html"
     # Test directory
     mkdir "${SRC_PATH}${TEST_DIR}"
 }
@@ -549,7 +551,7 @@ docker_ignore() {
         ".pytest" \
         "wheels" \
         "" \
-        > "${MAIN_DIR}${FILE_SEP}.dockerignore"
+        > "${ROOT_PATH}.dockerignore"
 }
 
 
@@ -650,7 +652,7 @@ exceptions() {
 git_attributes() {
     printf "%s\n" \
         "*.ipynb    filter=jupyter_clear_output" \
-        > "${MAIN_DIR}${FILE_SEP}.gitattributes"
+        > "${ROOT_PATH}.gitattributes"
 }
 
 
@@ -663,7 +665,7 @@ git_config() {
         "             --ClearOutputPreprocessor.enabled=True\"" \
         "    smudge = cat" \
         "    required = true" \
-        > "${MAIN_DIR}${FILE_SEP}.gitconfig"
+        > "${ROOT_PATH}.gitconfig"
 }
 
 
@@ -722,7 +724,7 @@ git_ignore() {
         "" \
         "# PyCharm files" \
         ".idea${FILE_SEP}*" \
-        "${MAIN_DIR}${FILE_SEP}.idea${FILE_SEP}*" \
+        "${ROOT_PATH}.idea${FILE_SEP}*" \
         "" \
         "# pytest files" \
         ".cache${FILE_SEP}*" \
@@ -737,7 +739,11 @@ git_ignore() {
         "docs/_static/*" \
         "docs/_templates/*" \
         "docs/Makefile" \
-        > "${MAIN_DIR}${FILE_SEP}.gitignore"
+        "" \
+        "# User specific files" \
+        "usr_vars" \
+        "" \
+        > "${ROOT_PATH}.gitignore"
 }
 
 
@@ -778,7 +784,7 @@ license() {
         "ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT" \
         "(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS" \
         "SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE." \
-        > "${MAIN_DIR}${FILE_SEP}LICENSE.txt"
+        > "${ROOT_PATH}LICENSE.txt"
 }
 
 
@@ -1045,14 +1051,14 @@ makefile() {
         "\t\t\t && pip freeze > requirements.txt \\\\" \
         "\t\t\t && sed -i -e '/^-e/d' requirements.txt\"" \
         "endif" \
-        > "${MAIN_DIR}${FILE_SEP}Makefile"
+        > "${ROOT_PATH}Makefile"
 }
 
 
 manifest() {
     printf "%s\n" \
         "include LICENSE.txt" \
-        > "${MAIN_DIR}${FILE_SEP}MANIFEST.in"
+        > "${ROOT_PATH}MANIFEST.in"
 }
 
 
@@ -1071,7 +1077,7 @@ pull_request_template() {
         "" \
         "# Issues Closed (optional)" \
         "- < issue(s) reference >" \
-        > "${MAIN_DIR}${FILE_SEP}.github${FILE_SEP}PULL_REQUEST_TEMPLATE.md"
+        > "${ROOT_PATH}.github${FILE_SEP}PULL_REQUEST_TEMPLATE.md"
 }
 
 
@@ -1186,7 +1192,7 @@ readme() {
         "    - \`%load_ext memory_profiler\`" \
         "1. Run profiler" \
         "    - \`%memit enter_code_here\`" \
-        > "${MAIN_DIR}${FILE_SEP}README.md"
+        > "${ROOT_PATH}README.md"
 }
 
 
@@ -1198,12 +1204,12 @@ release_history() {
         "**Improvements**" \
         "" \
         "- "\
-        > "${MAIN_DIR}${FILE_SEP}HISTORY.md"
+        > "${ROOT_PATH}HISTORY.md"
 }
 
 
 requirements() {
-    touch "${MAIN_DIR}${FILE_SEP}requirements.txt"
+    touch "${ROOT_PATH}requirements.txt"
 }
 
 
@@ -1269,7 +1275,7 @@ setup_cfg() {
         "        wheels" \
         "    --pycodestyle" \
         "" \
-        > "${MAIN_DIR}${FILE_SEP}setup.cfg"
+        > "${ROOT_PATH}setup.cfg"
 }
 
 
@@ -1386,7 +1392,7 @@ setup_py() {
         "" \
         "if __name__ == '__main__':" \
         "    pass" \
-        > "${MAIN_DIR}${FILE_SEP}setup.py"
+        > "${ROOT_PATH}setup.py"
 }
 
 
@@ -1889,7 +1895,7 @@ yapf_ignore() {
         "*/profiles/" \
         "*/wheels/" \
         "" \
-    > "${MAIN_DIR}${FILE_SEP}.yapfignore"
+    > "${ROOT_PATH}.yapfignore"
 }
 
 
