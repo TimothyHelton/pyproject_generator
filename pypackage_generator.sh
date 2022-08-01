@@ -58,7 +58,7 @@ PY_ENCODING="# -*- coding: utf-8 -*-"
 
 ROOT_PATH="${MAIN_DIR}${FILE_SEP}"
 DOCKER_PATH="${ROOT_PATH}${DOCKER_DIR}${FILE_SEP}"
-SCRIPTS_PATH="${ROOT_PATH}${FILE_SEP}"
+SCRIPTS_PATH="${ROOT_PATH}${SCRIPTS_DIR}${FILE_SEP}"
 SECRETS_PATH="${DOCKER_PATH}${SECRETS_DIR}${FILE_SEP}"
 SRC_PATH="${ROOT_PATH}${SOURCE_DIR}${FILE_SEP}"
 TEST_PATH="${SRC_PATH}${TEST_DIR}${FILE_SEP}"
@@ -445,7 +445,7 @@ docker_compose() {
         "services:" \
         "" \
         "  latex:" \
-        "    container_name: ${MAIN_DIR}_latex" \
+        "    container_name: \${COMPOSE_PROJECT_NAME:-default}_${MAIN_DIR}_latex" \
         "    image: blang/latex" \
         "    networks:" \
         "      - ${MAIN_DIR}-network" \
@@ -456,27 +456,34 @@ docker_compose() {
         "    working_dir: /usr/src/${MAIN_DIR}" \
         "" \
         "  nginx:" \
-        "    container_name: ${MAIN_DIR}_nginx" \
+        "    container_name: \${COMPOSE_PROJECT_NAME:-default}_${MAIN_DIR}_nginx" \
+        "    env_file:" \
+        "        .env" \
+        "    environment:" \
+        "      PORT_NGINX: \${PORT_NGINX}" \
         "    image: nginx:alpine" \
         "    networks:"\
         "      - ${MAIN_DIR}-network" \
         "    ports:" \
-        "      - 8080:80" \
+        "      - '\${PORT_NGINX}:80'" \
         "    restart: always" \
         "    volumes:" \
         "      - ../docs/_build/html:/usr/share/nginx/html:ro" \
         "" \
         "  postgres:" \
-        "    container_name: ${MAIN_DIR}_postgres" \
+        "    container_name: \${COMPOSE_PROJECT_NAME:-default}_${MAIN_DIR}_postgres" \
+        "    env_file:" \
+        "        .env" \
         "    image: postgres:alpine" \
         "    environment:" \
+        "      PORT_DATABASE: \${PORT_DATABASE}" \
         "      POSTGRES_PASSWORD_FILE: /run/secrets/db-password" \
         "      POSTGRES_DB_FILE: /run/secrets/db-database" \
         "      POSTGRES_USER_FILE: /run/secrets/db-username" \
         "    networks:"\
         "      - ${MAIN_DIR}-network" \
         "    ports:" \
-        "      - 5432:5432" \
+        "      - '\$PORT_DATABASE:5432'" \
         "    restart: always" \
         "    secrets:" \
         "      - db-database" \
@@ -486,32 +493,44 @@ docker_compose() {
         "      - ${MAIN_DIR}-db:/var/lib/postgresql/data" \
         "" \
         "  pgadmin:" \
-        "    container_name: ${MAIN_DIR}_pgadmin" \
-        "    image: dpage/pgadmin4" \
-        "    depends_on:" \
-        "      - postgres" \
+        "    container_name: \${COMPOSE_PROJECT_NAME:-default}_${MAIN_DIR}_pgadmin" \
+        "    env_file:" \
+        "        .env" \
         "    environment:" \
+        "      PORT_DATABASE_ADMINISTRATION: \$PORT_DATABASE_ADMINISTRATION" \
         "      PGADMIN_DEFAULT_EMAIL: \${PGADMIN_DEFAULT_EMAIL:-pgadmin@pgadmin.org}" \
         "      PGADMIN_DEFAULT_PASSWORD: \${PGADMIN_DEFAULT_PASSWORD:-admin}" \
         "    external_links:" \
         "      - ${MAIN_DIR}_postgres:${MAIN_DIR}_postgres" \
+        "    image: dpage/pgadmin4" \
+        "    depends_on:" \
+        "      - postgres" \
         "    networks:"\
         "      - ${MAIN_DIR}-network" \
         "    ports:" \
-        "      - 5000:80" \
+        "      - '\$PORT_DATABASE_ADMINISTRATION:80'" \
         "" \
         "  python:" \
-        "    container_name: ${MAIN_DIR}_python" \
+        "    container_name: \${COMPOSE_PROJECT_NAME:-default}_${MAIN_DIR}_python" \
         "    build:" \
         "      context: .." \
-        "      dockerfile: docker/python.Dockerfile" \
+        "      dockerfile: docker/\${ENVIRONMENT}.Dockerfile" \
         "    depends_on:" \
         "      - postgres" \
+        "    env_file:" \
+        "        .env" \
+        "    environment:" \
+        "      - ENVIRONMENT=\${ENVIRONMENT}" \
+        "      - PORT_GOOGLE=\${PORT_GOOGLE}" \
+        "      - PORT_JUPYTER=\${PORT_JUPYTER}" \
+        "      - PORT_PROFILE=\${PORT_PROFILE}" \
         "    image: ${MAIN_DIR}_python" \
         "    networks:"\
         "      - ${MAIN_DIR}-network" \
         "    ports:" \
-        "      - 8888:8080" \
+        "      - \${PORT_GOOGLE}:6006" \
+        "      - \${PORT_JUPYTER}:\${PORT_JUPYTER}" \
+        "      - \${PORT_PROFILE}:\${PORT_PROFILE}" \
         "    restart: always" \
         "    secrets:" \
         "      - db-database" \
@@ -523,7 +542,7 @@ docker_compose() {
         "" \
         "networks:" \
         "  ${MAIN_DIR}-network:" \
-        "    name: ${MAIN_DIR}" \
+        "    name: \${COMPOSE_PROJECT_NAME:-default}-${MAIN_DIR}-network" \
         "" \
         "secrets:" \
         "  db-database:" \
@@ -535,8 +554,14 @@ docker_compose() {
         "" \
         "volumes:" \
         "  ${MAIN_DIR}-db:" \
+        "    name: \${COMPOSE_PROJECT_NAME:-default}-${MAIN_DIR}-db" \
         "" \
         > "${DOCKER_PATH}docker-compose.yaml"
+}
+
+
+docker_env_link() {
+    ln "${ROOT_PATH}usr_vars" "${DOCKER_PATH}.env"
 }
 
 
@@ -669,8 +694,6 @@ git_config() {
 
 git_ignore() {
     printf "%s\n" \
-        "# Docker secret files" \
-        "docker/secrets/*" \
         "# Compiled source" \
         "build${FILE_SEP}*" \
         "*.com" \
@@ -683,6 +706,10 @@ git_ignore() {
         "*.pdf" \
         "*.pyc" \
         "*.so" \
+        "" \
+        "# Docker files" \
+        "docker/.env" \
+        "docker/secrets/*" \
         "" \
         "# Ipython files" \
         ".ipynb_checkpoints" \
@@ -1656,6 +1683,53 @@ test_utils() {
         > "${TEST_PATH}test_utils.py"
 }
 
+usr_vars() {
+    script_name=${SCRIPTS_PATH}"create_usr_vars.sh"
+    file_name=${ROOT_PATH}"usr_vars"
+    printf "%s\n" \
+        "#!/bin/bash" \
+        "# create_usr_vars.sh" \
+        "" \
+        "help_function()" \
+        "{" \
+        "    echo \"\"" \
+        "    echo \"Create usr_vars configuration file.\"" \
+        "    echo \"\"" \
+        "    echo \"Usage: \$0\"" \
+        "    exit 1" \
+        "}" \
+        "" \
+        "# Parse arguments" \
+        "while getopts \"p:\" opt" \
+        "do" \
+        "    case \$opt in" \
+        "        ? ) help_function ;;" \
+        "    esac" \
+        "done" \
+        "" \
+        "# Create usr_vars configuration file" \
+        "INITIAL_PORT=\$(( (\$UID - 500) * 50 + 10000 ))" \
+        "printf \"%s\n\" \\" \
+        "    'COMPOSE_PROJECT_NAME=\${USER}' \\" \
+        "    \"\" \\" \
+        "    'ENVIRONMENT=pytorch' \\" \
+        "    \"\" \\" \
+        "    \"# Ports\" \\" \
+        "    \"PORT_GOOGLE=\$INITIAL_PORT\" \\" \
+        "    \"PORT_JUPYTER=\$((\$INITIAL_PORT + 1))\" \\" \
+        "    \"PORT_NGINX=\$((\$INITIAL_PORT + 2))\" \\" \
+        "    \"PORT_PROFILE=\$((\$INITIAL_PORT + 3))\" \\" \
+        "    \"PORT_DATABASE=\$((\$INITIAL_PORT + 4))\" \\" \
+        "    \"PORT_DATABASE_ADMINISTRATION=\$((\$INITIAL_PORT + 5))\" \\" \
+        "    \"\" \\" \
+        "    > \"${file_name}\"" \
+        "echo \"Successfully created: usr_vars\"" \
+        "" \
+        > "${script_name}"
+    chmod u+x ./"${script_name}"
+    ./"${script_name}"
+}
+
 
 utils() {
     printf "%s\n" \
@@ -1898,12 +1972,14 @@ yapf_ignore() {
 
 
 directories
+usr_vars
 cli
 conftest
 constructor_pkg
 constructor_test
 db
 docker_compose
+docker_env_link
 docker_ignore
 docker_python
 docker_pytorch
