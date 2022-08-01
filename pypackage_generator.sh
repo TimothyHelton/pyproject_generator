@@ -442,8 +442,6 @@ directories() {
 
 docker_compose() {
     printf "%s\n" \
-        "version: '3.8'" \
-        "" \
         "services:" \
         "" \
         "  latex:" \
