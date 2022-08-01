@@ -7,6 +7,14 @@
 
 ###############################################################################
 
+# Source Environment Variables
+if [ -f envfile ]; then
+    source envfile
+else
+    echo "Environment variable file (envfile) not found."
+    echo "Default values will be used."
+fi
+
 MAIN_DIR=${1:?"Specify a package name"}
 SOURCE_DIR="${2:-$1}"
 : "${DATA_DIR:=data}"
