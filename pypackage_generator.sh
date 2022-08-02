@@ -599,18 +599,24 @@ docker_python() {
 
 docker_pytorch() {
     printf "%b\n" \
-        "FROM pytorch/pytorch" \
+        "FROM nvcr.io/nvidia/pytorch:21.10-py3" \
+        "" \
+        "ENV TORCH_HOME=/usr/src/${MAIN_DIR}/cache" \
         "" \
         "WORKDIR /usr/src/${MAIN_DIR}" \
         "" \
         "COPY . ." \
         "" \
-        "RUN conda update -y conda \\\\" \
-        "\t&& conda update -y --all \\\\" \
-        "\t&& while read requirement; do conda install --yes \${requirement}; done < requirements.txt \\\\" \
-        "\t&& conda install -y pytorch torchvision -c pytorch \\\\" \
-        "\t&& pip install -e .[build,data,database,docs,notebook,profile,test] \\\\" \
-        "$(common_image)" \
+        "RUN pip install -e .[all] \\" \
+        "        # && apt update -y \\" \
+        "        # && apt upgrade -y \\" \
+        "        && apt install -y \\" \
+        "                fonts-humor-sans \\" \
+        "        # && conda update -y conda \\" \
+        "        # && while read requirement; do conda install --yes ${requirement}; done < requirements_pytorch.txt \\" \
+        "        && rm -rf /tmp/* \\" \
+        "        && rm -rf /var/lib/apt/lists/* \\" \
+        "        && apt clean\" \\" \
         "" \
         "CMD [ \"/bin/bash\" ]" \
         "" \
