@@ -109,9 +109,9 @@ cli() {
 common_image() {
     printf "%s\n" \
         "\t&& curl -sL https://deb.nodesource.com/setup_${NODEJS_VERSION}.x | bash - \\\\" \
-        "\t&& apt-get update -y \\\\" \
-        "\t&& apt-get upgrade -y \\\\" \
-        "\t&& apt-get install -y \\\\" \
+        "\t&& apt update -y \\\\" \
+        "\t&& apt upgrade -y \\\\" \
+        "\t&& apt install -y \\\\" \
         "\t\tapt-utils \\\\" \
         "\t\tnodejs \\\\" \
         "\t# && jupyter labextension install @telamonian/theme-darcula \\\\" \
@@ -119,7 +119,7 @@ common_image() {
         "\t# && jupyter labextension install jupyterlab-toc \\\\" \
         "\t&& rm -rf /tmp/* \\\\" \
         "\t&& rm -rf /var/lib/apt/lists/* \\\\" \
-        "\t&& apt-get clean"
+        "\t&& apt clean"
 }
 
 
@@ -633,16 +633,16 @@ docker_tensorflow() {
         "COPY . ." \
         "" \
         "RUN cd /opt \\\\" \
-        "\t&& apt-get update -y \\\\" \
-        "\t#&& apt-get upgrade -y \\\\  Do not upgrade NVIDIA image OS" \
-        "\t&& apt-get install -y \\\\" \
+        "\t&& apt update -y \\\\" \
+        "\t#&& apt upgrade -y \\\\  Do not upgrade NVIDIA image OS" \
+        "\t&& apt install -y \\\\" \
         "\t\tapt-utils \\\\" \
         "\t&& cd /usr/src/${SOURCE_DIR} \\\\" \
         "\t&& pip install --upgrade pip \\\\" \
         "\t&& pip install -e .[all] \\\\" \
         "\t&& rm -rf /tmp/* \\\\" \
         "\t&& rm -rf /var/lib/apt/lists/* \\\\" \
-        "\t&& apt-get clean" \
+        "\t&& apt clean" \
         "" \
         "CMD [ \"/bin/bash\" ]" \
         "" \
