@@ -956,6 +956,13 @@ makefile() {
         "format-style: docker-up" \
         "\tdocker container exec \$(PROJECT)_python yapf -i -p -r --style \"pep8\" \${SRC_DIR}" \
         "" \
+        "getting-started: secret-templates docs-init" \
+        "\tmkdir -p cache" \
+        "\tmkdir -p htmlcov" \
+        "\tmkdir -p notebooks" \
+        "\tmkdir -p profiles" \
+        "\tmkdir -p wheels" \
+        "" \
         "ipython: docker-up" \
         "\tdocker container exec -it \$(PROJECT)_python ipython" \
         "" \
@@ -1013,6 +1020,17 @@ makefile() {
         "\t\t\t && sed -i -e 's/PKG_MANAGER=pip/PKG_MANAGER=conda/g' \\\\" \
         "\t\t\t\tMakefile\"" \
         "" \
+        "secret-templates:" \
+        "\tdocker container run --rm \\\\" \
+        "\t\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\" \
+        "\t-w /usr/src/\$(PROJECT)/docker/secrets \\\\" \
+        "\tubuntu \\\\" \
+        "\t\t/bin/bash -c \\\\" \
+        "\t\t\t\"printf '%s' \"password\" >> 'password.txt' \\\\" \
+        "\t\t\t&& printf '%s' \"username\" >> 'username.txt' \\\\" \
+        "\t\t\t&& printf '%s' \"backpack\" >> 'package.txt' \\\\" \
+        "\t\t\t&& useradd -u \$(USER_ID) \$(USER) &> /dev/null || true \\\\" \
+        "\t\t\t&& chown -R \$(USER):\$(USER) *\"" \
         "snakeviz: docker-up profile snakeviz-server" \
         "\tsleep 0.5" \
         "\t\${BROWSER} http://0.0.0.0:\$(PORT)/snakeviz/" \
