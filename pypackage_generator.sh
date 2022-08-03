@@ -597,9 +597,54 @@ docker_python() {
 }
 
 
+docker_nvidia_frameworks() {
+    ngc_containers_url="https://catalog.ngc.nvidia.com/orgs/nvidia/containers/"
+    ngc_latest_tag_regex='(?<=latestTag":")(.*?)(?=")'
+
+    printf "%s\n" \
+        "****************************************************************" \
+        "" \
+        "Scraping latest NVIDIA container tags..." \
+        "" \
+        "" \
+
+    docker container run -dit --name nvidia_tags ubuntu:latest > /dev/null
+    docker container exec nvidia_tags \
+        /bin/bash -c \
+            "apt update -y \
+             && apt install -y curl" \
+        > /dev/null
+
+    pytorch_tag=$(docker container exec nvidia_tags \
+        /bin/bash -c \
+            "curl \"$ngc_containers_url\"pytorch \
+             | grep -Po '$ngc_latest_tag_regex'"
+    )
+    docker_pytorch "${pytorch_tag}"
+
+    tensorflow_tag=$(docker container exec nvidia_tags \
+        /bin/bash -c \
+            "curl \"${ngc_containers_url}\"tensorflow \
+             | grep -Po '${ngc_latest_tag_regex}'" \
+    )
+    docker_tensorflow "${tensorflow_tag}"
+
+    docker container rm -f nvidia_tags > /dev/null
+
+    printf "%s\n" \
+        "" \
+        "" \
+        "Dockerfiles for NVIDIA optimized frameworks complete!" \
+        "    - PyTorch: $pytorch_tag" \
+        "    - TensorFlow: $tensorflow_tag" \
+        "" \
+        "****************************************************************"
+}
+
+
 docker_pytorch() {
     printf "%b\n" \
-        "FROM nvcr.io/nvidia/pytorch:21.10-py3" \
+        "FROM nvcr.io/nvidia/pytorch:$1" \
         "" \
         "ENV TORCH_HOME=/usr/src/${MAIN_DIR}/cache" \
         "" \
@@ -608,15 +653,15 @@ docker_pytorch() {
         "COPY . ." \
         "" \
         "RUN pip install -e .[all] \\" \
-        "        # && apt update -y \\" \
-        "        # && apt upgrade -y \\" \
-        "        && apt install -y \\" \
+        "        && apt update -y \\" \
+        "        # && apt -y upgrade \\" \
+        "        && apt install -y\\" \
         "                fonts-humor-sans \\" \
         "        # && conda update -y conda \\" \
-        "        # && while read requirement; do conda install --yes ${requirement}; done < requirements_pytorch.txt \\" \
+        "        # && while read requirement; do conda install --yes \${requirement}; done < requirements_pytorch.txt \\" \
         "        && rm -rf /tmp/* \\" \
         "        && rm -rf /var/lib/apt/lists/* \\" \
-        "        && apt clean\" \\" \
+        "        && apt clean -y" \
         "" \
         "CMD [ \"/bin/bash\" ]" \
         "" \
@@ -626,7 +671,7 @@ docker_pytorch() {
 
 docker_tensorflow() {
     printf "%b\n" \
-        "FROM nvcr.io/nvidia/tensorflow:21.04-tf2-py3" \
+        "FROM nvcr.io/nvidia/tensorflow:$1" \
         "" \
         "WORKDIR /usr/src/${SOURCE_DIR}" \
         "" \
@@ -637,6 +682,7 @@ docker_tensorflow() {
         "\t#&& apt upgrade -y \\\\  Do not upgrade NVIDIA image OS" \
         "\t&& apt install -y \\\\" \
         "\t\tapt-utils \\\\" \
+        "\t\tfonts-humor-sans \\" \
         "\t&& cd /usr/src/${SOURCE_DIR} \\\\" \
         "\t&& pip install --upgrade pip \\\\" \
         "\t&& pip install -e .[all] \\\\" \
@@ -2006,8 +2052,7 @@ docker_compose
 docker_env_link
 docker_ignore
 docker_python
-docker_pytorch
-docker_tensorflow
+docker_nvidia_frameworks
 exceptions
 git_attributes
 git_config
