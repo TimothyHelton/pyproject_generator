@@ -854,7 +854,6 @@ git_ignore() {
 
 
 git_init() {
-    cd "${MAIN_DIR}" || exit
     git init
     git add --all
     git commit -m "Initial Commit"
@@ -968,64 +967,8 @@ makefile() {
         "\t\t\t\t--makefile \\\\" \
         "\t\t\t\t--no-batchfile\"" \
         "\tdocker-compose -f docker/docker-compose.yaml restart nginx" \
-        "ifeq (\"\$(shell git remote)\", \"origin\")" \
         "\tgit fetch" \
         "\tgit checkout origin/master -- docs/" \
-        "else" \
-        "\tdocker container run --rm \\\\" \
-        "\t\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\" \
-        "\t\t-w /usr/src/\$(PROJECT)/docs \\\\" \
-        "\t\tubuntu \\\\" \
-        "\t\t/bin/bash -c \\\\" \
-        "\t\t\t\"sed -i -e 's/# import os/import os/g' conf.py \\\\" \
-        "\t\t\t && sed -i -e 's/# import sys/import sys/g' conf.py \\\\" \
-        "\t\t\t && sed -i \\\\\"/# sys.path.insert(0, os.path.abspath('.'))/d\\\\\" \\\\" \
-        "\t\t\t\tconf.py \\\\" \
-        "\t\t\t && sed -i -e \\\\\"/import sys/a \\\\" \
-        "\t\t\t\tfrom ${SOURCE_DIR} import __version__ \\\\" \
-        "\t\t\t\t\\\\n\\\\nsys.path.insert(0, os.path.abspath('../${SOURCE_DIR}'))\\\\\" \\\\" \
-        "\t\t\t\tconf.py \\\\" \
-        "\t\t\t && sed -i -e \\\\\"s/version = '0.1.0'/version = __version__/g\\\\\" \\\\" \
-        "\t\t\t\tconf.py \\\\" \
-        "\t\t\t && sed -i -e \\\\\"s/release = '0.1.0'/release = __version__/g\\\\\" \\\\" \
-        "\t\t\t\tconf.py \\\\" \
-        "\t\t\t && sed -i -e \\\\\"s/alabaster/sphinx_rtd_theme/g\\\\\" \\\\" \
-        "\t\t\t\tconf.py \\\\" \
-        "\t\t\t && sed -i -e 's/[ \\\\t]*\$\$//g' conf.py \\\\" \
-        "\t\t\t && echo >> conf.py \\\\" \
-        "\t\t\t && sed -i \\\\\"/   :caption: Contents:/a \\\\" \
-        "\t\t\t\t\\\\\\\\\\\\\\\\\\\\n   package\\\\\" \\\\" \
-        "\t\t\t\tindex.rst\"" \
-        "\tprintf \"%s\\\\n\" \\\\" \
-        "\t\t\"Package Modules\" \\\\" \
-        "\t\t\"===============\" \\\\" \
-        "\t\t\"\" \\\\" \
-        "\t\t\".. toctree::\" \\\\" \
-        "\t\t\"    :maxdepth: 2\" \\\\" \
-        "\t\t\"\" \\\\" \
-        "\t\t\"cli\" \\\\" \
-        "\t\t\"---\" \\\\" \
-        "\t\t\".. automodule:: cli\" \\\\" \
-        "\t\t\"    :members:\" \\\\" \
-        "\t\t\"    :show-inheritance:\" \\\\" \
-        "\t\t\"    :synopsis: Package command line interface calls.\" \\\\" \
-        "\t\t\"\" \\\\" \
-        "\t\t\"db\" \\\\" \
-        "\t\t\"--\" \\\\" \
-        "\t\t\".. automodule:: db\" \\\\" \
-        "\t\t\"    :members:\" \\\\" \
-        "\t\t\"    :show-inheritance:\" \\\\" \
-        "\t\t\"    :synopsis: Package database module.\" \\\\" \
-        "\t\t\"\" \\\\" \
-        "\t\t\"utils\" \\\\" \
-        "\t\t\"-----\" \\\\" \
-        "\t\t\".. automodule:: utils\" \\\\" \
-        "\t\t\"    :members:\" \\\\" \
-        "\t\t\"    :show-inheritance:\" \\\\" \
-        "\t\t\"    :synopsis: Package utilities module.\" \\\\" \
-        "\t\t\"\" \\\\" \
-        "\t> \"docs/package.rst\"" \
-        "endif" \
         "" \
         "docs-view: docker-up" \
         "\t\${BROWSER} http://localhost:\$(PORT_NGINX)" \
@@ -1580,6 +1523,76 @@ setup_py() {
         "if __name__ == '__main__':" \
         "    pass" \
         > "${ROOT_PATH}setup.py"
+}
+
+
+sphinx_initialization() {
+    source usr_vars
+    docker container exec "${COMPOSE_PROJECT_NAME}_${MAIN_DIR}_python" \
+		/bin/bash -c \
+			"cd docs \
+			 && sphinx-quickstart -q \
+				--project \"${MAIN_DIR}\" \
+				--author \"${AUTHOR}\" \
+				-v 0.1.0 \
+				--ext-autodoc \
+				--ext-viewcode \
+				--makefile \
+				--no-batchfile"
+	docker-compose -f docker/docker-compose.yaml restart nginx
+    docker container run --rm \
+		-v "$(pwd)":/usr/src/"${MAIN_DIR}" \
+		-w /usr/src/"${MAIN_DIR}"/docs \
+		ubuntu \
+		    /bin/bash -c \
+                "sed -i -e 's/# import os/import os/g' conf.py \
+                 && sed -i -e 's/# import sys/import sys/g' conf.py \
+                 && sed -i \"/# sys.path.insert(0, os.path.abspath('.'))/d\" \
+                    conf.py \
+                 && sed -i -e \"/import sys/a \
+                    from ${MAIN_DIR} import __version__ \
+                    \n\nsys.path.insert(0, os.path.abspath('../${MAIN_DIR}'))\" \
+                    conf.py \
+                 && sed -i -e \"s/version = '0.1.0'/version = __version__/g\" \
+                    conf.py \
+                 && sed -i -e \"s/release = '0.1.0'/release = __version__/g\" \
+                    conf.py \
+                 && sed -i -e \"s/alabaster/sphinx_rtd_theme/g\" \
+                    conf.py \
+                 && sed -i -e 's/[ \t]*$$//g' conf.py \
+                 && echo >> conf.py \
+                 && sed -i \"/   :caption: Contents:/a \
+                    \\\\\n   package\" \
+                    index.rst"
+	printf "%s\n" \
+		"Package Modules" \
+		"===============" \
+		"" \
+		".. toctree::" \
+		"    :maxdepth: 2" \
+		"" \
+		"cli" \
+		"---" \
+		".. automodule:: cli" \
+		"    :members:" \
+		"    :show-inheritance:" \
+		"    :synopsis: Package command line interface calls." \
+		"" \
+		"db" \
+		"--" \
+		".. automodule:: db" \
+		"    :members:" \
+		"    :show-inheritance:" \
+		"    :synopsis: Package database module." \
+		"" \
+		"utils" \
+		"-----" \
+		".. automodule:: utils" \
+		"    :members:" \
+		"    :show-inheritance:" \
+		"    :synopsis: Package utilities module." \
+		"" \
+	> "docs/package.rst"
 }
 
 
@@ -2173,4 +2186,8 @@ test_db
 test_utils
 utils
 yapf_ignore
+
+cd "${MAIN_DIR}" || exit
+make docker-up
+sphinx_initialization
 git_init
