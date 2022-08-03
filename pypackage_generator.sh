@@ -1400,9 +1400,15 @@ setup_py() {
         "        'jupyter'," \
         "        'jupyterlab'," \
         "    }," \
+        "    'mongo': {" \
+        "    }," \
         "    'profile': {" \
         "        'memory_profiler'," \
         "        'snakeviz'," \
+        "    }," \
+        "    'postgres': {" \
+        "        'psycopg2-binary'," \
+        "        'sqlalchemy'," \
         "    }," \
         "    'test': {" \
         "        'Faker'," \
@@ -1465,10 +1471,7 @@ setup_py() {
         "      install_requires=[" \
         "          'click'," \
         "          'matplotlib'," \
-        "          'opencv-python-headless'," \
         "          'pandas'," \
-        "          'psycopg2-binary'," \
-        "          'sqlalchemy'," \
         "          'yapf'," \
         "      ]," \
         "      extras_require={" \
@@ -1476,6 +1479,10 @@ setup_py() {
         "          'build': combine_dependencies(('build', 'test'))," \
         "          'docs': combine_dependencies('docs')," \
         "          'jupyter': combine_dependencies('jupyter')," \
+        "          'mongo': combine_dependencies(" \
+        "              [x for x in dependencies if 'postgres' not in x])," \
+        "          'postgres': combine_dependencies(" \
+        "              [x for x in dependencies if 'mongo' not in x])," \
         "          'profile': combine_dependencies('profile')," \
         "          'test': combine_dependencies('test')," \
         "      }," \
