@@ -7,12 +7,21 @@
 
 ###############################################################################
 
+# Source Environment Variables
+if [ -f envfile ]; then
+    source envfile
+else
+    echo "Environment variable file (envfile) not found."
+    echo "Default values will be used."
+fi
+
 MAIN_DIR=${1:?"Specify a package name"}
 SOURCE_DIR="${2:-$1}"
 : "${DATA_DIR:=data}"
 : "${DOCKER_DIR:=docker}"
 : "${DOCS_DIR:=docs}"
 : "${FILE_SEP:=/}"
+: "${MONGO_INIT_DIR:=mongo_init}"
 : "${NODEJS_VERSION:=12}"
 : "${NOTEBOOK_DIR:=notebooks}"
 : "${PROFILE_DIR:=profiles}"
@@ -48,9 +57,12 @@ SUB_DIRECTORIES=("${DATA_DIR}" \
 PY_SHEBANG="#! /usr/bin/env python3"
 PY_ENCODING="# -*- coding: utf-8 -*-"
 
-DOCKER_PATH="${MAIN_DIR}${FILE_SEP}${DOCKER_DIR}${FILE_SEP}"
+ROOT_PATH="${MAIN_DIR}${FILE_SEP}"
+DOCKER_PATH="${ROOT_PATH}${DOCKER_DIR}${FILE_SEP}"
+MONGO_INIT_PATH="${DOCKER_PATH}${MONGO_INIT_DIR}${FILE_SEP}"
+SCRIPTS_PATH="${ROOT_PATH}${SCRIPTS_DIR}${FILE_SEP}"
 SECRETS_PATH="${DOCKER_PATH}${SECRETS_DIR}${FILE_SEP}"
-SRC_PATH="${MAIN_DIR}${FILE_SEP}${SOURCE_DIR}${FILE_SEP}"
+SRC_PATH="${ROOT_PATH}${SOURCE_DIR}${FILE_SEP}"
 TEST_PATH="${SRC_PATH}${TEST_DIR}${FILE_SEP}"
 
 
@@ -99,9 +111,9 @@ cli() {
 common_image() {
     printf "%s\n" \
         "\t&& curl -sL https://deb.nodesource.com/setup_${NODEJS_VERSION}.x | bash - \\\\" \
-        "\t&& apt-get update -y \\\\" \
-        "\t&& apt-get upgrade -y \\\\" \
-        "\t&& apt-get install -y \\\\" \
+        "\t&& apt update -y \\\\" \
+        "\t&& apt upgrade -y \\\\" \
+        "\t&& apt install -y \\\\" \
         "\t\tapt-utils \\\\" \
         "\t\tnodejs \\\\" \
         "\t# && jupyter labextension install @telamonian/theme-darcula \\\\" \
@@ -109,7 +121,7 @@ common_image() {
         "\t# && jupyter labextension install jupyterlab-toc \\\\" \
         "\t&& rm -rf /tmp/* \\\\" \
         "\t&& rm -rf /var/lib/apt/lists/* \\\\" \
-        "\t&& apt-get clean"
+        "\t&& apt clean"
 }
 
 
@@ -211,7 +223,7 @@ coveragerc() {
         "[html]" \
         "directory = htmlcov" \
         "title = ${MAIN_DIR} Test Coverage" \
-        > "${MAIN_DIR}${FILE_SEP}.coveragerc"
+        > "${ROOT_PATH}.coveragerc"
 }
 
 
@@ -419,12 +431,14 @@ directories() {
     mkdir "${MAIN_DIR}"
     # Subdirectories
     for dir in "${SUB_DIRECTORIES[@]}"; do
-        mkdir "${MAIN_DIR}${FILE_SEP}${dir}"
+        mkdir "${ROOT_PATH}${dir}"
     done
+    # MongoDB Initialization directory
+    mkdir "${MONGO_INIT_PATH}"
     # Secrets directory
     mkdir "${SECRETS_PATH}"
     # Sphinx Documentation directory
-    mkdir -p "${MAIN_DIR}${FILE_SEP}docs${FILE_SEP}_build${FILE_SEP}html"
+    mkdir -p "${ROOT_PATH}docs${FILE_SEP}_build${FILE_SEP}html"
     # Test directory
     mkdir "${SRC_PATH}${TEST_DIR}"
 }
@@ -432,12 +446,10 @@ directories() {
 
 docker_compose() {
     printf "%s\n" \
-        "version: '3.8'" \
-        "" \
         "services:" \
         "" \
         "  latex:" \
-        "    container_name: ${MAIN_DIR}_latex" \
+        "    container_name: \${COMPOSE_PROJECT_NAME:-default}_${MAIN_DIR}_latex" \
         "    image: blang/latex" \
         "    networks:" \
         "      - ${MAIN_DIR}-network" \
@@ -447,28 +459,56 @@ docker_compose() {
         "      - ..:/usr/src/${MAIN_DIR}" \
         "    working_dir: /usr/src/${MAIN_DIR}" \
         "" \
+        "  mongodb:" \
+        "    container_name: \${COMPOSE_PROJECT_NAME:-default}_${MAIN_DIR}_mongodb" \
+        "    image: mongo" \
+        "    env_file:" \
+        "        .env" \
+        "    environment:" \
+        "      MONGO_INITDB_ROOT_PASSWORD: /run/secrets/db-init-password" \
+        "      MONGO_INITDB_ROOT_USERNAME: /run/secrets/db-init-username" \
+        "      PORT_MONGO: \${PORT_MONGO}" \
+        "    networks:" \
+        "      - ${MAIN_DIR}-network" \
+        "    ports:" \
+        "      - '\$PORT_MONGO:27017'" \
+        "    restart: always" \
+        "    secrets:" \
+        "      - db-init-password" \
+        "      - db-init-username" \
+        "    volumes:" \
+        "      - ${MAIN_DIR}-db:/var/lib/mongodb/data" \
+        "      - ./${MONGO_INIT_DIR}:/docker-entrypoint-initdb.d" \
+        "" \
         "  nginx:" \
-        "    container_name: ${MAIN_DIR}_nginx" \
+        "    container_name: \${COMPOSE_PROJECT_NAME:-default}_${MAIN_DIR}_nginx" \
+        "    env_file:" \
+        "        .env" \
+        "    environment:" \
+        "      PORT_NGINX: \${PORT_NGINX}" \
         "    image: nginx:alpine" \
         "    networks:"\
         "      - ${MAIN_DIR}-network" \
         "    ports:" \
-        "      - 8080:80" \
+        "      - '\${PORT_NGINX}:80'" \
         "    restart: always" \
         "    volumes:" \
         "      - ../docs/_build/html:/usr/share/nginx/html:ro" \
         "" \
         "  postgres:" \
-        "    container_name: ${MAIN_DIR}_postgres" \
+        "    container_name: \${COMPOSE_PROJECT_NAME:-default}_${MAIN_DIR}_postgres" \
+        "    env_file:" \
+        "        .env" \
         "    image: postgres:alpine" \
         "    environment:" \
+        "      PORT_POSTGRES: \${PORT_POSTGRES}" \
         "      POSTGRES_PASSWORD_FILE: /run/secrets/db-password" \
         "      POSTGRES_DB_FILE: /run/secrets/db-database" \
         "      POSTGRES_USER_FILE: /run/secrets/db-username" \
         "    networks:"\
         "      - ${MAIN_DIR}-network" \
         "    ports:" \
-        "      - 5432:5432" \
+        "      - '\$PORT_POSTGRES:5432'" \
         "    restart: always" \
         "    secrets:" \
         "      - db-database" \
@@ -478,32 +518,44 @@ docker_compose() {
         "      - ${MAIN_DIR}-db:/var/lib/postgresql/data" \
         "" \
         "  pgadmin:" \
-        "    container_name: ${MAIN_DIR}_pgadmin" \
-        "    image: dpage/pgadmin4" \
-        "    depends_on:" \
-        "      - postgres" \
+        "    container_name: \${COMPOSE_PROJECT_NAME:-default}_${MAIN_DIR}_pgadmin" \
+        "    env_file:" \
+        "        .env" \
         "    environment:" \
+        "      PORT_DATABASE_ADMINISTRATION: \$PORT_DATABASE_ADMINISTRATION" \
         "      PGADMIN_DEFAULT_EMAIL: \${PGADMIN_DEFAULT_EMAIL:-pgadmin@pgadmin.org}" \
         "      PGADMIN_DEFAULT_PASSWORD: \${PGADMIN_DEFAULT_PASSWORD:-admin}" \
         "    external_links:" \
         "      - ${MAIN_DIR}_postgres:${MAIN_DIR}_postgres" \
+        "    image: dpage/pgadmin4" \
+        "    depends_on:" \
+        "      - postgres" \
         "    networks:"\
         "      - ${MAIN_DIR}-network" \
         "    ports:" \
-        "      - 5000:80" \
+        "      - '\$PORT_DATABASE_ADMINISTRATION:80'" \
         "" \
         "  python:" \
-        "    container_name: ${MAIN_DIR}_python" \
+        "    container_name: \${COMPOSE_PROJECT_NAME:-default}_${MAIN_DIR}_python" \
         "    build:" \
         "      context: .." \
-        "      dockerfile: docker/python.Dockerfile" \
+        "      dockerfile: docker/\${ENVIRONMENT}.Dockerfile" \
         "    depends_on:" \
         "      - postgres" \
+        "    env_file:" \
+        "        .env" \
+        "    environment:" \
+        "      - ENVIRONMENT=\${ENVIRONMENT}" \
+        "      - PORT_GOOGLE=\${PORT_GOOGLE}" \
+        "      - PORT_JUPYTER=\${PORT_JUPYTER}" \
+        "      - PORT_PROFILE=\${PORT_PROFILE}" \
         "    image: ${MAIN_DIR}_python" \
         "    networks:"\
         "      - ${MAIN_DIR}-network" \
         "    ports:" \
-        "      - 8888:8080" \
+        "      - \${PORT_GOOGLE}:6006" \
+        "      - \${PORT_JUPYTER}:\${PORT_JUPYTER}" \
+        "      - \${PORT_PROFILE}:\${PORT_PROFILE}" \
         "    restart: always" \
         "    secrets:" \
         "      - db-database" \
@@ -515,7 +567,7 @@ docker_compose() {
         "" \
         "networks:" \
         "  ${MAIN_DIR}-network:" \
-        "    name: ${MAIN_DIR}" \
+        "    name: \${COMPOSE_PROJECT_NAME:-default}-${MAIN_DIR}-network" \
         "" \
         "secrets:" \
         "  db-database:" \
@@ -524,11 +576,21 @@ docker_compose() {
         "    file: secrets/db_password.txt" \
         "  db-username:" \
         "    file: secrets/db_username.txt" \
+        "  db-init-password:" \
+        "    file: secrets/db_init_password.txt" \
+        "  db-init-username:" \
+        "    file: secrets/db_init_username.txt" \
         "" \
         "volumes:" \
         "  ${MAIN_DIR}-db:" \
+        "    name: \${COMPOSE_PROJECT_NAME:-default}-${MAIN_DIR}-db" \
         "" \
         > "${DOCKER_PATH}docker-compose.yaml"
+}
+
+
+docker_env_link() {
+    ln "${ROOT_PATH}usr_vars" "${DOCKER_PATH}.env"
 }
 
 
@@ -541,7 +603,7 @@ docker_ignore() {
         ".pytest" \
         "wheels" \
         "" \
-        > "${MAIN_DIR}${FILE_SEP}.dockerignore"
+        > "${ROOT_PATH}.dockerignore"
 }
 
 
@@ -564,20 +626,71 @@ docker_python() {
 }
 
 
+docker_nvidia_frameworks() {
+    ngc_containers_url="https://catalog.ngc.nvidia.com/orgs/nvidia/containers/"
+    ngc_latest_tag_regex='(?<=latestTag":")(.*?)(?=")'
+
+    printf "%s\n" \
+        "****************************************************************" \
+        "" \
+        "Scraping latest NVIDIA container tags..." \
+        "" \
+        "" \
+
+    docker container run -dit --name nvidia_tags ubuntu:latest > /dev/null
+    docker container exec nvidia_tags \
+        /bin/bash -c \
+            "apt update -y \
+             && apt install -y curl" \
+        > /dev/null
+
+    pytorch_tag=$(docker container exec nvidia_tags \
+        /bin/bash -c \
+            "curl \"$ngc_containers_url\"pytorch \
+             | grep -Po '$ngc_latest_tag_regex'"
+    )
+    docker_pytorch "${pytorch_tag}"
+
+    tensorflow_tag=$(docker container exec nvidia_tags \
+        /bin/bash -c \
+            "curl \"${ngc_containers_url}\"tensorflow \
+             | grep -Po '${ngc_latest_tag_regex}'" \
+    )
+    docker_tensorflow "${tensorflow_tag}"
+
+    docker container rm -f nvidia_tags > /dev/null
+
+    printf "%s\n" \
+        "" \
+        "" \
+        "Dockerfiles for NVIDIA optimized frameworks complete!" \
+        "    - PyTorch: $pytorch_tag" \
+        "    - TensorFlow: $tensorflow_tag" \
+        "" \
+        "****************************************************************"
+}
+
+
 docker_pytorch() {
     printf "%b\n" \
-        "FROM pytorch/pytorch" \
+        "FROM nvcr.io/nvidia/pytorch:$1" \
+        "" \
+        "ENV TORCH_HOME=/usr/src/${MAIN_DIR}/cache" \
         "" \
         "WORKDIR /usr/src/${MAIN_DIR}" \
         "" \
         "COPY . ." \
         "" \
-        "RUN conda update -y conda \\\\" \
-        "\t&& conda update -y --all \\\\" \
-        "\t&& while read requirement; do conda install --yes \${requirement}; done < requirements.txt \\\\" \
-        "\t&& conda install -y pytorch torchvision -c pytorch \\\\" \
-        "\t&& pip install -e .[build,data,database,docs,notebook,profile,test] \\\\" \
-        "$(common_image)" \
+        "RUN pip install -e .[all] \\" \
+        "        && apt update -y \\" \
+        "        # && apt -y upgrade \\" \
+        "        && apt install -y\\" \
+        "                fonts-humor-sans \\" \
+        "        # && conda update -y conda \\" \
+        "        # && while read requirement; do conda install --yes \${requirement}; done < requirements_pytorch.txt \\" \
+        "        && rm -rf /tmp/* \\" \
+        "        && rm -rf /var/lib/apt/lists/* \\" \
+        "        && apt clean -y" \
         "" \
         "CMD [ \"/bin/bash\" ]" \
         "" \
@@ -587,23 +700,24 @@ docker_pytorch() {
 
 docker_tensorflow() {
     printf "%b\n" \
-        "FROM nvcr.io/nvidia/tensorflow:21.04-tf2-py3" \
+        "FROM nvcr.io/nvidia/tensorflow:$1" \
         "" \
         "WORKDIR /usr/src/${SOURCE_DIR}" \
         "" \
         "COPY . ." \
         "" \
         "RUN cd /opt \\\\" \
-        "\t&& apt-get update -y \\\\" \
-        "\t#&& apt-get upgrade -y \\\\  Do not upgrade NVIDIA image OS" \
-        "\t&& apt-get install -y \\\\" \
+        "\t&& apt update -y \\\\" \
+        "\t#&& apt upgrade -y \\\\  Do not upgrade NVIDIA image OS" \
+        "\t&& apt install -y \\\\" \
         "\t\tapt-utils \\\\" \
+        "\t\tfonts-humor-sans \\" \
         "\t&& cd /usr/src/${SOURCE_DIR} \\\\" \
         "\t&& pip install --upgrade pip \\\\" \
         "\t&& pip install -e .[all] \\\\" \
         "\t&& rm -rf /tmp/* \\\\" \
         "\t&& rm -rf /var/lib/apt/lists/* \\\\" \
-        "\t&& apt-get clean" \
+        "\t&& apt clean" \
         "" \
         "CMD [ \"/bin/bash\" ]" \
         "" \
@@ -642,7 +756,7 @@ exceptions() {
 git_attributes() {
     printf "%s\n" \
         "*.ipynb    filter=jupyter_clear_output" \
-        > "${MAIN_DIR}${FILE_SEP}.gitattributes"
+        > "${ROOT_PATH}.gitattributes"
 }
 
 
@@ -655,14 +769,12 @@ git_config() {
         "             --ClearOutputPreprocessor.enabled=True\"" \
         "    smudge = cat" \
         "    required = true" \
-        > "${MAIN_DIR}${FILE_SEP}.gitconfig"
+        > "${ROOT_PATH}.gitconfig"
 }
 
 
 git_ignore() {
     printf "%s\n" \
-        "# Docker secret files" \
-        "docker/secrets/*" \
         "# Compiled source" \
         "build${FILE_SEP}*" \
         "*.com" \
@@ -675,6 +787,10 @@ git_ignore() {
         "*.pdf" \
         "*.pyc" \
         "*.so" \
+        "" \
+        "# Docker files" \
+        "docker/.env" \
+        "docker/secrets/*" \
         "" \
         "# Ipython files" \
         ".ipynb_checkpoints" \
@@ -714,7 +830,7 @@ git_ignore() {
         "" \
         "# PyCharm files" \
         ".idea${FILE_SEP}*" \
-        "${MAIN_DIR}${FILE_SEP}.idea${FILE_SEP}*" \
+        "${ROOT_PATH}.idea${FILE_SEP}*" \
         "" \
         "# pytest files" \
         ".cache${FILE_SEP}*" \
@@ -729,12 +845,15 @@ git_ignore() {
         "docs/_static/*" \
         "docs/_templates/*" \
         "docs/Makefile" \
-        > "${MAIN_DIR}${FILE_SEP}.gitignore"
+        "" \
+        "# User specific files" \
+        "usr_vars" \
+        "" \
+        > "${ROOT_PATH}.gitignore"
 }
 
 
 git_init() {
-    cd "${MAIN_DIR}" || exit
     git init
     git add --all
     git commit -m "Initial Commit"
@@ -770,13 +889,23 @@ license() {
         "ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT" \
         "(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS" \
         "SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE." \
-        > "${MAIN_DIR}${FILE_SEP}LICENSE.txt"
+        > "${ROOT_PATH}LICENSE.txt"
 }
 
 
 makefile() {
     printf "%b\n" \
         "PROJECT=${MAIN_DIR}" \
+        "" \
+        "ifeq (, \$(wildcard docker/.env))" \
+        "        \$(shell scripts/create_usr_vars.sh)" \
+        "        \$(info #######################################################)" \
+        "        \$(info # Created user variables file: usr_vars #)" \
+        "        \$(info #######################################################)" \
+        "endif" \
+        "include usr_vars" \
+        "export" \
+        "" \
         "ifeq (\"\$(shell uname -s)\", \"Linux*\")" \
         "\tBROWSER=/usr/bin/firefox" \
         "else ifeq (\"\$(shell uname -s)\", \"Linux\")" \
@@ -784,31 +913,23 @@ makefile() {
         "else" \
         "\tBROWSER=open" \
         "endif" \
-        "MOUNT_DIR=\$(shell pwd)" \
-        "MODELS=/opt/models" \
-        "PKG_MANAGER=pip" \
-        "PORT:=\$(shell awk -v min=16384 -v max=32768 'BEGIN{srand(); print int(min+rand()*(max-min+1))}')" \
-        "NOTEBOOK_NAME=\$(USER)_notebook_\$(PORT)" \
+        "" \
+        "CONTAINER_PREFIX:=\$(COMPOSE_PROJECT_NAME)_\$(PROJECT)" \
+        "DOCKER_IMAGE=\$(shell head -n 1 docker/\$(FRAMEWORK).Dockerfile | cut -d ' ' -f 2)" \
+        "PKG_MANAGER=conda" \
         'PROFILE_PY:=""' \
         "PROFILE_PROF:=\$(notdir \$(PROFILE_PY:.py=.prof))" \
         "PROFILE_PATH:=profiles/\$(PROFILE_PROF)" \
         "SRC_DIR=/usr/src/${SOURCE_DIR}" \
-        "TEX_DIR:=\"\"" \
-        "TEX_FILE:=\"*.tex\"" \
         "TEX_WORKING_DIR=\${SRC_DIR}/\${TEX_DIR}" \
-        "USER=\$(shell echo \$\${USER%%@*})" \
-        "VERSION=\$(shell echo \$(shell cat ${SOURCE_DIR}/__init__.py | \\\\" \
-        "\t\t\tgrep \"^__version__\" | \\\\" \
-        "\t\t\tcut -d = -f 2))" \
-        "JUPYTER=lab" \
-        "NOTEBOOK_CMD=\"\${BROWSER} \$\$(docker container exec \$(USER)_notebook_\$(PORT) jupyter \$(JUPYTER) list | grep -o '^http\S*')\"" \
-        "NOTEBOOK_DELAY=10" \
+        "USER:=\$(shell echo \$\${USER%%@*})" \
+        "USER_ID:=\$(shell id -u \$(USER))" \
+        "VERSION=\$(shell echo \$(shell cat ${SOURCE_DIR}/__init__.py | grep \"^__version__\" | cut -d = -f 2))" \
         "" \
         ".PHONY: docs format-style upgrade-packages" \
         "" \
         "deploy: docker-up" \
-        "\tdocker container exec \$(PROJECT)_python \\\\" \
-        "\t\tpip3 wheel --wheel-dir=wheels ." \
+        "\tdocker container exec \$(CONTAINER_PREFIX)_python pip3 wheel --wheel-dir=wheels ." \
         "\tgit tag -a v\$(VERSION) -m \"Version \$(VERSION)\"" \
         "\t@echo" \
         "\t@echo" \
@@ -828,13 +949,13 @@ makefile() {
         "\tdocker-compose -f docker/docker-compose.yaml up -d" \
         "" \
         "docs: docker-up" \
-        "\tdocker container exec \$(PROJECT)_python \\\\" \
+        "\tdocker container exec \$(CONTAINER_PREFIX)_python \\\\" \
         "\t\t/bin/bash -c \"pip install -e .[docs] && cd docs && make html\"" \
-        "\t\${BROWSER} http://localhost:8080\n" \
+        "\t\${BROWSER} http://localhost:\$(PORT_NGINX)" \
         "" \
         "docs-init: docker-up" \
         "\tfind docs -maxdepth 1 -type f -delete" \
-        "\tdocker container exec \$(PROJECT)_python \\\\" \
+        "\tdocker container exec \$(CONTAINER_PREFIX)_python \\\\" \
         "\t\t/bin/bash -c \\\\" \
         "\t\t\t\"cd docs \\\\" \
         "\t\t\t && sphinx-quickstart -q \\\\" \
@@ -846,181 +967,126 @@ makefile() {
         "\t\t\t\t--makefile \\\\" \
         "\t\t\t\t--no-batchfile\"" \
         "\tdocker-compose -f docker/docker-compose.yaml restart nginx" \
-        "ifeq (\"\$(shell git remote)\", \"origin\")" \
         "\tgit fetch" \
         "\tgit checkout origin/master -- docs/" \
-        "else" \
-        "\tdocker container run --rm \\\\" \
-        "\t\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\" \
-        "\t\t-w /usr/src/\$(PROJECT)/docs \\\\" \
-        "\t\tubuntu \\\\" \
-        "\t\t/bin/bash -c \\\\" \
-        "\t\t\t\"sed -i -e 's/# import os/import os/g' conf.py \\\\" \
-        "\t\t\t && sed -i -e 's/# import sys/import sys/g' conf.py \\\\" \
-        "\t\t\t && sed -i \\\\\"/# sys.path.insert(0, os.path.abspath('.'))/d\\\\\" \\\\" \
-        "\t\t\t\tconf.py \\\\" \
-        "\t\t\t && sed -i -e \\\\\"/import sys/a \\\\" \
-        "\t\t\t\tfrom ${SOURCE_DIR} import __version__ \\\\" \
-        "\t\t\t\t\\\\n\\\\nsys.path.insert(0, os.path.abspath('../${SOURCE_DIR}'))\\\\\" \\\\" \
-        "\t\t\t\tconf.py \\\\" \
-        "\t\t\t && sed -i -e \\\\\"s/version = '0.1.0'/version = __version__/g\\\\\" \\\\" \
-        "\t\t\t\tconf.py \\\\" \
-        "\t\t\t && sed -i -e \\\\\"s/release = '0.1.0'/release = __version__/g\\\\\" \\\\" \
-        "\t\t\t\tconf.py \\\\" \
-        "\t\t\t && sed -i -e \\\\\"s/alabaster/sphinx_rtd_theme/g\\\\\" \\\\" \
-        "\t\t\t\tconf.py \\\\" \
-        "\t\t\t && sed -i -e 's/[ \\\\t]*\$\$//g' conf.py \\\\" \
-        "\t\t\t && echo >> conf.py \\\\" \
-        "\t\t\t && sed -i \\\\\"/   :caption: Contents:/a \\\\" \
-        "\t\t\t\t\\\\\\\\\\\\\\\\\\\\n   package\\\\\" \\\\" \
-        "\t\t\t\tindex.rst\"" \
-        "\tprintf \"%s\\\\n\" \\\\" \
-        "\t\t\"Package Modules\" \\\\" \
-        "\t\t\"===============\" \\\\" \
-        "\t\t\"\" \\\\" \
-        "\t\t\".. toctree::\" \\\\" \
-        "\t\t\"    :maxdepth: 2\" \\\\" \
-        "\t\t\"\" \\\\" \
-        "\t\t\"cli\" \\\\" \
-        "\t\t\"---\" \\\\" \
-        "\t\t\".. automodule:: cli\" \\\\" \
-        "\t\t\"    :members:\" \\\\" \
-        "\t\t\"    :show-inheritance:\" \\\\" \
-        "\t\t\"    :synopsis: Package command line interface calls.\" \\\\" \
-        "\t\t\"\" \\\\" \
-        "\t\t\"db\" \\\\" \
-        "\t\t\"--\" \\\\" \
-        "\t\t\".. automodule:: db\" \\\\" \
-        "\t\t\"    :members:\" \\\\" \
-        "\t\t\"    :show-inheritance:\" \\\\" \
-        "\t\t\"    :synopsis: Package database module.\" \\\\" \
-        "\t\t\"\" \\\\" \
-        "\t\t\"utils\" \\\\" \
-        "\t\t\"-----\" \\\\" \
-        "\t\t\".. automodule:: utils\" \\\\" \
-        "\t\t\"    :members:\" \\\\" \
-        "\t\t\"    :show-inheritance:\" \\\\" \
-        "\t\t\"    :synopsis: Package utilities module.\" \\\\" \
-        "\t\t\"\" \\\\" \
-        "\t> \"docs/package.rst\"" \
-        "endif" \
         "" \
         "docs-view: docker-up" \
-        "\t\${BROWSER} http://localhost:8080" \
+        "\t\${BROWSER} http://localhost:\$(PORT_NGINX)" \
         "" \
         "format-style: docker-up" \
-        "\tdocker container exec \$(PROJECT)_python yapf -i -p -r --style \"pep8\" \${SRC_DIR}" \
+        "\tdocker container exec \$(CONTAINER_PREFIX)_python yapf -i -p -r --style \"pep8\" \${SRC_DIR}" \
+        "" \
+        "getting-started: secret-templates docs-init" \
+        "\tmkdir -p cache" \
+        "\tmkdir -p htmlcov" \
+        "\tmkdir -p notebooks" \
+        "\tmkdir -p profiles" \
+        "\tmkdir -p wheels" \
         "" \
         "ipython: docker-up" \
-        "\tdocker container exec -it \$(PROJECT)_python ipython" \
+        "\tdocker container exec -it \$(CONTAINER_PREFIX)_python ipython" \
         "" \
         "latexmk: docker-up" \
-        "\tdocker container exec -w \$(TEX_WORKING_DIR) \$(PROJECT)_latex \\\\" \
+        "\tdocker container exec -w \$(TEX_WORKING_DIR) \$(CONTAINER_PREFIX)_latex \\\\" \
         "\t\t/bin/bash -c \"latexmk -f -pdf \$(TEX_FILE) && latexmk -c\"" \
         "" \
+        "mongo-create-admin: docker-up" \
+        "\tdocker container exec \$(CONTAINER_PREFIX)_mongodb ./docker-entrypoint-initdb.d/create_admin.sh" \
+        "" \
+        "mongo-create-user: docker-up" \
+        "\tdocker container exec \$(CONTAINER_PREFIX)_mongodb ./docker-entrypoint-initdb.d/create_user.sh -u \$(DB_USERNAME) -p \$(DB_PASSWORD) -d \$(DB)" \
+        "" \
         "notebook: docker-up notebook-server" \
-        "\tsleep 2" \
-        "\t(eval \${NOTEBOOK_CMD} || sleep \${NOTEBOOK_DELAY}) || eval \${NOTEBOOK_CMD}" \
+	      "\t@echo \"\\\\n\\\\n\\\\n##################################################\"" \
+	      "\t@echo \"\\\\nUse this link on the host to access the Jupyter server.\"" \
+	      "\t@docker container exec \$(CONTAINER_PREFIX)_python \\\\" \
+	      "\t\t/bin/bash -c \\\\" \
+	      "\t\t\t\"jupyter notebook list \\\\" \
+	      "\t\t\t | grep -o '^http\S*' \\\\" \
+	      "\t\t\t | sed -e 's/\(http:\/\/\).*\(:\)/\1localhost:\2/' \\\\" \
+	      "\t\t\t | sed -e 's/tree/lab/'\"" \
+	      "\t@echo \"\\\\n##################################################\"" \
         "" \
-        "notebook-remove:" \
-        "\tdocker container rm -f \$\$(docker container ls -f name=\$(USER)_notebook -q)" \
+        "notebook-server: notebook-stop-server" \
+	      "\t@docker container exec \$(CONTAINER_PREFIX)_python \\\\" \
+		    "\t\t/bin/bash -c \\\\" \
+			  "\t\t\t\"jupyter lab \\\\" \
+				"\t\t\t\t--allow-root \\\\" \
+				"\t\t\t\t--ip=0.0.0.0 \\\\" \
+				"\t\t\t\t--no-browser \\\\" \
+				"\t\t\t\t--port=\$(PORT_JUPYTER) \\\\" \
+				"\t\t\t\t&\"" \
         "" \
-        "notebook-server:" \
-        "\tdocker container run -d --rm \\\\" \
-        "\t\t--name \$(NOTEBOOK_NAME) \\\\" \
-        "\t\t-p \$(PORT):\$(PORT) \\\\" \
-        "\t\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\" \
-        "\t\t\$(PROJECT)_python \\\\" \
-        "\t\t/bin/bash -c \"jupyter \$(JUPYTER) \\\\" \
-        "\t\t\t\t--allow-root \\\\" \
-        "\t\t\t\t--ip=0.0.0.0 \\\\" \
-        "\t\t\t\t--no-browser \\\\" \
-        "\t\t\t\t--port=\$(PORT)\"" \
-        "\tdocker network connect \$(PROJECT) \$(NOTEBOOK_NAME)" \
+        "notebook-stop-server:" \
+        "\t@-docker container exec \$(CONTAINER_PREFIX)_python \\\\" \
+		    "\t\t/bin/bash -c \"jupyter notebook stop \$(PORT_JUPYTER)\"" \
+        "" \
+        "package-dependencies: docker-up" \
+        "\tprintf \"%s\\\\n\" \\\\" \
+        "\t\t\"# Backpack Version: \$(VERSION)\" \\\\" \
+        "\t\t\"# From NVIDIA NGC CONTAINER: \$(DOCKER_IMAGE)\" \\\\" \
+        "\t\t\"#\" \\\\" \
+        "\t> requirements_\$(ENVIRONMENT).txt" \
+        "ifeq (\"\${PKG_MANAGER}\", \"conda\")" \
+        "\tdocker container exec \$(CONTAINER_PREFIX)_python \\\\" \
+        "\t\t/bin/bash -c \\\\" \
+        "\t\t\t\"conda list --export >> requirements_\$(ENVIRONMENT).txt \\\\" \
+        "\t\t\t && sed -i -e '/^\$(PROJECT)/ s/./# &/' requirements_\$(ENVIRONMENT).txt\"" \
+        "else ifeq (\"\${PKG_MANAGER}\", \"pip\")" \
+        "\tdocker container exec \$(CONTAINER_PREFIX)_python \\\\" \
+        "\t\t/bin/bash -c \\\\" \
+        "\t\t\t\"pip freeze >> requirements_\$(ENVIRONMENT).txt \\\\" \
+        "\t\t\t && sed -i -e '/^-e/d' requirements_\$(ENVIRONMENT).txt\"" \
+        "endif" \
         "" \
         "pgadmin: docker-up" \
-        "\t\${BROWSER} http://localhost:5000" \
+        "\t\${BROWSER} http://localhost:\$(PORT_DATABASE_ADMINISTRATION)" \
         "" \
         "profile: docker-up" \
-        "\tdocker container exec \$(PROJECT)_python \\\\" \
+        "\t@docker container exec \$(CONTAINER_PREFIX)_python \\\\" \
         "\t\t/bin/bash -c \\\\" \
-        "\t\t\t\"python \\\\" \
-        "\t\t\t\t-m cProfile \\\\" \
-        "\t\t\t\t-o \$(PROFILE_PATH) \\\\" \
-        "\t\t\t\t\$(PROFILE_PY)\"" \
+        "\t\t\t\"python -m cProfile -o \$(PROFILE_PATH) \$(PROFILE_PY)\"" \
         "psql: docker-up" \
-        "\tdocker container exec -it \$(PROJECT)_postgres \\\\" \
-        "" \
+        "\tdocker container exec -it \$(CONTAINER_PREFIX)_postgres \\\\" \
         "\t\tpsql -U \${POSTGRES_USER} \$(PROJECT)" \
         "" \
-        "pytorch: pytorch-docker docker-rebuild" \
-        "" \
-        "pytorch-docker:" \
+        "secret-templates:" \
         "\tdocker container run --rm \\\\" \
         "\t\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\" \
-        "\t\t-w /usr/src/\$(PROJECT) \\\\" \
-        "\t\tubuntu \\\\" \
+        "\t-w /usr/src/\$(PROJECT)/docker/secrets \\\\" \
+        "\tubuntu \\\\" \
         "\t\t/bin/bash -c \\\\" \
-        "\t\t\t\"sed -i -e 's/python.Dockerfile/pytorch.Dockerfile/g' \\\\" \
-        "\t\t\t\tdocker/docker-compose.yaml \\\\" \
-        "\t\t\t && sed -i -e 's/tensorflow.Dockerfile/pytorch.Dockerfile/g' \\\\" \
-        "\t\t\t\tdocker/docker-compose.yaml \\\\" \
-        "\t\t\t && sed -i -e 's/PKG_MANAGER=pip/PKG_MANAGER=conda/g' \\\\" \
-        "\t\t\t\tMakefile\"" \
+        "\t\t\t\"printf '%s' \"password\" >> 'password.txt' \\\\" \
+        "\t\t\t&& printf '%s' \"username\" >> 'username.txt' \\\\" \
+        "\t\t\t&& printf '%s' \"\$(PROJECT)\" >> 'package.txt' \\\\" \
+        "\t\t\t&& printf '%s' \"admin\" >> 'db_init_password.txt' \\\\" \
+        "\t\t\t&& printf '%s' \"admin\" >> 'db_init_username.txt' \\\\" \
+        "\t\t\t&& useradd -u \$(USER_ID) \$(USER) &> /dev/null || true \\\\" \
+        "\t\t\t&& chown -R \$(USER):\$(USER) *\"" \
         "" \
         "snakeviz: docker-up profile snakeviz-server" \
         "\tsleep 0.5" \
-        "\t\${BROWSER} http://0.0.0.0:\$(PORT)/snakeviz/" \
-        "" \
-        "snakeviz-remove:" \
-        "\tdocker container rm -f \$\$(docker container ls -f name=snakeviz -q)" \
+        "\t\${BROWSER} http://0.0.0.0:\$(PORT_PROFILE)/snakeviz/" \
         "" \
         "snakeviz-server: docker-up" \
-        "\tdocker container run -d --rm \\\\" \
-        "\t\t--name snakeviz_\$(PORT) \\\\" \
-        "\t\t-p \$(PORT):\$(PORT) \\\\" \
-        "\t\t-w /usr/src/\$(PROJECT)/profiles \\\\" \
-        "\t\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\" \
-        "\t\t\$(PROJECT)_python \\\\" \
-        "\t\t/bin/bash -c \\\\" \
-        "\t\t\t\"snakeviz \$(PROFILE_PROF) \\\\" \
-        "\t\t\t\t--hostname 0.0.0.0 \\\\" \
-        "\t\t\t\t--port \$(PORT) \\\\" \
-        "\t\t\t\t--server\"" \
-        "\tdocker network connect \$(PROJECT) snakeviz_\$(PORT)" \
-        "" \
-        "tensorflow: tensorflow-updates docker-rebuild" \
-        "" \
-        "tensorflow-updates:" \
-        "\tdocker container run --rm \\\\" \
-        "\t\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\" \
-        "\t\t-w /usr/src/\$(PROJECT) \\\\" \
-        "\t\tubuntu \\\\" \
-        "\t\t/bin/bash -c \\\\" \
-        "\t\t\t\"sed -i -e 's/python.Dockerfile/tensorflow.Dockerfile/g' \\\\" \
-        "\t\t\t\tdocker/docker-compose.yaml \\\\" \
-        "\t\t\t && sed -i -e 's/pytorch.Dockerfile/tensorflow.Dockerfile/g' \\\\" \
-        "\t\t\t\tdocker/docker-compose.yaml \\\\" \
-        "\t\t\t && sed -i -e 's/PKG_MANAGER=conda/PKG_MANAGER=pip/g' \\\\" \
-        "\t\t\t\tMakefile \\\\" \
-        "\t\t\t && sed -i -e 's/JUPYTER=lab/JUPYTER=notebook/g' Makefile \\\\" \
-        "\t\t\t && echo '*********************************************************************************' \\\\" \
-        "\t\t\t && echo '*********************************************************************************' \\\\" \
-        "\t\t\t && echo \\" \
-        "\t\t\t && echo 'Add \\\"tensorflow\\\" or \\\"tensorflow-gpu\\\" to install_requires in the setup.py file' \\\\" \
-        "\t\t\t && echo \\" \
-        "\t\t\t && echo '*********************************************************************************' \\\\" \
-        "\t\t\t && echo '*********************************************************************************'\"" \
+        "\t@docker container exec \\\\" \
+	      "\t\t-w /usr/src/\$(PROJECT)/profiles \\\\" \
+	      "\t\t\$(CONTAINER_PREFIX)_python \\\\" \
+	      "\t\t/bin/bash -c \\\\" \
+	      "\t\t\t\"snakeviz \$(PROFILE_PROF) \\\\" \
+	      "\t\t\t\t--hostname 0.0.0.0 \\\\" \
+	      "\t\t\t\t--port \$(PORT_PROFILE) \\\\" \
+	      "\t\t\t\t--server &\"" \
         "" \
         "test: docker-up format-style" \
-        "\tdocker container exec \$(PROJECT)_python py.test \$(PROJECT)" \
+        "\tdocker container exec \$(CONTAINER_PREFIX)_python py.test \$(PROJECT)" \
         "" \
         "test-coverage: test" \
 	      "\t\${BROWSER} htmlcov/index.html"\
         "" \
         "upgrade-packages: docker-up" \
         "ifeq (\"\${PKG_MANAGER}\", \"pip\")" \
-        "\tdocker container exec \$(PROJECT)_python \\\\" \
+        "\tdocker container exec \$(CONTAINER_PREFIX)_python \\\\" \
         "\t\t/bin/bash -c \\\\" \
         "\t\t\t\"pip3 install -U pip \\\\" \
         "\t\t\t && pip3 freeze | \\\\" \
@@ -1030,21 +1096,78 @@ makefile() {
         "\t\t\t && pip3 freeze > requirements.txt \\\\" \
         "\t\t\t && sed -i -e '/^-e/d' requirements.txt\"" \
         "else ifeq (\"\${PKG_MANAGER}\", \"conda\")" \
-        "\tdocker container exec \$(PROJECT)_python \\\\" \
+        "\tdocker container exec \$(CONTAINER_PREFIX)_python \\\\" \
         "\t\t/bin/bash -c \\\\" \
         "\t\t\t\"conda update conda \\\\" \
         "\t\t\t && conda update --all \\\\" \
         "\t\t\t && pip freeze > requirements.txt \\\\" \
         "\t\t\t && sed -i -e '/^-e/d' requirements.txt\"" \
         "endif" \
-        > "${MAIN_DIR}${FILE_SEP}Makefile"
+        > "${ROOT_PATH}Makefile"
 }
 
 
 manifest() {
     printf "%s\n" \
         "include LICENSE.txt" \
-        > "${MAIN_DIR}${FILE_SEP}MANIFEST.in"
+        > "${ROOT_PATH}MANIFEST.in"
+}
+
+
+mongo_create_admin() {
+    printf "%s\n" \
+        "#!/bin/bash" \
+        "# create_admin.sh" \
+        "" \
+        "# Create Administrator" \
+        "mongo admin -u \$MONGO_INITDB_ROOT_USERNAME -p \$MONGO_INITDB_ROOT_PASSWORD << EOF" \
+        '    db.createUser({user: "admin", pwd: "admin", roles: ["root"]});' \
+        "EOF" \
+        "" \
+        > "${MONGO_INIT_PATH}create_admin.sh"
+}
+
+
+mongo_create_user() {
+    printf "%s\n" \
+        "#!/bin/bash" \
+        "" \
+        "help_function()" \
+        "{" \
+        "   echo \"\"" \
+        "   echo \"Script will create a MongoDB database user with supplied password.\"" \
+        "   echo \"\"" \
+        "   echo \"Usage: \$0 -u username -p password -db database\"" \
+        "   echo -e \"\t-u username\"" \
+        "   echo -e \"\t-p password\"" \
+        "   echo -e \"\t-d database\"" \
+        "   exit 1" \
+        "}" \
+        "" \
+        'while getopts "u:p:d:" opt' \
+        "do" \
+        "    case \"\$opt\" in" \
+        "      u ) username=\"\$OPTARG\" ;;" \
+        "      p ) password=\"\$OPTARG\" ;;" \
+        "      d ) database=\"\$OPTARG\" ;;" \
+        "      ? ) help_function ;;" \
+        "   esac" \
+        "done" \
+        "" \
+        "# Print help_function in case parameters are empty" \
+        "if [ -z \"\$username\" ] || [ -z \"\$password\" ] || [ -z \"\$database\" ]" \
+        "then" \
+        "   echo \"\"" \
+        "   echo \"Missing Parameters: All parameters are required.\";" \
+        "   help_function" \
+        "fi" \
+        "" \
+        "# Create User" \
+        "mongo admin -u \$MONGO_INITDB_ROOT_USERNAME -p \$MONGO_INITDB_ROOT_PASSWORD << EOF" \
+        "    db.createUser({user: \"\${username}\", pwd: \"\${password}\", roles: [\"readWrite\"]});" \
+        "EOF" \
+        "" \
+        > "${MONGO_INIT_PATH}create_user.sh"
 }
 
 
@@ -1063,7 +1186,7 @@ pull_request_template() {
         "" \
         "# Issues Closed (optional)" \
         "- < issue(s) reference >" \
-        > "${MAIN_DIR}${FILE_SEP}.github${FILE_SEP}PULL_REQUEST_TEMPLATE.md"
+        > "${ROOT_PATH}.github${FILE_SEP}PULL_REQUEST_TEMPLATE.md"
 }
 
 
@@ -1137,7 +1260,7 @@ readme() {
         "    GRANT USAGE ON SCHEMA public TO new_user;" \
         "    GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO new_user;" \
         "    \`\`\`" \
-        "1. \`Database\` -> \`New\` -> \`Data Source\` -> \`PostgreSQL\`" \
+        "1. \`Database\` -> \`New\` -> \`Data Source\` -> \`PostgresSQL\`" \
         "1. \`Name\`: ${MAIN_DIR}_postgres@localhost" \
         "1. \`Host\`: localhost" \
         "1. \`Port\`: 5432" \
@@ -1178,7 +1301,7 @@ readme() {
         "    - \`%load_ext memory_profiler\`" \
         "1. Run profiler" \
         "    - \`%memit enter_code_here\`" \
-        > "${MAIN_DIR}${FILE_SEP}README.md"
+        > "${ROOT_PATH}README.md"
 }
 
 
@@ -1190,12 +1313,12 @@ release_history() {
         "**Improvements**" \
         "" \
         "- "\
-        > "${MAIN_DIR}${FILE_SEP}HISTORY.md"
+        > "${ROOT_PATH}HISTORY.md"
 }
 
 
 requirements() {
-    touch "${MAIN_DIR}${FILE_SEP}requirements.txt"
+    touch "${ROOT_PATH}requirements.txt"
 }
 
 
@@ -1217,6 +1340,19 @@ secret_db_username() {
     printf "%s" \
         "postgres" \
         > "${SECRETS_PATH}db_username.txt"
+}
+
+secret_db_init_password() {
+    printf "%s" \
+        "admin" \
+        > "${SECRETS_PATH}db_init_password.txt"
+}
+
+
+secret_db_init_username() {
+    printf "%s" \
+        "admin" \
+        > "${SECRETS_PATH}db_init_username.txt"
 }
 
 
@@ -1261,7 +1397,7 @@ setup_cfg() {
         "        wheels" \
         "    --pycodestyle" \
         "" \
-        > "${MAIN_DIR}${FILE_SEP}setup.cfg"
+        > "${ROOT_PATH}setup.cfg"
 }
 
 
@@ -1291,9 +1427,16 @@ setup_py() {
         "        'jupyter'," \
         "        'jupyterlab'," \
         "    }," \
+        "    'mongo': {" \
+        "        'pymongo'," \
+        "    }," \
         "    'profile': {" \
         "        'memory_profiler'," \
         "        'snakeviz'," \
+        "    }," \
+        "    'postgres': {" \
+        "        'psycopg2-binary'," \
+        "        'sqlalchemy'," \
         "    }," \
         "    'test': {" \
         "        'Faker'," \
@@ -1356,10 +1499,7 @@ setup_py() {
         "      install_requires=[" \
         "          'click'," \
         "          'matplotlib'," \
-        "          'opencv-python-headless'," \
         "          'pandas'," \
-        "          'psycopg2-binary'," \
-        "          'sqlalchemy'," \
         "          'yapf'," \
         "      ]," \
         "      extras_require={" \
@@ -1367,6 +1507,10 @@ setup_py() {
         "          'build': combine_dependencies(('build', 'test'))," \
         "          'docs': combine_dependencies('docs')," \
         "          'jupyter': combine_dependencies('jupyter')," \
+        "          'mongo': combine_dependencies(" \
+        "              [x for x in dependencies if 'postgres' not in x])," \
+        "          'postgres': combine_dependencies(" \
+        "              [x for x in dependencies if 'mongo' not in x])," \
         "          'profile': combine_dependencies('profile')," \
         "          'test': combine_dependencies('test')," \
         "      }," \
@@ -1378,7 +1522,77 @@ setup_py() {
         "" \
         "if __name__ == '__main__':" \
         "    pass" \
-        > "${MAIN_DIR}${FILE_SEP}setup.py"
+        > "${ROOT_PATH}setup.py"
+}
+
+
+sphinx_initialization() {
+    source usr_vars
+    docker container exec "${COMPOSE_PROJECT_NAME}_${MAIN_DIR}_python" \
+		/bin/bash -c \
+			"cd docs \
+			 && sphinx-quickstart -q \
+				--project \"${MAIN_DIR}\" \
+				--author \"${AUTHOR}\" \
+				-v 0.1.0 \
+				--ext-autodoc \
+				--ext-viewcode \
+				--makefile \
+				--no-batchfile"
+	docker-compose -f docker/docker-compose.yaml restart nginx
+    docker container run --rm \
+		-v "$(pwd)":/usr/src/"${MAIN_DIR}" \
+		-w /usr/src/"${MAIN_DIR}"/docs \
+		ubuntu \
+		    /bin/bash -c \
+                "sed -i -e 's/# import os/import os/g' conf.py \
+                 && sed -i -e 's/# import sys/import sys/g' conf.py \
+                 && sed -i \"/# sys.path.insert(0, os.path.abspath('.'))/d\" \
+                    conf.py \
+                 && sed -i -e \"/import sys/a \
+                    from ${MAIN_DIR} import __version__ \
+                    \n\nsys.path.insert(0, os.path.abspath('../${MAIN_DIR}'))\" \
+                    conf.py \
+                 && sed -i -e \"s/version = '0.1.0'/version = __version__/g\" \
+                    conf.py \
+                 && sed -i -e \"s/release = '0.1.0'/release = __version__/g\" \
+                    conf.py \
+                 && sed -i -e \"s/alabaster/sphinx_rtd_theme/g\" \
+                    conf.py \
+                 && sed -i -e 's/[ \t]*$$//g' conf.py \
+                 && echo >> conf.py \
+                 && sed -i \"/   :caption: Contents:/a \
+                    \\\\\n   package\" \
+                    index.rst"
+	printf "%s\n" \
+		"Package Modules" \
+		"===============" \
+		"" \
+		".. toctree::" \
+		"    :maxdepth: 2" \
+		"" \
+		"cli" \
+		"---" \
+		".. automodule:: cli" \
+		"    :members:" \
+		"    :show-inheritance:" \
+		"    :synopsis: Package command line interface calls." \
+		"" \
+		"db" \
+		"--" \
+		".. automodule:: db" \
+		"    :members:" \
+		"    :show-inheritance:" \
+		"    :synopsis: Package database module." \
+		"" \
+		"utils" \
+		"-----" \
+		".. automodule:: utils" \
+		"    :members:" \
+		"    :show-inheritance:" \
+		"    :synopsis: Package utilities module." \
+		"" \
+	> "docs/package.rst"
 }
 
 
@@ -1644,6 +1858,54 @@ test_utils() {
         > "${TEST_PATH}test_utils.py"
 }
 
+usr_vars() {
+    script_name=${SCRIPTS_PATH}"create_usr_vars.sh"
+    file_name=${ROOT_PATH}"usr_vars"
+    printf "%s\n" \
+        "#!/bin/bash" \
+        "# create_usr_vars.sh" \
+        "" \
+        "help_function()" \
+        "{" \
+        "    echo \"\"" \
+        "    echo \"Create usr_vars configuration file.\"" \
+        "    echo \"\"" \
+        "    echo \"Usage: \$0\"" \
+        "    exit 1" \
+        "}" \
+        "" \
+        "# Parse arguments" \
+        "while getopts \"p:\" opt" \
+        "do" \
+        "    case \$opt in" \
+        "        ? ) help_function ;;" \
+        "    esac" \
+        "done" \
+        "" \
+        "# Create usr_vars configuration file" \
+        "INITIAL_PORT=\$(( (\$UID - 500) * 50 + 10000 ))" \
+        "printf \"%s\n\" \\" \
+        "    'COMPOSE_PROJECT_NAME=\${USER}' \\" \
+        "    \"\" \\" \
+        "    'ENVIRONMENT=pytorch' \\" \
+        "    \"\" \\" \
+        "    \"# Ports\" \\" \
+        "    \"PORT_GOOGLE=\$INITIAL_PORT\" \\" \
+        "    \"PORT_JUPYTER=\$((\$INITIAL_PORT + 1))\" \\" \
+        "    \"PORT_NGINX=\$((\$INITIAL_PORT + 2))\" \\" \
+        "    \"PORT_PROFILE=\$((\$INITIAL_PORT + 3))\" \\" \
+        "    \"PORT_POSTGRES=\$((\$INITIAL_PORT + 4))\" \\" \
+        "    \"PORT_MONGO=\$((\$INITIAL_PORT + 5))\" \\" \
+        "    \"PORT_DATABASE_ADMINISTRATION=\$((\$INITIAL_PORT + 6))\" \\" \
+        "    \"\" \\" \
+        "    > \"${file_name}\"" \
+        "echo \"Successfully created: usr_vars\"" \
+        "" \
+        > "${script_name}"
+    chmod u+x ./"${script_name}"
+    ./"${script_name}"
+}
+
 
 utils() {
     printf "%s\n" \
@@ -1688,7 +1950,7 @@ utils() {
         "    Configure logger with console and file handlers." \
         "" \
         "    :param file_path: if supplied the path will be appended by a timestamp \\" \
-        '        and ".log" else the default name of "info.log" will be saved in the \\' \
+        "        and \".log\" else the default name of \"info.log\" will be saved in the \\" \
         "        location of the caller." \
         "    :param logger_name: name to be assigned to logger" \
         '    """' \
@@ -1881,21 +2143,22 @@ yapf_ignore() {
         "*/profiles/" \
         "*/wheels/" \
         "" \
-    > "${MAIN_DIR}${FILE_SEP}.yapfignore"
+    > "${ROOT_PATH}.yapfignore"
 }
 
 
 directories
+usr_vars
 cli
 conftest
 constructor_pkg
 constructor_test
 db
 docker_compose
+docker_env_link
 docker_ignore
 docker_python
-docker_pytorch
-docker_tensorflow
+docker_nvidia_frameworks
 exceptions
 git_attributes
 git_config
@@ -1904,6 +2167,8 @@ pkg_globals
 license
 makefile
 manifest
+mongo_create_admin
+mongo_create_user
 pull_request_template
 readme
 release_history
@@ -1911,6 +2176,8 @@ requirements
 secret_db_database
 secret_db_password
 secret_db_username
+secret_db_init_password
+secret_db_init_username
 setup_cfg
 setup_py
 test_cli
@@ -1919,4 +2186,8 @@ test_db
 test_utils
 utils
 yapf_ignore
+
+cd "${MAIN_DIR}" || exit
+make docker-up
+sphinx_initialization
 git_init
