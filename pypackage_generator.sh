@@ -868,6 +868,16 @@ license() {
 makefile() {
     printf "%b\n" \
         "PROJECT=${MAIN_DIR}" \
+        "" \
+        "ifeq (, \$(wildcard docker/.env))" \
+        "        \$(shell scripts/create_usr_vars.sh)" \
+        "        \$(info #######################################################)" \
+        "        \$(info # Created user variables file: usr_vars #)" \
+        "        \$(info #######################################################)" \
+        "endif" \
+        "include usr_vars" \
+        "export" \
+        "" \
         "ifeq (\"\$(shell uname -s)\", \"Linux*\")" \
         "\tBROWSER=/usr/bin/firefox" \
         "else ifeq (\"\$(shell uname -s)\", \"Linux\")" \
@@ -875,31 +885,23 @@ makefile() {
         "else" \
         "\tBROWSER=open" \
         "endif" \
-        "MOUNT_DIR=\$(shell pwd)" \
-        "MODELS=/opt/models" \
-        "PKG_MANAGER=pip" \
-        "PORT:=\$(shell awk -v min=16384 -v max=32768 'BEGIN{srand(); print int(min+rand()*(max-min+1))}')" \
-        "NOTEBOOK_NAME=\$(USER)_notebook_\$(PORT)" \
+        "" \
+        "CONTAINER_PREFIX:=\$(COMPOSE_PROJECT_NAME)_\$(PROJECT)" \
+        "DOCKER_IMAGE=\$(shell head -n 1 docker/\$(FRAMEWORK).Dockerfile | cut -d ' ' -f 2)" \
+        "PKG_MANAGER=conda" \
         'PROFILE_PY:=""' \
         "PROFILE_PROF:=\$(notdir \$(PROFILE_PY:.py=.prof))" \
         "PROFILE_PATH:=profiles/\$(PROFILE_PROF)" \
         "SRC_DIR=/usr/src/${SOURCE_DIR}" \
-        "TEX_DIR:=\"\"" \
-        "TEX_FILE:=\"*.tex\"" \
         "TEX_WORKING_DIR=\${SRC_DIR}/\${TEX_DIR}" \
-        "USER=\$(shell echo \$\${USER%%@*})" \
-        "VERSION=\$(shell echo \$(shell cat ${SOURCE_DIR}/__init__.py | \\\\" \
-        "\t\t\tgrep \"^__version__\" | \\\\" \
-        "\t\t\tcut -d = -f 2))" \
-        "JUPYTER=lab" \
-        "NOTEBOOK_CMD=\"\${BROWSER} \$\$(docker container exec \$(USER)_notebook_\$(PORT) jupyter \$(JUPYTER) list | grep -o '^http\S*')\"" \
-        "NOTEBOOK_DELAY=10" \
+        "USER:=\$(shell echo \$\${USER%%@*})" \
+        "USER_ID:=\$(shell id -u \$(USER))" \
+        "VERSION=\$(shell echo \$(shell cat ${SOURCE_DIR}/__init__.py | grep \"^__version__\" | cut -d = -f 2))" \
         "" \
         ".PHONY: docs format-style upgrade-packages" \
         "" \
         "deploy: docker-up" \
-        "\tdocker container exec \$(PROJECT)_python \\\\" \
-        "\t\tpip3 wheel --wheel-dir=wheels ." \
+        "\tdocker container exec \$(CONTAINER_PREFIX)_python pip3 wheel --wheel-dir=wheels ." \
         "\tgit tag -a v\$(VERSION) -m \"Version \$(VERSION)\"" \
         "\t@echo" \
         "\t@echo" \
@@ -919,13 +921,13 @@ makefile() {
         "\tdocker-compose -f docker/docker-compose.yaml up -d" \
         "" \
         "docs: docker-up" \
-        "\tdocker container exec \$(PROJECT)_python \\\\" \
+        "\tdocker container exec \$(CONTAINER_PREFIX)_python \\\\" \
         "\t\t/bin/bash -c \"pip install -e .[docs] && cd docs && make html\"" \
-        "\t\${BROWSER} http://localhost:8080\n" \
+        "\t\${BROWSER} http://localhost:\$(PORT_NGINX)" \
         "" \
         "docs-init: docker-up" \
         "\tfind docs -maxdepth 1 -type f -delete" \
-        "\tdocker container exec \$(PROJECT)_python \\\\" \
+        "\tdocker container exec \$(CONTAINER_PREFIX)_python \\\\" \
         "\t\t/bin/bash -c \\\\" \
         "\t\t\t\"cd docs \\\\" \
         "\t\t\t && sphinx-quickstart -q \\\\" \
@@ -997,10 +999,10 @@ makefile() {
         "endif" \
         "" \
         "docs-view: docker-up" \
-        "\t\${BROWSER} http://localhost:8080" \
+        "\t\${BROWSER} http://localhost:\$(PORT_NGINX)" \
         "" \
         "format-style: docker-up" \
-        "\tdocker container exec \$(PROJECT)_python yapf -i -p -r --style \"pep8\" \${SRC_DIR}" \
+        "\tdocker container exec \$(CONTAINER_PREFIX)_python yapf -i -p -r --style \"pep8\" \${SRC_DIR}" \
         "" \
         "getting-started: secret-templates docs-init" \
         "\tmkdir -p cache" \
@@ -1010,61 +1012,65 @@ makefile() {
         "\tmkdir -p wheels" \
         "" \
         "ipython: docker-up" \
-        "\tdocker container exec -it \$(PROJECT)_python ipython" \
+        "\tdocker container exec -it \$(CONTAINER_PREFIX)_python ipython" \
         "" \
         "latexmk: docker-up" \
-        "\tdocker container exec -w \$(TEX_WORKING_DIR) \$(PROJECT)_latex \\\\" \
+        "\tdocker container exec -w \$(TEX_WORKING_DIR) \$(CONTAINER_PREFIX)_latex \\\\" \
         "\t\t/bin/bash -c \"latexmk -f -pdf \$(TEX_FILE) && latexmk -c\"" \
         "" \
         "notebook: docker-up notebook-server" \
-        "\tsleep 2" \
-        "\t(eval \${NOTEBOOK_CMD} || sleep \${NOTEBOOK_DELAY}) || eval \${NOTEBOOK_CMD}" \
+	      "\t@echo \"\\\\n\\\\n\\\\n##################################################\"" \
+	      "\t@echo \"\\\\nUse this link on the host to access the Jupyter server.\"" \
+	      "\t@docker container exec \$(CONTAINER_PREFIX)_python \\\\" \
+	      "\t\t/bin/bash -c \\\\" \
+	      "\t\t\t\"jupyter notebook list \\\\" \
+	      "\t\t\t | grep -o '^http\S*' \\\\" \
+	      "\t\t\t | sed -e 's/\(http:\/\/\).*\(:\)/\1localhost:\2/' \\\\" \
+	      "\t\t\t | sed -e 's/tree/lab/'\"" \
+	      "\t@echo \"\\\\n##################################################\"" \
         "" \
-        "notebook-remove:" \
-        "\tdocker container rm -f \$\$(docker container ls -f name=\$(USER)_notebook -q)" \
+        "notebook-server: notebook-stop-server" \
+	      "\t@docker container exec \$(CONTAINER_PREFIX)_python \\\\" \
+		    "\t\t/bin/bash -c \\\\" \
+			  "\t\t\t\"jupyter lab \\\\" \
+				"\t\t\t\t--allow-root \\\\" \
+				"\t\t\t\t--ip=0.0.0.0 \\\\" \
+				"\t\t\t\t--no-browser \\\\" \
+				"\t\t\t\t--port=\$(PORT_JUPYTER) \\\\" \
+				"\t\t\t\t&\"" \
         "" \
-        "notebook-server:" \
-        "\tdocker container run -d --rm \\\\" \
-        "\t\t--name \$(NOTEBOOK_NAME) \\\\" \
-        "\t\t-p \$(PORT):\$(PORT) \\\\" \
-        "\t\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\" \
-        "\t\t\$(PROJECT)_python \\\\" \
-        "\t\t/bin/bash -c \"jupyter \$(JUPYTER) \\\\" \
-        "\t\t\t\t--allow-root \\\\" \
-        "\t\t\t\t--ip=0.0.0.0 \\\\" \
-        "\t\t\t\t--no-browser \\\\" \
-        "\t\t\t\t--port=\$(PORT)\"" \
-        "\tdocker network connect \$(PROJECT) \$(NOTEBOOK_NAME)" \
+        "notebook-stop-server:" \
+        "\t@-docker container exec \$(CONTAINER_PREFIX)_python \\\\" \
+		    "\t\t/bin/bash -c \"jupyter notebook stop \$(PORT_JUPYTER)\"" \
+        "" \
+        "package-dependencies: docker-up" \
+        "\tprintf \"%s\\\\n\" \\\\" \
+        "\t\t\"# Backpack Version: \$(VERSION)\" \\\\" \
+        "\t\t\"# From NVIDIA NGC CONTAINER: \$(DOCKER_IMAGE)\" \\\\" \
+        "\t\t\"#\" \\\\" \
+        "\t> requirements_\$(ENVIRONMENT).txt" \
+        "ifeq (\"\${PKG_MANAGER}\", \"conda\")" \
+        "\tdocker container exec \$(CONTAINER_PREFIX)_python \\\\" \
+        "\t\t/bin/bash -c \\\\" \
+        "\t\t\t\"conda list --export >> requirements_\$(ENVIRONMENT).txt \\\\" \
+        "\t\t\t && sed -i -e '/^\$(PROJECT)/ s/./# &/' requirements_\$(ENVIRONMENT).txt\"" \
+        "else ifeq (\"\${PKG_MANAGER}\", \"pip\")" \
+        "\tdocker container exec \$(CONTAINER_PREFIX)_python \\\\" \
+        "\t\t/bin/bash -c \\\\" \
+        "\t\t\t\"pip freeze >> requirements_\$(ENVIRONMENT).txt \\\\" \
+        "\t\t\t && sed -i -e '/^-e/d' requirements_\$(ENVIRONMENT).txt\"" \
+        "endif" \
         "" \
         "pgadmin: docker-up" \
-        "\t\${BROWSER} http://localhost:5000" \
+        "\t\${BROWSER} http://localhost:\$(PORT_DATABASE_ADMINISTRATION)" \
         "" \
         "profile: docker-up" \
-        "\tdocker container exec \$(PROJECT)_python \\\\" \
+        "\t@docker container exec \$(CONTAINER_PREFIX)_python \\\\" \
         "\t\t/bin/bash -c \\\\" \
-        "\t\t\t\"python \\\\" \
-        "\t\t\t\t-m cProfile \\\\" \
-        "\t\t\t\t-o \$(PROFILE_PATH) \\\\" \
-        "\t\t\t\t\$(PROFILE_PY)\"" \
+        "\t\t\t\"python -m cProfile -o \$(PROFILE_PATH) \$(PROFILE_PY)\"" \
         "psql: docker-up" \
-        "\tdocker container exec -it \$(PROJECT)_postgres \\\\" \
-        "" \
+        "\tdocker container exec -it \$(CONTAINER_PREFIX)_postgres \\\\" \
         "\t\tpsql -U \${POSTGRES_USER} \$(PROJECT)" \
-        "" \
-        "pytorch: pytorch-docker docker-rebuild" \
-        "" \
-        "pytorch-docker:" \
-        "\tdocker container run --rm \\\\" \
-        "\t\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\" \
-        "\t\t-w /usr/src/\$(PROJECT) \\\\" \
-        "\t\tubuntu \\\\" \
-        "\t\t/bin/bash -c \\\\" \
-        "\t\t\t\"sed -i -e 's/python.Dockerfile/pytorch.Dockerfile/g' \\\\" \
-        "\t\t\t\tdocker/docker-compose.yaml \\\\" \
-        "\t\t\t && sed -i -e 's/tensorflow.Dockerfile/pytorch.Dockerfile/g' \\\\" \
-        "\t\t\t\tdocker/docker-compose.yaml \\\\" \
-        "\t\t\t && sed -i -e 's/PKG_MANAGER=pip/PKG_MANAGER=conda/g' \\\\" \
-        "\t\t\t\tMakefile\"" \
         "" \
         "secret-templates:" \
         "\tdocker container run --rm \\\\" \
@@ -1077,59 +1083,30 @@ makefile() {
         "\t\t\t&& printf '%s' \"backpack\" >> 'package.txt' \\\\" \
         "\t\t\t&& useradd -u \$(USER_ID) \$(USER) &> /dev/null || true \\\\" \
         "\t\t\t&& chown -R \$(USER):\$(USER) *\"" \
+        "" \
         "snakeviz: docker-up profile snakeviz-server" \
         "\tsleep 0.5" \
-        "\t\${BROWSER} http://0.0.0.0:\$(PORT)/snakeviz/" \
-        "" \
-        "snakeviz-remove:" \
-        "\tdocker container rm -f \$\$(docker container ls -f name=snakeviz -q)" \
+        "\t\${BROWSER} http://0.0.0.0:\$(PORT_PROFILE)/snakeviz/" \
         "" \
         "snakeviz-server: docker-up" \
-        "\tdocker container run -d --rm \\\\" \
-        "\t\t--name snakeviz_\$(PORT) \\\\" \
-        "\t\t-p \$(PORT):\$(PORT) \\\\" \
-        "\t\t-w /usr/src/\$(PROJECT)/profiles \\\\" \
-        "\t\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\" \
-        "\t\t\$(PROJECT)_python \\\\" \
-        "\t\t/bin/bash -c \\\\" \
-        "\t\t\t\"snakeviz \$(PROFILE_PROF) \\\\" \
-        "\t\t\t\t--hostname 0.0.0.0 \\\\" \
-        "\t\t\t\t--port \$(PORT) \\\\" \
-        "\t\t\t\t--server\"" \
-        "\tdocker network connect \$(PROJECT) snakeviz_\$(PORT)" \
-        "" \
-        "tensorflow: tensorflow-updates docker-rebuild" \
-        "" \
-        "tensorflow-updates:" \
-        "\tdocker container run --rm \\\\" \
-        "\t\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\" \
-        "\t\t-w /usr/src/\$(PROJECT) \\\\" \
-        "\t\tubuntu \\\\" \
-        "\t\t/bin/bash -c \\\\" \
-        "\t\t\t\"sed -i -e 's/python.Dockerfile/tensorflow.Dockerfile/g' \\\\" \
-        "\t\t\t\tdocker/docker-compose.yaml \\\\" \
-        "\t\t\t && sed -i -e 's/pytorch.Dockerfile/tensorflow.Dockerfile/g' \\\\" \
-        "\t\t\t\tdocker/docker-compose.yaml \\\\" \
-        "\t\t\t && sed -i -e 's/PKG_MANAGER=conda/PKG_MANAGER=pip/g' \\\\" \
-        "\t\t\t\tMakefile \\\\" \
-        "\t\t\t && sed -i -e 's/JUPYTER=lab/JUPYTER=notebook/g' Makefile \\\\" \
-        "\t\t\t && echo '*********************************************************************************' \\\\" \
-        "\t\t\t && echo '*********************************************************************************' \\\\" \
-        "\t\t\t && echo \\" \
-        "\t\t\t && echo 'Add \\\"tensorflow\\\" or \\\"tensorflow-gpu\\\" to install_requires in the setup.py file' \\\\" \
-        "\t\t\t && echo \\" \
-        "\t\t\t && echo '*********************************************************************************' \\\\" \
-        "\t\t\t && echo '*********************************************************************************'\"" \
+        "\t@docker container exec \\\\" \
+	      "\t\t-w /usr/src/\$(PROJECT)/profiles \\\\" \
+	      "\t\t\$(CONTAINER_PREFIX)_python \\\\" \
+	      "\t\t/bin/bash -c \\\\" \
+	      "\t\t\t\"snakeviz \$(PROFILE_PROF) \\\\" \
+	      "\t\t\t\t--hostname 0.0.0.0 \\\\" \
+	      "\t\t\t\t--port \$(PORT_PROFILE) \\\\" \
+	      "\t\t\t\t--server &\"" \
         "" \
         "test: docker-up format-style" \
-        "\tdocker container exec \$(PROJECT)_python py.test \$(PROJECT)" \
+        "\tdocker container exec \$(CONTAINER_PREFIX)_python py.test \$(PROJECT)" \
         "" \
         "test-coverage: test" \
 	      "\t\${BROWSER} htmlcov/index.html"\
         "" \
         "upgrade-packages: docker-up" \
         "ifeq (\"\${PKG_MANAGER}\", \"pip\")" \
-        "\tdocker container exec \$(PROJECT)_python \\\\" \
+        "\tdocker container exec \$(CONTAINER_PREFIX)_python \\\\" \
         "\t\t/bin/bash -c \\\\" \
         "\t\t\t\"pip3 install -U pip \\\\" \
         "\t\t\t && pip3 freeze | \\\\" \
@@ -1139,7 +1116,7 @@ makefile() {
         "\t\t\t && pip3 freeze > requirements.txt \\\\" \
         "\t\t\t && sed -i -e '/^-e/d' requirements.txt\"" \
         "else ifeq (\"\${PKG_MANAGER}\", \"conda\")" \
-        "\tdocker container exec \$(PROJECT)_python \\\\" \
+        "\tdocker container exec \$(CONTAINER_PREFIX)_python \\\\" \
         "\t\t/bin/bash -c \\\\" \
         "\t\t\t\"conda update conda \\\\" \
         "\t\t\t && conda update --all \\\\" \
