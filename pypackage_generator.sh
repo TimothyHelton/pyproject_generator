@@ -455,6 +455,27 @@ docker_compose() {
         "      - ..:/usr/src/${MAIN_DIR}" \
         "    working_dir: /usr/src/${MAIN_DIR}" \
         "" \
+        "  mongodb:" \
+        "    container_name: \${COMPOSE_PROJECT_NAME:-default}_${MAIN_DIR}_mongodb" \
+        "    image: mongo" \
+        "    env_file:" \
+        "        .env" \
+        "    environment:" \
+        "      MONGO_INITDB_ROOT_PASSWORD: /run/secrets/db-init-password" \
+        "      MONGO_INITDB_ROOT_USERNAME: /run/secrets/db-init-username" \
+        "      PORT_MONGO: \${PORT_MONGO}" \
+        "    networks:" \
+        "      - ${MAIN_DIR}-network" \
+        "    ports:" \
+        "      - '\$PORT_MONGO:27017'" \
+        "    restart: always" \
+        "    secrets:" \
+        "      - db-init-password" \
+        "      - db-init-username" \
+        "    volumes:" \
+        "      - ${MAIN_DIR}-db:/var/lib/mongodb/data" \
+        "      - ./${MONGO_INIT_DIR}:/docker-entrypoint-initdb.d" \
+        "" \
         "  nginx:" \
         "    container_name: \${COMPOSE_PROJECT_NAME:-default}_${MAIN_DIR}_nginx" \
         "    env_file:" \
@@ -476,14 +497,14 @@ docker_compose() {
         "        .env" \
         "    image: postgres:alpine" \
         "    environment:" \
-        "      PORT_DATABASE: \${PORT_DATABASE}" \
+        "      PORT_POSTGRES: \${PORT_POSTGRES}" \
         "      POSTGRES_PASSWORD_FILE: /run/secrets/db-password" \
         "      POSTGRES_DB_FILE: /run/secrets/db-database" \
         "      POSTGRES_USER_FILE: /run/secrets/db-username" \
         "    networks:"\
         "      - ${MAIN_DIR}-network" \
         "    ports:" \
-        "      - '\$PORT_DATABASE:5432'" \
+        "      - '\$PORT_POSTGRES:5432'" \
         "    restart: always" \
         "    secrets:" \
         "      - db-database" \
@@ -551,6 +572,10 @@ docker_compose() {
         "    file: secrets/db_password.txt" \
         "  db-username:" \
         "    file: secrets/db_username.txt" \
+        "  db-init-password:" \
+        "    file: secrets/db_init_password.txt" \
+        "  db-init-username:" \
+        "    file: secrets/db_init_username.txt" \
         "" \
         "volumes:" \
         "  ${MAIN_DIR}-db:" \
@@ -1080,7 +1105,9 @@ makefile() {
         "\t\t/bin/bash -c \\\\" \
         "\t\t\t\"printf '%s' \"password\" >> 'password.txt' \\\\" \
         "\t\t\t&& printf '%s' \"username\" >> 'username.txt' \\\\" \
-        "\t\t\t&& printf '%s' \"backpack\" >> 'package.txt' \\\\" \
+        "\t\t\t&& printf '%s' \"\$(PROJECT)\" >> 'package.txt' \\\\" \
+        "\t\t\t&& printf '%s' \"admin\" >> 'db_init_password.txt' \\\\" \
+        "\t\t\t&& printf '%s' \"admin\" >> 'db_init_username.txt' \\\\" \
         "\t\t\t&& useradd -u \$(USER_ID) \$(USER) &> /dev/null || true \\\\" \
         "\t\t\t&& chown -R \$(USER):\$(USER) *\"" \
         "" \
@@ -1303,6 +1330,19 @@ secret_db_username() {
     printf "%s" \
         "postgres" \
         > "${SECRETS_PATH}db_username.txt"
+}
+
+secret_db_init_password() {
+    printf "%s" \
+        "admin" \
+        > "${SECRETS_PATH}db_init_password.txt"
+}
+
+
+secret_db_init_username() {
+    printf "%s" \
+        "admin" \
+        > "${SECRETS_PATH}db_init_username.txt"
 }
 
 
@@ -1773,8 +1813,9 @@ usr_vars() {
         "    \"PORT_JUPYTER=\$((\$INITIAL_PORT + 1))\" \\" \
         "    \"PORT_NGINX=\$((\$INITIAL_PORT + 2))\" \\" \
         "    \"PORT_PROFILE=\$((\$INITIAL_PORT + 3))\" \\" \
-        "    \"PORT_DATABASE=\$((\$INITIAL_PORT + 4))\" \\" \
-        "    \"PORT_DATABASE_ADMINISTRATION=\$((\$INITIAL_PORT + 5))\" \\" \
+        "    \"PORT_POSTGRES=\$((\$INITIAL_PORT + 4))\" \\" \
+        "    \"PORT_MONGO=\$((\$INITIAL_PORT + 5))\" \\" \
+        "    \"PORT_DATABASE_ADMINISTRATION=\$((\$INITIAL_PORT + 6))\" \\" \
         "    \"\" \\" \
         "    > \"${file_name}\"" \
         "echo \"Successfully created: usr_vars\"" \
@@ -2052,6 +2093,8 @@ requirements
 secret_db_database
 secret_db_password
 secret_db_username
+secret_db_init_password
+secret_db_init_username
 setup_cfg
 setup_py
 test_cli
