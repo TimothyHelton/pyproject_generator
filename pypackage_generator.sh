@@ -21,6 +21,7 @@ SOURCE_DIR="${2:-$1}"
 : "${DOCKER_DIR:=docker}"
 : "${DOCS_DIR:=docs}"
 : "${FILE_SEP:=/}"
+: "${MONGO_INIT_DIR:=mongo_init}"
 : "${NODEJS_VERSION:=12}"
 : "${NOTEBOOK_DIR:=notebooks}"
 : "${PROFILE_DIR:=profiles}"
@@ -58,6 +59,7 @@ PY_ENCODING="# -*- coding: utf-8 -*-"
 
 ROOT_PATH="${MAIN_DIR}${FILE_SEP}"
 DOCKER_PATH="${ROOT_PATH}${DOCKER_DIR}${FILE_SEP}"
+MONGO_INIT_PATH="${DOCKER_PATH}${MONGO_INIT_DIR}${FILE_SEP}"
 SCRIPTS_PATH="${ROOT_PATH}${SCRIPTS_DIR}${FILE_SEP}"
 SECRETS_PATH="${DOCKER_PATH}${SECRETS_DIR}${FILE_SEP}"
 SRC_PATH="${ROOT_PATH}${SOURCE_DIR}${FILE_SEP}"
@@ -431,6 +433,8 @@ directories() {
     for dir in "${SUB_DIRECTORIES[@]}"; do
         mkdir "${ROOT_PATH}${dir}"
     done
+    # MongoDB Initialization directory
+    mkdir "${MONGO_INIT_PATH}"
     # Secrets directory
     mkdir "${SECRETS_PATH}"
     # Sphinx Documentation directory
@@ -1043,6 +1047,12 @@ makefile() {
         "\tdocker container exec -w \$(TEX_WORKING_DIR) \$(CONTAINER_PREFIX)_latex \\\\" \
         "\t\t/bin/bash -c \"latexmk -f -pdf \$(TEX_FILE) && latexmk -c\"" \
         "" \
+        "mongo-create-admin: docker-up" \
+        "\tdocker container exec \$(CONTAINER_PREFIX)_mongodb ./docker-entrypoint-initdb.d/create_admin.sh" \
+        "" \
+        "mongo-create-user: docker-up" \
+        "\tdocker container exec \$(CONTAINER_PREFIX)_mongodb ./docker-entrypoint-initdb.d/create_user.sh -u \$(DB_USERNAME) -p \$(DB_PASSWORD) -d \$(DB)" \
+        "" \
         "notebook: docker-up notebook-server" \
 	      "\t@echo \"\\\\n\\\\n\\\\n##################################################\"" \
 	      "\t@echo \"\\\\nUse this link on the host to access the Jupyter server.\"" \
@@ -1161,6 +1171,63 @@ manifest() {
 }
 
 
+mongo_create_admin() {
+    printf "%s\n" \
+        "#!/bin/bash" \
+        "# create_admin.sh" \
+        "" \
+        "# Create Administrator" \
+        "mongo admin -u \$MONGO_INITDB_ROOT_USERNAME -p \$MONGO_INITDB_ROOT_PASSWORD << EOF" \
+        '    db.createUser({user: "admin", pwd: "admin", roles: ["root"]});' \
+        "EOF" \
+        "" \
+        > "${MONGO_INIT_PATH}create_admin.sh"
+}
+
+
+mongo_create_user() {
+    printf "%s\n" \
+        "#!/bin/bash" \
+        "" \
+        "help_function()" \
+        "{" \
+        "   echo \"\"" \
+        "   echo \"Script will create a MongoDB database user with supplied password.\"" \
+        "   echo \"\"" \
+        "   echo \"Usage: \$0 -u username -p password -db database\"" \
+        "   echo -e \"\t-u username\"" \
+        "   echo -e \"\t-p password\"" \
+        "   echo -e \"\t-d database\"" \
+        "   exit 1" \
+        "}" \
+        "" \
+        'while getopts "u:p:d:" opt' \
+        "do" \
+        "    case \"\$opt\" in" \
+        "      u ) username=\"\$OPTARG\" ;;" \
+        "      p ) password=\"\$OPTARG\" ;;" \
+        "      d ) database=\"\$OPTARG\" ;;" \
+        "      ? ) help_function ;;" \
+        "   esac" \
+        "done" \
+        "" \
+        "# Print help_function in case parameters are empty" \
+        "if [ -z \"\$username\" ] || [ -z \"\$password\" ] || [ -z \"\$database\" ]" \
+        "then" \
+        "   echo \"\"" \
+        "   echo \"Missing Parameters: All parameters are required.\";" \
+        "   help_function" \
+        "fi" \
+        "" \
+        "# Create User" \
+        "mongo admin -u \$MONGO_INITDB_ROOT_USERNAME -p \$MONGO_INITDB_ROOT_PASSWORD << EOF" \
+        "    db.createUser({user: \"\${username}\", pwd: \"\${password}\", roles: [\"readWrite\"]});" \
+        "EOF" \
+        "" \
+        > "${MONGO_INIT_PATH}create_user.sh"
+}
+
+
 pull_request_template() {
     printf "%s\n" \
         "# Summary" \
@@ -1250,7 +1317,7 @@ readme() {
         "    GRANT USAGE ON SCHEMA public TO new_user;" \
         "    GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO new_user;" \
         "    \`\`\`" \
-        "1. \`Database\` -> \`New\` -> \`Data Source\` -> \`PostgreSQL\`" \
+        "1. \`Database\` -> \`New\` -> \`Data Source\` -> \`PostgresSQL\`" \
         "1. \`Name\`: ${MAIN_DIR}_postgres@localhost" \
         "1. \`Host\`: localhost" \
         "1. \`Port\`: 5432" \
@@ -1418,6 +1485,7 @@ setup_py() {
         "        'jupyterlab'," \
         "    }," \
         "    'mongo': {" \
+        "        'pymongo'," \
         "    }," \
         "    'profile': {" \
         "        'memory_profiler'," \
@@ -1869,7 +1937,7 @@ utils() {
         "    Configure logger with console and file handlers." \
         "" \
         "    :param file_path: if supplied the path will be appended by a timestamp \\" \
-        '        and ".log" else the default name of "info.log" will be saved in the \\' \
+        "        and \".log\" else the default name of \"info.log\" will be saved in the \\" \
         "        location of the caller." \
         "    :param logger_name: name to be assigned to logger" \
         '    """' \
@@ -2086,6 +2154,8 @@ pkg_globals
 license
 makefile
 manifest
+mongo_create_admin
+mongo_create_user
 pull_request_template
 readme
 release_history
