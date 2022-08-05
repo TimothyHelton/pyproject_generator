@@ -21,6 +21,8 @@ SOURCE_DIR="${2:-$1}"
 : "${DOCKER_DIR:=docker}"
 : "${DOCS_DIR:=docs}"
 : "${FILE_SEP:=/}"
+: "${HOST_USER:="$(USER)"}" \
+: "${HOST_USER_ID:=$(id -u "$(HOST_USER)")}" \
 : "${MONGO_INIT_DIR:=mongo_init}"
 : "${NODEJS_VERSION:=12}"
 : "${NOTEBOOK_DIR:=notebooks}"
@@ -1605,7 +1607,9 @@ sphinx_initialization() {
                  && echo >> conf.py \
                  && sed -i \"/   :caption: Contents:/a \
                      \\\\\n   package\" \
-                     index.rst"
+                     index.rst \" \
+                 && useradd -u ${HOST_USER_ID} ${HOST_USER} &> /dev/null || true \" \
+                 && chown -R ${HOST_USER}:$(HOST_USER) *"
     sphinx_autodoc
     sphinx_custom_css
     sphinx_links
