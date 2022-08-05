@@ -1608,6 +1608,12 @@ sphinx_initialization() {
                     index.rst"
     sphinx_autodoc
     sphinx_custom_css
+    sphinx_links
+}
+
+
+sphinx_links() {
+    touch docs/links.rst
 }
 
 
