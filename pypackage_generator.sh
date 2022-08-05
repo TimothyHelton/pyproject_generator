@@ -21,8 +21,8 @@ SOURCE_DIR="${2:-$1}"
 : "${DOCKER_DIR:=docker}"
 : "${DOCS_DIR:=docs}"
 : "${FILE_SEP:=/}"
-: "${HOST_USER:="$(USER)"}" \
-: "${HOST_USER_ID:=$(id -u "$(HOST_USER)")}" \
+: "${HOST_USER:="$USER"}" \
+: "${HOST_USER_ID:=$(id -u "$HOST_USER")}" \
 : "${MONGO_INIT_DIR:=mongo_init}"
 : "${NODEJS_VERSION:=12}"
 : "${NOTEBOOK_DIR:=notebooks}"
@@ -618,9 +618,11 @@ docker_python() {
         "COPY . ." \
         "" \
         "RUN pip3 install --upgrade pip \\\\" \
-        "\t&& pip3 install --no-cache-dir -r requirements.txt \\\\" \
+        "\t#&& pip3 install --no-cache-dir -r requirements.txt \\\\" \
         "\t&& pip3 install -e .[all] \\\\" \
-        "$(common_image)" \
+        "\t&& rm -rf /tmp/* \\" \
+        "\t&& rm -rf /var/lib/apt/lists/* \\" \
+        "\t&& apt clean -y" \
         "" \
         "CMD [ \"/bin/bash\" ]" \
         "" \
@@ -628,54 +630,9 @@ docker_python() {
 }
 
 
-docker_nvidia_frameworks() {
-    ngc_containers_url="https://catalog.ngc.nvidia.com/orgs/nvidia/containers/"
-    ngc_latest_tag_regex='(?<=latestTag":")(.*?)(?=")'
-
-    printf "%s\n" \
-        "****************************************************************" \
-        "" \
-        "Scraping latest NVIDIA container tags..." \
-        "" \
-        "" \
-
-    docker container run -dit --name nvidia_tags ubuntu:latest > /dev/null
-    docker container exec nvidia_tags \
-        /bin/bash -c \
-            "apt update -y \
-             && apt install -y curl" \
-        > /dev/null
-
-    pytorch_tag=$(docker container exec nvidia_tags \
-        /bin/bash -c \
-            "curl \"$ngc_containers_url\"pytorch \
-             | grep -Po '$ngc_latest_tag_regex'"
-    )
-    docker_pytorch "${pytorch_tag}"
-
-    tensorflow_tag=$(docker container exec nvidia_tags \
-        /bin/bash -c \
-            "curl \"${ngc_containers_url}\"tensorflow \
-             | grep -Po '${ngc_latest_tag_regex}'" \
-    )
-    docker_tensorflow "${tensorflow_tag}"
-
-    docker container rm -f nvidia_tags > /dev/null
-
-    printf "%s\n" \
-        "" \
-        "" \
-        "Dockerfiles for NVIDIA optimized frameworks complete!" \
-        "    - PyTorch: $pytorch_tag" \
-        "    - TensorFlow: $tensorflow_tag" \
-        "" \
-        "****************************************************************"
-}
-
-
 docker_pytorch() {
     printf "%b\n" \
-        "FROM nvcr.io/nvidia/pytorch:$1" \
+        "FROM nvcr.io/nvidia/pytorch:" \
         "" \
         "ENV TORCH_HOME=/usr/src/${MAIN_DIR}/cache" \
         "" \
@@ -684,15 +641,15 @@ docker_pytorch() {
         "COPY . ." \
         "" \
         "RUN pip install -e .[all] \\" \
-        "        && apt update -y \\" \
-        "        # && apt -y upgrade \\" \
-        "        && apt install -y\\" \
-        "                fonts-humor-sans \\" \
-        "        # && conda update -y conda \\" \
-        "        # && while read requirement; do conda install --yes \${requirement}; done < requirements_pytorch.txt \\" \
-        "        && rm -rf /tmp/* \\" \
-        "        && rm -rf /var/lib/apt/lists/* \\" \
-        "        && apt clean -y" \
+        "/t&& apt update -y \\" \
+        "\t# && apt -y upgrade \\" \
+        "\t&& apt install -y\\" \
+        "\t        fonts-humor-sans \\" \
+        "\t# && conda update -y conda \\" \
+        "\t# && while read requirement; do conda install --yes \${requirement}; done < requirements_pytorch.txt \\" \
+        "\t&& rm -rf /tmp/* \\" \
+        "\t&& rm -rf /var/lib/apt/lists/* \\" \
+        "\t&& apt clean -y" \
         "" \
         "CMD [ \"/bin/bash\" ]" \
         "" \
@@ -702,7 +659,7 @@ docker_pytorch() {
 
 docker_tensorflow() {
     printf "%b\n" \
-        "FROM nvcr.io/nvidia/tensorflow:$1" \
+        "FROM nvcr.io/nvidia/tensorflow:" \
         "" \
         "WORKDIR /usr/src/${SOURCE_DIR}" \
         "" \
@@ -1557,7 +1514,7 @@ sphinx_autodoc() {
         "    :show-inheritance:" \
         "    :synopsis: Package utilities module." \
         "" \
-        > docs/package.rst
+        > "${DOCS_DIR}/package.rst"
 }
 
 
@@ -1566,7 +1523,7 @@ sphinx_custom_css() {
         ".wy-nav-content {" \
         "max-width: 1200px !important;" \
         "}" \
-        > docs/_static/custom.css
+        > "${DOCS_DIR}/_static/custom.css"
 }
 
 
@@ -1607,9 +1564,9 @@ sphinx_initialization() {
                  && echo >> conf.py \
                  && sed -i \"/   :caption: Contents:/a \
                      \\\\\n   package\" \
-                     index.rst \" \
+                     index.rst \
                  && useradd -u ${HOST_USER_ID} ${HOST_USER} &> /dev/null || true \" \
-                 && chown -R ${HOST_USER}:$(HOST_USER) *"
+                 && chown -R ${HOST_USER}:${HOST_USER} *\""
     sphinx_autodoc
     sphinx_custom_css
     sphinx_links
@@ -1617,7 +1574,7 @@ sphinx_initialization() {
 
 
 sphinx_links() {
-    touch docs/links.rst
+    touch "${DOCS_DIR}/links.rst"
 }
 
 
@@ -1883,6 +1840,52 @@ test_utils() {
         > "${TEST_PATH}test_utils.py"
 }
 
+
+update_nvidia_tags() {
+    script_name=${SCRIPTS_PATH}"update_nvidia_tags.py"
+    printf "%s\n" \
+        "${PY_SHEBANG}" \
+        "${PY_ENCODING}" \
+        '""" Script to update NVIDIA NGC Docker Tags.' \
+        "" \
+        '"""' \
+        "from pathlib import Path" \
+        "import re" \
+        "import urllib.request" \
+        "" \
+        "DOCKER_DIR = Path('docker')" \
+        "NVIDIA_NGC_URL = 'https://catalog.ngc.nvidia.com/orgs/nvidia/containers/'" \
+        "REGEX = r'(?<=latestTag\":\")(.*?)(?=\")'" \
+        "FRAMEWORKS = (" \
+        "    'pytorch'," \
+        "    'tensorflow'," \
+        ")" \
+        "" \
+        "" \
+        "def update_dockerfiles():" \
+        '    """Update NVIDIA Dockerfiles with latest tags."""' \
+        "" \
+        "    for framework in FRAMEWORKS:" \
+        "        page = urllib.request.urlopen(f'{NVIDIA_NGC_URL}{framework}')" \
+        "        text = page.read().decode()" \
+        "        match = re.search(REGEX, text)" \
+        "        tag = match.group(0)" \
+        "        " \
+        "        with open(DOCKER_DIR / f'{framework}.Dockerfile', 'r+') as f:" \
+        "            lines = f.readlines()" \
+        "            lines[0] = lines[0].replace('\n', f'{tag}\n')" \
+        "            f.seek(0)" \
+        "            f.writelines(lines)" \
+        "            f.truncate()" \
+        "" \
+        "" \
+        "if __name__ == '__main__':" \
+        "    update_dockerfiles()" \
+        > "${script_name}"
+    chmod u+x ./"${script_name}"
+}
+
+
 usr_vars() {
     script_name=${SCRIPTS_PATH}"create_usr_vars.sh"
     file_name=${ROOT_PATH}"usr_vars"
@@ -1912,7 +1915,7 @@ usr_vars() {
         "printf \"%s\n\" \\" \
         "    'COMPOSE_PROJECT_NAME=\${USER}' \\" \
         "    \"\" \\" \
-        "    'ENVIRONMENT=pytorch' \\" \
+        "    'ENVIRONMENT=python' \\" \
         "    \"\" \\" \
         "    \"# Ports\" \\" \
         "    \"PORT_GOOGLE=\$INITIAL_PORT\" \\" \
@@ -2183,7 +2186,8 @@ docker_compose
 docker_env_link
 docker_ignore
 docker_python
-docker_nvidia_frameworks
+docker_pytorch
+docker_tensorflow
 exceptions
 git_attributes
 git_config
@@ -2209,10 +2213,12 @@ test_cli
 test_conftest
 test_db
 test_utils
+update_nvidia_tags
 utils
 yapf_ignore
 
 cd "${MAIN_DIR}" || exit
 make docker-up
 sphinx_initialization
+./"${SCRIPTS_DIR}/update_nvidia_tags.py"
 git_init
