@@ -874,7 +874,7 @@ makefile() {
         "endif" \
         "" \
         "CONTAINER_PREFIX:=\$(COMPOSE_PROJECT_NAME)_\$(PROJECT)" \
-        "DOCKER_IMAGE=\$(shell head -n 1 docker/\$(FRAMEWORK).Dockerfile | cut -d ' ' -f 2)" \
+        "DOCKER_IMAGE=\$(shell head -n 1 docker/\$(ENVIRONMENT).Dockerfile | cut -d ' ' -f 2)" \
         "PKG_MANAGER=conda" \
         'PROFILE_PY:=""' \
         "PROFILE_PROF:=\$(notdir \$(PROFILE_PY:.py=.prof))" \
@@ -1042,6 +1042,10 @@ makefile() {
         "" \
         "test-coverage: test" \
         "\t\${BROWSER} htmlcov/index.html"\
+        "" \
+        "update-nvidia-base-images: docker-up" \
+        "\tdocker container exec \$(CONTAINER_PREFIX)_python \\\\" \
+        "\t\t./${SCRIPTS_DIR}/update_nvidia_tags.py \\\\" \
         "" \
         "upgrade-packages: docker-up" \
         "ifeq (\"\${PKG_MANAGER}\", \"pip\")" \
@@ -1570,6 +1574,8 @@ sphinx_initialization() {
     sphinx_autodoc
     sphinx_custom_css
     sphinx_links
+    docker container exec "${COMPOSE_PROJECT_NAME}_${MAIN_DIR}_python" \
+        yapf -i -p -r --style "pep8" docs
 }
 
 
@@ -1849,11 +1855,12 @@ update_nvidia_tags() {
         '""" Script to update NVIDIA NGC Docker Tags.' \
         "" \
         '"""' \
-        "from pathlib import Path" \
         "import re" \
         "import urllib.request" \
         "" \
-        "DOCKER_DIR = Path('docker')" \
+        "from ${SOURCE_DIR}.pkg_globals import PACKAGE_ROOT" \
+        "" \
+        "DOCKER_DIR = PACKAGE_ROOT / 'docker'" \
         "NVIDIA_NGC_URL = 'https://catalog.ngc.nvidia.com/orgs/nvidia/containers/'" \
         "REGEX = r'(?<=latestTag\":\")(.*?)(?=\")'" \
         "FRAMEWORKS = (" \
@@ -1881,6 +1888,7 @@ update_nvidia_tags() {
         "" \
         "if __name__ == '__main__':" \
         "    update_dockerfiles()" \
+        "" \
         > "${script_name}"
     chmod u+x ./"${script_name}"
 }
@@ -1954,8 +1962,8 @@ utils() {
         "import matplotlib.pyplot as plt" \
         "import numpy as np" \
         "" \
-        "from ${SOURCE_DIR}.pkg_globals import FONT_SIZE, TIME_FORMAT" \
         "from ${SOURCE_DIR}.exceptions import InputError" \
+        "from ${SOURCE_DIR}.pkg_globals import FONT_SIZE, TIME_FORMAT" \
         "" \
         "" \
         "def docker_secret(secret_name: str) -> Optional[str]:" \
@@ -2220,5 +2228,6 @@ yapf_ignore
 cd "${MAIN_DIR}" || exit
 make docker-up
 sphinx_initialization
-./"${SCRIPTS_DIR}/update_nvidia_tags.py"
+make update-nvidia-base-images
+make test
 git_init
