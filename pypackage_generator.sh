@@ -997,29 +997,29 @@ makefile() {
         "\tdocker container exec \$(CONTAINER_PREFIX)_mongodb ./docker-entrypoint-initdb.d/create_user.sh -u \$(DB_USERNAME) -p \$(DB_PASSWORD) -d \$(DB)" \
         "" \
         "notebook: docker-up notebook-server" \
-        "\t@echo \"\\\\n\\\\n\\\\n##################################################\"" \
-        "\t@echo \"\\\\nUse this link on the host to access the Jupyter server.\"" \
-        "\t@docker container exec \$(CONTAINER_PREFIX)_python \\\\" \
-        "\t\t/bin/bash -c \\\\" \
-        "\t\t\t\"jupyter notebook list \\\\" \
-        "\t\t\t | grep -o '^http\S*' \\\\" \
-        "\t\t\t | sed -e 's/\(http:\/\/\).*\(:\)/\1localhost:\2/' \\\\" \
-        "\t\t\t | sed -e 's/tree/lab/'\"" \
-        "\t@echo \"\\\\n##################################################\"" \
+	      "\t@echo \"\\\\n\\\\n\\\\n##################################################\"" \
+	      "\t@echo \"\\\\nUse this link on the host to access the Jupyter server.\"" \
+	      "\t@docker container exec \$(CONTAINER_PREFIX)_python \\\\" \
+	      "\t\t/bin/bash -c \\\\" \
+	      "\t\t\t\"jupyter notebook list \\\\" \
+	      "\t\t\t | grep -o '^http\S*' \\\\" \
+	      "\t\t\t | sed -e 's/\(http:\/\/\).*\(:\)/\1localhost:\2/' \\\\" \
+	      "\t\t\t | sed -e 's/tree/lab/'\"" \
+	      "\t@echo \"\\\\n##################################################\"" \
         "" \
         "notebook-server: notebook-stop-server" \
-        "\t@docker container exec \$(CONTAINER_PREFIX)_python \\\\" \
-        "\t\t/bin/bash -c \\\\" \
-        "\t\t\t\"jupyter lab \\\\" \
-        "\t\t\t\t--allow-root \\\\" \
-        "\t\t\t\t--ip=0.0.0.0 \\\\" \
-        "\t\t\t\t--no-browser \\\\" \
-        "\t\t\t\t--port=\$(PORT_JUPYTER) \\\\" \
-        "\t\t\t\t&\"" \
+	      "\t@docker container exec \$(CONTAINER_PREFIX)_python \\\\" \
+		    "\t\t/bin/bash -c \\\\" \
+			  "\t\t\t\"jupyter lab \\\\" \
+				"\t\t\t\t--allow-root \\\\" \
+				"\t\t\t\t--ip=0.0.0.0 \\\\" \
+				"\t\t\t\t--no-browser \\\\" \
+				"\t\t\t\t--port=\$(PORT_JUPYTER) \\\\" \
+				"\t\t\t\t&\"" \
         "" \
         "notebook-stop-server:" \
         "\t@-docker container exec \$(CONTAINER_PREFIX)_python \\\\" \
-        "\t\t/bin/bash -c \"jupyter notebook stop \$(PORT_JUPYTER)\"" \
+		    "\t\t/bin/bash -c \"jupyter notebook stop \$(PORT_JUPYTER)\"" \
         "" \
         "package-dependencies: docker-up" \
         "\tprintf \"%s\\\\n\" \\\\" \
@@ -1070,19 +1070,19 @@ makefile() {
         "" \
         "snakeviz-server: docker-up" \
         "\t@docker container exec \\\\" \
-        "\t\t-w /usr/src/\$(PROJECT)/profiles \\\\" \
-        "\t\t\$(CONTAINER_PREFIX)_python \\\\" \
-        "\t\t/bin/bash -c \\\\" \
-        "\t\t\t\"snakeviz \$(PROFILE_PROF) \\\\" \
-        "\t\t\t\t--hostname 0.0.0.0 \\\\" \
-        "\t\t\t\t--port \$(PORT_PROFILE) \\\\" \
-        "\t\t\t\t--server &\"" \
+	      "\t\t-w /usr/src/\$(PROJECT)/profiles \\\\" \
+	      "\t\t\$(CONTAINER_PREFIX)_python \\\\" \
+	      "\t\t/bin/bash -c \\\\" \
+	      "\t\t\t\"snakeviz \$(PROFILE_PROF) \\\\" \
+	      "\t\t\t\t--hostname 0.0.0.0 \\\\" \
+	      "\t\t\t\t--port \$(PORT_PROFILE) \\\\" \
+	      "\t\t\t\t--server &\"" \
         "" \
         "test: docker-up format-style" \
         "\tdocker container exec \$(CONTAINER_PREFIX)_python py.test \$(PROJECT)" \
         "" \
         "test-coverage: test" \
-        "\t\${BROWSER} htmlcov/index.html"\
+	      "\t\${BROWSER} htmlcov/index.html"\
         "" \
         "upgrade-packages: docker-up" \
         "ifeq (\"\${PKG_MANAGER}\", \"pip\")" \
@@ -1192,47 +1192,47 @@ pull_request_template() {
 
 pkg_globals() {
     printf "%s\n" \
-        "${PY_SHEBANG}" \
-        "${PY_ENCODING}" \
-        '""" Global Variable Module' \
-        "" \
-        '"""' \
-        "from pathlib import Path" \
-        "" \
-        "PACKAGE_ROOT = Path(__file__).parents[1]" \
-        "" \
-        "FONT_SIZE = {" \
-        "    'axis': 18," \
-        "    'label': 14," \
-        "    'legend': 12," \
-        "    'super_title': 24," \
-        "    'title': 20," \
-        "}" \
-        "" \
-        "FONT_FAMILY = 'Courier New, monospace'" \
-        "PLOTLY_FONTS = {" \
-        "    'axis_font': {" \
-        "        'family': FONT_FAMILY," \
-        "        'size': FONT_SIZE['axis']," \
-        "        'color': 'gray'," \
-        "    }," \
-        "    'legend_font': {" \
-        "        'family': FONT_FAMILY," \
-        "        'size': FONT_SIZE['label']," \
-        "        'color': 'black'," \
-        "    }," \
-        "    'title_font': {" \
-        "        'family': FONT_FAMILY," \
-        "        'size': FONT_SIZE['super_title']," \
-        "        'color': 'black'," \
-        "    }," \
-        "}" \
-        "" \
-        "TIME_FORMAT = '%Y_%m_%d_%H_%M_%S'" \
-        "" \
-        "if __name__ == '__main__':" \
-        "    pass" \
-        > "${SRC_PATH}pkg_globals.py"
+            "${PY_SHEBANG}" \
+            "${PY_ENCODING}" \
+            '""" Global Variable Module' \
+            "" \
+            '"""' \
+            "from pathlib import Path" \
+            "" \
+            "PACKAGE_ROOT = Path(__file__).parents[1]" \
+            "" \
+            "FONT_SIZE = {" \
+            "    'axis': 18," \
+            "    'label': 14," \
+            "    'legend': 12," \
+            "    'super_title': 24," \
+            "    'title': 20," \
+            "}" \
+            "" \
+            "FONT_FAMILY = 'Courier New, monospace'" \
+            "PLOTLY_FONTS = {" \
+            "    'axis_font': {" \
+            "        'family': FONT_FAMILY," \
+            "        'size': FONT_SIZE['axis']," \
+            "        'color': 'gray'," \
+            "    }," \
+            "    'legend_font': {" \
+            "        'family': FONT_FAMILY," \
+            "        'size': FONT_SIZE['label']," \
+            "        'color': 'black'," \
+            "    }," \
+            "    'title_font': {" \
+            "        'family': FONT_FAMILY," \
+            "        'size': FONT_SIZE['super_title']," \
+            "        'color': 'black'," \
+            "    }," \
+            "}" \
+            "" \
+            "TIME_FORMAT = '%Y_%m_%d_%H_%M_%S'" \
+            "" \
+            "if __name__ == '__main__':" \
+            "    pass" \
+            > "${SRC_PATH}pkg_globals.py"
     }
 
 
@@ -1558,6 +1558,7 @@ sphinx_autodoc() {
 	    > docs/package.rst
 }
 
+
 sphinx_custom_css() {
     printf "%s\n" \
         ".wy-nav-content {" \
@@ -1566,45 +1567,47 @@ sphinx_custom_css() {
         > docs/_static/custom.css
 }
 
+
 sphinx_initialization() {
     source usr_vars
     docker container exec "${COMPOSE_PROJECT_NAME}_${MAIN_DIR}_python" \
-        /bin/bash -c \
-            "cd docs \
-            && sphinx-quickstart -q \
-                --project \"${MAIN_DIR}\" \
-                --author \"${AUTHOR}\" \
-                -v 0.1.0 \
-                --ext-autodoc \
-                --ext-viewcode \
-                --makefile \
-                --no-batchfile"
-    docker-compose -f docker/docker-compose.yaml restart nginx
+		/bin/bash -c \
+			"cd docs \
+			 && sphinx-quickstart -q \
+				--project \"${MAIN_DIR}\" \
+				--author \"${AUTHOR}\" \
+				-v 0.1.0 \
+				--ext-autodoc \
+				--ext-viewcode \
+				--makefile \
+				--no-batchfile"
+	docker-compose -f docker/docker-compose.yaml restart nginx
     docker container run --rm \
-        -v "$(pwd)":/usr/src/"${MAIN_DIR}" \
-        -w /usr/src/"${MAIN_DIR}"/docs \
-        ubuntu \
-            /bin/bash -c \
+		-v "$(pwd)":/usr/src/"${MAIN_DIR}" \
+		-w /usr/src/"${MAIN_DIR}"/docs \
+		ubuntu \
+		    /bin/bash -c \
                 "sed -i -e 's/# import os/import os/g' conf.py \
                  && sed -i -e 's/# import sys/import sys/g' conf.py \
                  && sed -i \"/# sys.path.insert(0, os.path.abspath('.'))/d\" \
-                     conf.py \
+                    conf.py \
                  && sed -i -e \"/import sys/a \
-                     from ${MAIN_DIR} import __version__ \
-                     \n\nsys.path.insert(0, os.path.abspath('../${MAIN_DIR}'))\" \
-                     conf.py \
+                    from ${MAIN_DIR} import __version__ \
+                    \n\nsys.path.insert(0, os.path.abspath('../${MAIN_DIR}'))\" \
+                    conf.py \
                  && sed -i -e \"s/version = '0.1.0'/version = __version__/g\" \
-                     conf.py \
+                    conf.py \
                  && sed -i -e \"s/release = '0.1.0'/release = __version__/g\" \
-                     conf.py \
+                    conf.py \
                  && sed -i -e \"s/alabaster/sphinx_rtd_theme/g\" \
-                     conf.py \
+                    conf.py \
                  && sed -i -e 's/[ \t]*$$//g' conf.py \
                  && echo >> conf.py \
                  && sed -i \"/   :caption: Contents:/a \
                     \\\\\n   package\" \
                     index.rst"
     sphinx_autodoc
+    sphinx_custom_css
 }
 
 
