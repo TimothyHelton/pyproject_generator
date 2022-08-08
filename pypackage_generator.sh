@@ -1530,41 +1530,17 @@ sphinx_initialization() {
     docker container exec "${COMPOSE_PROJECT_NAME}_${MAIN_DIR}_python" \
         /bin/bash -c \
             "cd docs \
-            && sphinx-quickstart -q \
+             && sphinx-quickstart -q \
                 --project \"${MAIN_DIR}\" \
                 --author \"${AUTHOR}\" \
                 -v 0.1.0 \
                 --ext-autodoc \
                 --ext-viewcode \
                 --makefile \
-                --no-batchfile"
+                --no-batchfile \
+             && useradd -u ${HOST_USER_ID} ${HOST_USER} &> /dev/null || true \" \
+             && chown -R ${HOST_USER}:${HOST_USER} *\""
     docker-compose -f docker/docker-compose.yaml restart nginx
-    docker container run --rm \
-        -v "$(pwd)":/usr/src/"${MAIN_DIR}" \
-        -w /usr/src/"${MAIN_DIR}"/docs \
-        ubuntu \
-            /bin/bash -c \
-                "sed -i -e 's/# import os/import os/g' conf.py \
-                 && sed -i -e 's/# import sys/import sys/g' conf.py \
-                 && sed -i \"/# sys.path.insert(0, os.path.abspath('.'))/d\" \
-                     conf.py \
-                 && sed -i -e \"/import sys/a \
-                     from ${MAIN_DIR} import __version__ \
-                     \n\nsys.path.insert(0, os.path.abspath('../${MAIN_DIR}'))\" \
-                     conf.py \
-                 && sed -i -e \"s/version = '0.1.0'/version = __version__/g\" \
-                     conf.py \
-                 && sed -i -e \"s/release = '0.1.0'/release = __version__/g\" \
-                     conf.py \
-                 && sed -i -e \"s/alabaster/sphinx_rtd_theme/g\" \
-                     conf.py \
-                 && sed -i -e 's/[ \t]*$$//g' conf.py \
-                 && echo >> conf.py \
-                 && sed -i \"/   :caption: Contents:/a \
-                     \\\\\n   package\" \
-                     index.rst \
-                 && useradd -u ${HOST_USER_ID} ${HOST_USER} &> /dev/null || true \" \
-                 && chown -R ${HOST_USER}:${HOST_USER} *\""
     sphinx_autodoc
     sphinx_custom_css
     sphinx_links
@@ -1575,6 +1551,101 @@ sphinx_initialization() {
 
 sphinx_links() {
     touch "${DOCS_DIR}/links.rst"
+}
+
+
+sphinx_update_config() {
+    script_name=${SCRIPTS_PATH}"update_sphinx_config.py"
+    printf "%s\n" \
+        "${PY_SHEBANG}" \
+        "${PY_ENCODING}" \
+        '""" Script to update Sphinx documentation configuration files.' \
+        "" \
+        '"""' \
+        "import re" \
+        "from pathlib import Path" \
+        "" \
+        "from ${SOURCE_DIR}.pkg_globals import PACKAGE_ROOT" \
+        "" \
+        "" \
+        "def update_config():" \
+        '    """Update the docs/config.py file."""' \
+        "    conf_header = [" \
+        "        'import os'," \
+        "        'import sys'," \
+        "        ''," \
+        "        'from ${SOURCE_DIR} import __version__'," \
+        "        ''," \
+        "        \"sys.path.insert(0, os.path.abspath('../${SOURCE_DIR}'))\"," \
+        "        ''," \
+        "    ]" \
+        "" \
+        "    conf_links = [" \
+        "        \"rst_epilog = ''\"," \
+        "        ''," \
+        "        '# Read all link targets from one file'," \
+        "        \"with open('links.rst') as f:\"," \
+        "        \"    rst_epilog += f.read()\"," \
+        "    ]" \
+        "" \
+        "    with open(conf_path, 'r+') as f:" \
+        "        text = f.read()" \
+        "" \
+        "        text = re.sub(r'0.1.0', '__version__', text)" \
+        "        text = re.sub(r'alabaster', 'sphinx_rtd_theme', text)" \
+        "        text = re.sub(r\"'_build'\", \"'_build', 'links.rst'\", text)" \
+        "" \
+        "        lines = text.split('\n')" \
+        "        for n, line in enumerate(lines):" \
+        "            if line.startswith('project ='):" \
+        "                header_end = n" \
+        "            if line.startswith('exclude_patterns = '):" \
+        "                links_begin = n + 1" \
+        "                break" \
+        "" \
+        "        lines = conf_header \\" \
+        "            + lines[header_end:links_begin] \\" \
+        "            + conf_links \\" \
+        "            + lines[links_begin:] \\" \
+        "            + [\"html_css_files=['custom.css']\", '']" \
+        "" \
+        "        f.seek(0)" \
+        "        f.writelines('\n'.join(lines))" \
+        "        f.truncate()" \
+        "" \
+        "" \
+        "def update_index():" \
+        '    """Update the docs/index.rst file."""' \
+        "    with open(index_path, 'r+') as f:" \
+        "        lines = f.readlines()" \
+        "        for n, line in enumerate(lines):" \
+        "            if line.startswith('Welcome'):" \
+        "                header_end = n" \
+        "            if line.endswith('Contents:\n'):" \
+        "                toctree_end = n + 1" \
+        "                break" \
+        "        lines = lines[header_end:toctree_end] \\" \
+        "            + ['\n   package\n'] \\" \
+        "            + lines[toctree_end:]" \
+        "        title = '${SOURCE_DIR} API'" \
+        "        lines[0] = title + '\n'" \
+        "        lines[1] = '=' * len(title)" \
+        "" \
+        "        f.seek(0)" \
+        "        f.writelines(lines)" \
+        "        f.truncate()" \
+        "" \
+        "" \
+        "if __name__ == '__main__':" \
+        "    docs_dir = PACKAGE_ROOT / 'docs'" \
+        "    conf_path = docs_dir / 'conf.py'" \
+        "    index_path = docs_dir / 'index.rst'" \
+        "" \
+        "    update_config()" \
+        "    update_index()" \
+        "" \
+        > "${script_name}"
+    chmod u+x ./"${script_name}"
 }
 
 
@@ -2216,12 +2287,17 @@ test_conftest
 test_db
 test_utils
 update_nvidia_tags
+sphinx_update_config
 utils
 yapf_ignore
 
 cd "${MAIN_DIR}" || exit
 make docker-up
 sphinx_initialization
+source usr_vars
+docker container exec  "${COMPOSE_PROJECT_NAME}_${SOURCE_DIR}_python" \
+		./scripts/update_sphinx_config.py \
+make docs
 make update-nvidia-base-images
 make test
 git_init
