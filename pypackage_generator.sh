@@ -2296,7 +2296,8 @@ make docker-up
 sphinx_initialization
 source usr_vars
 docker container exec  "${COMPOSE_PROJECT_NAME}_${SOURCE_DIR}_python" \
-		./scripts/update_sphinx_config.py \
+    ./scripts/update_sphinx_config.py
+rm ./scripts/update_sphinx_config.py
 make docs
 make update-nvidia-base-images
 make test
