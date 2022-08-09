@@ -1457,6 +1457,7 @@ setup_py() {
         "          'click'," \
         "          'matplotlib'," \
         "          'pandas'," \
+        "          'pyyaml'," \
         "          'yapf'," \
         "      ]," \
         "      extras_require={" \
