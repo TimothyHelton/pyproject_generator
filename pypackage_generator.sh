@@ -461,8 +461,8 @@ docker_compose() {
         "      - ..:/usr/src/${MAIN_DIR}" \
         "    working_dir: /usr/src/${MAIN_DIR}" \
         "" \
-        "  mongodb:" \
-        "    container_name: \${COMPOSE_PROJECT_NAME:-default}_${MAIN_DIR}_mongodb" \
+        "  mongo:" \
+        "    container_name: \${COMPOSE_PROJECT_NAME:-default}_${MAIN_DIR}_mongo" \
         "    image: mongo" \
         "    env_file:" \
         "        .env" \
@@ -479,7 +479,7 @@ docker_compose() {
         "      - db-init-password" \
         "      - db-init-username" \
         "    volumes:" \
-        "      - ${MAIN_DIR}-db:/var/lib/mongodb/data" \
+        "      - ${MAIN_DIR}-db:/var/lib/mongo/data" \
         "      - ./${MONGO_INIT_DIR}:/docker-entrypoint-initdb.d" \
         "" \
         "  nginx:" \
@@ -950,10 +950,10 @@ makefile() {
         "\t\t/bin/bash -c \"latexmk -f -pdf \$(TEX_FILE) && latexmk -c\"" \
         "" \
         "mongo-create-admin: docker-up" \
-        "\tdocker container exec \$(CONTAINER_PREFIX)_mongodb ./docker-entrypoint-initdb.d/create_admin.sh" \
+        "\tdocker container exec \$(CONTAINER_PREFIX)_mongo ./docker-entrypoint-initdb.d/create_admin.sh" \
         "" \
         "mongo-create-user: docker-up" \
-        "\tdocker container exec \$(CONTAINER_PREFIX)_mongodb ./docker-entrypoint-initdb.d/create_user.sh -u \$(DB_USERNAME) -p \$(DB_PASSWORD) -d \$(DB)" \
+        "\tdocker container exec \$(CONTAINER_PREFIX)_mongo ./docker-entrypoint-initdb.d/create_user.sh -u \$(DB_USERNAME) -p \$(DB_PASSWORD) -d \$(DB)" \
         "" \
         "notebook: docker-up notebook-server" \
         "\t@echo \"\\\\n\\\\n\\\\n##################################################\"" \
