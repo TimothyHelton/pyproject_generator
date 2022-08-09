@@ -566,6 +566,8 @@ docker_compose() {
         "    tty: true" \
         "    volumes:" \
         "      - ..:/usr/src/${MAIN_DIR}" \
+        "      - ${MAIN_DIR}-secret:/usr/src/${MAIN_DIR}/.git" \
+        "      - ${MAIN_DIR}-secret:/usr/src/${MAIN_DIR}/docker/secrets" \
         "" \
         "networks:" \
         "  ${MAIN_DIR}-network:" \
@@ -586,6 +588,7 @@ docker_compose() {
         "volumes:" \
         "  ${MAIN_DIR}-db:" \
         "    name: \${COMPOSE_PROJECT_NAME:-default}-${MAIN_DIR}-db" \
+        "  ${MAIN_DIR}-secret:" \
         "" \
         > "${DOCKER_PATH}docker-compose.yaml"
 }
