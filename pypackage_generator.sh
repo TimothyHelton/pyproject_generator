@@ -22,6 +22,7 @@ SOURCE_DIR="${2:-$1}"
 : "${DOCS_DIR:=docs}"
 : "${FILE_SEP:=/}"
 : "${HOST_USER:="$USER"}" \
+: "${HOST_GROUP_ID:=$(id -g "$HOST_USER")}" \
 : "${HOST_USER_ID:=$(id -u "$HOST_USER")}" \
 : "${NODEJS_VERSION:=12}"
 : "${NOTEBOOK_DIR:=notebooks}"
@@ -416,8 +417,6 @@ directories() {
     for dir in "${SUB_DIRECTORIES[@]}"; do
         mkdir "${ROOT_PATH}${dir}"
     done
-    # MongoDB Initialization directory
-    mkdir "${MONGO_INIT_PATH}"
     # Secrets directory
     mkdir "${SECRETS_PATH}"
     # Sphinx Documentation directory
@@ -471,7 +470,6 @@ docker_compose() {
         "    tty: true" \
         "    volumes:" \
         "      - ..:/usr/src/${MAIN_DIR}" \
-        "      - ${MAIN_DIR}-secret:/usr/src/${MAIN_DIR}/.git" \
         "      - ${MAIN_DIR}-secret:/usr/src/${MAIN_DIR}/docker/secrets" \
         "" \
         "networks:" \
@@ -548,7 +546,6 @@ docker_config_py() {
         "        self._working_dir = f'/usr/src/{self._package}'" \
         "" \
         "        self._mask_secrets = [" \
-        "            f'{self._volume_secret}:{self._working_dir}/.git'," \
         "            f'{self._volume_secret}:{self._working_dir}/docker/secrets'," \
         "        ]" \
         "" \
@@ -1179,7 +1176,7 @@ makefile() {
         "docs: docker-up" \
         "\tdocker container exec \$(CONTAINER_PREFIX)_python \\\\" \
         "\t\t/bin/bash -c \"pip install -e .[docs] && cd docs && make html\"" \
-        "\t\${BROWSER} http://localhost:\$(PORT_NGINX)" \
+        "\t\${BROWSER} http://localhost:\$(PORT_NGINX) &" \
         "" \
         "docs-init: docker-up" \
         "\tfind docs -maxdepth 1 -type f -delete" \
@@ -1199,7 +1196,7 @@ makefile() {
         "\tgit checkout origin/master -- docs/" \
         "" \
         "docs-view: docker-up" \
-        "\t\${BROWSER} http://localhost:\$(PORT_NGINX)" \
+        "\t\${BROWSER} http://localhost:\$(PORT_NGINX) &" \
         "" \
         "format-style: docker-up" \
         "\tdocker container exec \$(CONTAINER_PREFIX)_python yapf -i -p -r --style \"pep8\" \${SRC_DIR}" \
@@ -1268,7 +1265,7 @@ makefile() {
         "endif" \
         "" \
         "pgadmin: docker-up" \
-        "\t\${BROWSER} http://localhost:\$(PORT_DATABASE_ADMINISTRATION)" \
+        "\t\${BROWSER} http://localhost:\$(PORT_DATABASE_ADMINISTRATION) &" \
         "" \
         "profile: docker-up" \
         "\t@docker container exec \$(CONTAINER_PREFIX)_python \\\\" \
@@ -1280,16 +1277,16 @@ makefile() {
         "" \
         "secret-templates:" \
         "\tcd docker/secrets \\" \
-        "\t\t&& printf '%s' \"\$(PROJECT)\" >> 'db_database.txt' \\" \
-        "\t\t&& printf '%s' \"admin\" >> 'db_init_password.txt' \\" \
-        "\t\t&& printf '%s' \"admin\" >> 'db_init_username.txt' \\" \
-        "\t\t&& printf '%s' \"password\" >> 'db_password.txt' \\" \
-        "\t\t&& printf '%s' \"username\" >> 'db_username.txt' \\" \
-        "\t\t&& printf '%s' \"\$(PROJECT)\" >> 'package.txt'" \
+        "\t\t&& printf '%s' \"\$(PROJECT)\" > 'db_database.txt' \\" \
+        "\t\t&& printf '%s' \"admin\" > 'db_init_password.txt' \\" \
+        "\t\t&& printf '%s' \"admin\" > 'db_init_username.txt' \\" \
+        "\t\t&& printf '%s' \"password\" > 'db_password.txt' \\" \
+        "\t\t&& printf '%s' \"username\" > 'db_username.txt' \\" \
+        "\t\t&& printf '%s' \"\$(PROJECT)\" > 'package.txt'" \
         "" \
         "snakeviz: docker-up profile snakeviz-server" \
         "\tsleep 0.5" \
-        "\t\${BROWSER} http://0.0.0.0:\$(PORT_PROFILE)/snakeviz/" \
+        "\t\${BROWSER} http://0.0.0.0:\$(PORT_PROFILE)/snakeviz/ &" \
         "" \
         "snakeviz-server: docker-up" \
         "\t@docker container exec \\\\" \
@@ -1305,7 +1302,7 @@ makefile() {
         "\tdocker container exec \$(CONTAINER_PREFIX)_python py.test \$(PROJECT)" \
         "" \
         "test-coverage: test" \
-        "\t\${BROWSER} htmlcov/index.html"\
+        "\t\${BROWSER} htmlcov/index.html &"\
         "" \
         "update-nvidia-base-images: docker-up" \
         "\tdocker container exec \$(CONTAINER_PREFIX)_python \\\\" \
@@ -1719,8 +1716,9 @@ sphinx_initialization() {
                 --ext-viewcode \
                 --makefile \
                 --no-batchfile \
-             && useradd -u ${HOST_USER_ID} ${HOST_USER} &> /dev/null || true \" \
-             && chown -R ${HOST_USER}:${HOST_USER} *\""
+             && useradd -u ${HOST_USER_ID} ${HOST_USER} &> /dev/null || true \
+             && groupadd ${HOST_USER} &> /dev/null || true \
+             && chown -R ${HOST_USER}:${HOST_USER} *"
     docker-compose -f docker/docker-compose.yaml restart nginx
     sphinx_autodoc
     sphinx_custom_css
@@ -2471,14 +2469,14 @@ cd "${MAIN_DIR}" || exit
 make docker-up
 sphinx_initialization
 source usr_vars
-docker container exec  "${COMPOSE_PROJECT_NAME}_${SOURCE_DIR}_python" \
+docker container exec "${COMPOSE_PROJECT_NAME}_${SOURCE_DIR}_python" \
     ./scripts/update_sphinx_config.py
 rm ./scripts/update_sphinx_config.py
 make docs
 make package-dependencies
 make secret-templates
 make update-nvidia-base-images
-make test
+make test-coverage
 git_init
 
 # Update scripts/docker_config.py with desired services and then call:
