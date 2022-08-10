@@ -108,23 +108,6 @@ cli() {
 }
 
 
-common_image() {
-    printf "%s\n" \
-        "\t&& curl -sL https://deb.nodesource.com/setup_${NODEJS_VERSION}.x | bash - \\\\" \
-        "\t&& apt update -y \\\\" \
-        "\t&& apt upgrade -y \\\\" \
-        "\t&& apt install -y \\\\" \
-        "\t\tapt-utils \\\\" \
-        "\t\tnodejs \\\\" \
-        "\t# && jupyter labextension install @telamonian/theme-darcula \\\\" \
-        "\t# && jupyter labextension install jupyterlab-plotly \\\\" \
-        "\t# && jupyter labextension install jupyterlab-toc \\\\" \
-        "\t&& rm -rf /tmp/* \\\\" \
-        "\t&& rm -rf /var/lib/apt/lists/* \\\\" \
-        "\t&& apt clean"
-}
-
-
 conftest() {
     printf "%s\n" \
         "${PY_SHEBANG}" \
