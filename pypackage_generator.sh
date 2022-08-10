@@ -1279,18 +1279,13 @@ makefile() {
         "\t\tpsql -U \${POSTGRES_USER} \$(PROJECT)" \
         "" \
         "secret-templates:" \
-        "\tdocker container run --rm \\\\" \
-        "\t\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\" \
-        "\t-w /usr/src/\$(PROJECT)/docker/secrets \\\\" \
-        "\tubuntu \\\\" \
-        "\t\t/bin/bash -c \\\\" \
-        "\t\t\t\"printf '%s' \"password\" >> 'password.txt' \\\\" \
-        "\t\t\t&& printf '%s' \"username\" >> 'username.txt' \\\\" \
-        "\t\t\t&& printf '%s' \"\$(PROJECT)\" >> 'package.txt' \\\\" \
-        "\t\t\t&& printf '%s' \"admin\" >> 'db_init_password.txt' \\\\" \
-        "\t\t\t&& printf '%s' \"admin\" >> 'db_init_username.txt' \\\\" \
-        "\t\t\t&& useradd -u \$(USER_ID) \$(USER) &> /dev/null || true \\\\" \
-        "\t\t\t&& chown -R \$(USER):\$(USER) *\"" \
+        "\tcd docker/secrets \\" \
+        "\t\t&& printf '%s' \"\$(PROJECT)\" >> 'db_database.txt' \\" \
+        "\t\t&& printf '%s' \"admin\" >> 'db_init_password.txt' \\" \
+        "\t\t&& printf '%s' \"admin\" >> 'db_init_username.txt' \\" \
+        "\t\t&& printf '%s' \"password\" >> 'db_password.txt' \\" \
+        "\t\t&& printf '%s' \"username\" >> 'db_username.txt' \\" \
+        "\t\t&& printf '%s' \"\$(PROJECT)\" >> 'package.txt'" \
         "" \
         "snakeviz: docker-up profile snakeviz-server" \
         "\tsleep 0.5" \
