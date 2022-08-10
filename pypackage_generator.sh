@@ -2,7 +2,7 @@
 
 : "${AUTHOR:=EnterAuthorName}"
 : "${EMAIL:=EnterAuthorEmail}"
-: "${PYTHON_VERSION:=3.9}"
+: "${PYTHON_VERSION:=3.10}"
 : "${PKG_VERSION:=0.1.0}"
 
 ###############################################################################
@@ -23,7 +23,6 @@ SOURCE_DIR="${2:-$1}"
 : "${FILE_SEP:=/}"
 : "${HOST_USER:="$USER"}" \
 : "${HOST_USER_ID:=$(id -u "$HOST_USER")}" \
-: "${MONGO_INIT_DIR:=mongo_init}"
 : "${NODEJS_VERSION:=12}"
 : "${NOTEBOOK_DIR:=notebooks}"
 : "${PROFILE_DIR:=profiles}"
@@ -61,7 +60,6 @@ PY_ENCODING="# -*- coding: utf-8 -*-"
 
 ROOT_PATH="${MAIN_DIR}${FILE_SEP}"
 DOCKER_PATH="${ROOT_PATH}${DOCKER_DIR}${FILE_SEP}"
-MONGO_INIT_PATH="${DOCKER_PATH}${MONGO_INIT_DIR}${FILE_SEP}"
 SCRIPTS_PATH="${ROOT_PATH}${SCRIPTS_DIR}${FILE_SEP}"
 SECRETS_PATH="${DOCKER_PATH}${SECRETS_DIR}${FILE_SEP}"
 SRC_PATH="${ROOT_PATH}${SOURCE_DIR}${FILE_SEP}"
@@ -107,23 +105,6 @@ cli() {
         "if __name__ == '__main__':" \
         "    pass" \
         > "${SRC_PATH}cli.py"
-}
-
-
-common_image() {
-    printf "%s\n" \
-        "\t&& curl -sL https://deb.nodesource.com/setup_${NODEJS_VERSION}.x | bash - \\\\" \
-        "\t&& apt update -y \\\\" \
-        "\t&& apt upgrade -y \\\\" \
-        "\t&& apt install -y \\\\" \
-        "\t\tapt-utils \\\\" \
-        "\t\tnodejs \\\\" \
-        "\t# && jupyter labextension install @telamonian/theme-darcula \\\\" \
-        "\t# && jupyter labextension install jupyterlab-plotly \\\\" \
-        "\t# && jupyter labextension install jupyterlab-toc \\\\" \
-        "\t&& rm -rf /tmp/* \\\\" \
-        "\t&& rm -rf /var/lib/apt/lists/* \\\\" \
-        "\t&& apt clean"
 }
 
 
@@ -450,38 +431,6 @@ docker_compose() {
     printf "%s\n" \
         "services:" \
         "" \
-        "  latex:" \
-        "    container_name: \${COMPOSE_PROJECT_NAME:-default}_${MAIN_DIR}_latex" \
-        "    image: blang/latex" \
-        "    networks:" \
-        "      - ${MAIN_DIR}-network" \
-        "    restart: always" \
-        "    tty: true" \
-        "    volumes:" \
-        "      - ..:/usr/src/${MAIN_DIR}" \
-        "    working_dir: /usr/src/${MAIN_DIR}" \
-        "" \
-        "  mongodb:" \
-        "    container_name: \${COMPOSE_PROJECT_NAME:-default}_${MAIN_DIR}_mongodb" \
-        "    image: mongo" \
-        "    env_file:" \
-        "        .env" \
-        "    environment:" \
-        "      MONGO_INITDB_ROOT_PASSWORD: /run/secrets/db-init-password" \
-        "      MONGO_INITDB_ROOT_USERNAME: /run/secrets/db-init-username" \
-        "      PORT_MONGO: \${PORT_MONGO}" \
-        "    networks:" \
-        "      - ${MAIN_DIR}-network" \
-        "    ports:" \
-        "      - '\$PORT_MONGO:27017'" \
-        "    restart: always" \
-        "    secrets:" \
-        "      - db-init-password" \
-        "      - db-init-username" \
-        "    volumes:" \
-        "      - ${MAIN_DIR}-db:/var/lib/mongodb/data" \
-        "      - ./${MONGO_INIT_DIR}:/docker-entrypoint-initdb.d" \
-        "" \
         "  nginx:" \
         "    container_name: \${COMPOSE_PROJECT_NAME:-default}_${MAIN_DIR}_nginx" \
         "    env_file:" \
@@ -497,53 +446,11 @@ docker_compose() {
         "    volumes:" \
         "      - ../docs/_build/html:/usr/share/nginx/html:ro" \
         "" \
-        "  postgres:" \
-        "    container_name: \${COMPOSE_PROJECT_NAME:-default}_${MAIN_DIR}_postgres" \
-        "    env_file:" \
-        "        .env" \
-        "    image: postgres:alpine" \
-        "    environment:" \
-        "      PORT_POSTGRES: \${PORT_POSTGRES}" \
-        "      POSTGRES_PASSWORD_FILE: /run/secrets/db-password" \
-        "      POSTGRES_DB_FILE: /run/secrets/db-database" \
-        "      POSTGRES_USER_FILE: /run/secrets/db-username" \
-        "    networks:"\
-        "      - ${MAIN_DIR}-network" \
-        "    ports:" \
-        "      - '\$PORT_POSTGRES:5432'" \
-        "    restart: always" \
-        "    secrets:" \
-        "      - db-database" \
-        "      - db-password" \
-        "      - db-username" \
-        "    volumes:" \
-        "      - ${MAIN_DIR}-db:/var/lib/postgresql/data" \
-        "" \
-        "  pgadmin:" \
-        "    container_name: \${COMPOSE_PROJECT_NAME:-default}_${MAIN_DIR}_pgadmin" \
-        "    env_file:" \
-        "        .env" \
-        "    environment:" \
-        "      PORT_DATABASE_ADMINISTRATION: \$PORT_DATABASE_ADMINISTRATION" \
-        "      PGADMIN_DEFAULT_EMAIL: \${PGADMIN_DEFAULT_EMAIL:-pgadmin@pgadmin.org}" \
-        "      PGADMIN_DEFAULT_PASSWORD: \${PGADMIN_DEFAULT_PASSWORD:-admin}" \
-        "    external_links:" \
-        "      - ${MAIN_DIR}_postgres:${MAIN_DIR}_postgres" \
-        "    image: dpage/pgadmin4" \
-        "    depends_on:" \
-        "      - postgres" \
-        "    networks:"\
-        "      - ${MAIN_DIR}-network" \
-        "    ports:" \
-        "      - '\$PORT_DATABASE_ADMINISTRATION:80'" \
-        "" \
         "  python:" \
         "    container_name: \${COMPOSE_PROJECT_NAME:-default}_${MAIN_DIR}_python" \
         "    build:" \
         "      context: .." \
         "      dockerfile: docker/\${ENVIRONMENT}.Dockerfile" \
-        "    depends_on:" \
-        "      - postgres" \
         "    env_file:" \
         "        .env" \
         "    environment:" \
@@ -560,34 +467,396 @@ docker_compose() {
         "      - \${PORT_PROFILE}:\${PORT_PROFILE}" \
         "    restart: always" \
         "    secrets:" \
-        "      - db-database" \
-        "      - db-password" \
-        "      - db-username" \
+        "      - package" \
         "    tty: true" \
         "    volumes:" \
         "      - ..:/usr/src/${MAIN_DIR}" \
+        "      - ${MAIN_DIR}-secret:/usr/src/${MAIN_DIR}/.git" \
+        "      - ${MAIN_DIR}-secret:/usr/src/${MAIN_DIR}/docker/secrets" \
         "" \
         "networks:" \
         "  ${MAIN_DIR}-network:" \
         "    name: \${COMPOSE_PROJECT_NAME:-default}-${MAIN_DIR}-network" \
         "" \
         "secrets:" \
-        "  db-database:" \
-        "    file: secrets/db_database.txt" \
-        "  db-password:" \
-        "    file: secrets/db_password.txt" \
-        "  db-username:" \
-        "    file: secrets/db_username.txt" \
-        "  db-init-password:" \
-        "    file: secrets/db_init_password.txt" \
-        "  db-init-username:" \
-        "    file: secrets/db_init_username.txt" \
+        "  package:" \
+        "    file: secrets/package.txt" \
         "" \
         "volumes:" \
         "  ${MAIN_DIR}-db:" \
         "    name: \${COMPOSE_PROJECT_NAME:-default}-${MAIN_DIR}-db" \
+        "  ${MAIN_DIR}-secret:" \
         "" \
         > "${DOCKER_PATH}docker-compose.yaml"
+}
+
+
+docker_config_py() {
+    script_name=${SCRIPTS_PATH}"docker_config.py"
+    printf "%s\n" \
+        "#! /usr/bin/env python3" \
+        "# -*- coding: utf-8 -*-" \
+        '""" Docker Configuration Module' \
+        "" \
+        '"""' \
+        "from enum import Enum" \
+        "import logging" \
+        "from pathlib import Path" \
+        "from typing import Optional" \
+        "" \
+        "import yaml" \
+        "" \
+        "from ${SOURCE_DIR}.pkg_globals import PACKAGE_ROOT" \
+        "" \
+        "logger = logging.getLogger('package')" \
+        "" \
+        "" \
+        "class ComposeService(Enum):" \
+        '    """Implemented Docker Compose services."""' \
+        "    LATEX = 'latex'" \
+        "    MONGO = 'mongo'" \
+        "    NGINX = 'nginx'" \
+        "    POSTGRES = 'postgres'" \
+        "    PGADMIN = 'pgadmin'" \
+        "    PYTHON = 'python'" \
+        "" \
+        "" \
+        "class ComposeConfiguration:" \
+        '    """' \
+        "    Docker Compose Configuration Class" \
+        "" \
+        "    :Attributes:" \
+        "" \
+        "    - **filepath**: *Path* Path to Docker Compose configuration file" \
+        '    """' \
+        "    default_filepath = PACKAGE_ROOT / 'docker' / 'docker-compose.yaml'" \
+        "" \
+        "    def __init__(self, filepath: Optional[Path] = None):" \
+        "        self.filepath = filepath if filepath else self.default_filepath" \
+        "        with open(self.filepath, 'r') as f:" \
+        "            self._config = yaml.safe_load(f)" \
+        "        logger.debug('Initial Docker Compose Configuration:\n\n%s'" \
+        "                     % self._config)" \
+        "" \
+        "        self._container_prefix = (" \
+        "            self._config['services']['python']['container_name']" \
+        "            .rsplit('_', 1)[0])" \
+        "        self._package = self._container_prefix.rsplit('}_', 1)[1]" \
+        "        self._network = f'{self._package}-network'" \
+        "        self._volume_db = f'{self._package}-db'" \
+        "        self._volume_secret = f'{self._package}-secret'" \
+        "        self._working_dir = f'/usr/src/{self._package}'" \
+        "" \
+        "        self._mask_secrets = [" \
+        "            f'{self._volume_secret}:{self._working_dir}/.git'," \
+        "            f'{self._volume_secret}:{self._working_dir}/docker/secrets'," \
+        "        ]" \
+        "" \
+        "        self._docker_dir = PACKAGE_ROOT / 'docker'" \
+        "        self._docker_secrets_dir = self._docker_dir / 'secrets'" \
+        "        self._mongo_init_dir = self._docker_dir / 'mongo_init'" \
+        "" \
+        "    def __repr__(self) -> str:" \
+        "        return (f'{type(self).__name__}('" \
+        "                f'filepath={self.filepath!r}'" \
+        "                f')')" \
+        "" \
+        "    @property" \
+        "    def config(self):" \
+        '        """Docker Compose configuration."""' \
+        "        return self._config" \
+        "" \
+        "    def _add_secrets(self):" \
+        '        """Add database secrets."""' \
+        "        secrets = {" \
+        "            'db-database': {'file': 'secrets/db_database.txt'}," \
+        "            'db-password': {'file': 'secrets/db_password.txt'}," \
+        "            'db-username': {'file': 'secrets/db_username.txt'}," \
+        "            'db-init-password': {'file': 'secrets/db_init_password.txt'}," \
+        "            'db-init-username': {'file': 'secrets/db_init_username.txt'}," \
+        "        }" \
+        "        self._config['secrets'] = {" \
+        "            **self._config.get('secrets', {})," \
+        "            **secrets," \
+        "        }" \
+        "        self._config['services']['python']['secrets'] = [" \
+        "            'db-database'," \
+        "            'db-password'," \
+        "            'db-username'," \
+        "            'db-init-password'," \
+        "            'db-init-username'," \
+        "        ]" \
+        "" \
+        "    def _add_db_volume(self):" \
+        '        """Add database volume."""' \
+        "        self._config['volumes'][self._volume_db] = {" \
+        "            'name': f'{self._container_prefix}-db'" \
+        "        }" \
+        "" \
+        "    def _add_latex(self):" \
+        '        """Add LaTeX service to configuration."""' \
+        "        self._config['services']['latex'] = {" \
+        "            'container_name': f'{self._container_prefix}_latex'," \
+        "            'image': 'blang/latex'," \
+        "            'networks': [self._network]," \
+        "            'restart': 'always'," \
+        "            'tty': True," \
+        "            'volumes': [" \
+        "                f'..:/usr/src/{self._package}'," \
+        "                *self._mask_secrets," \
+        "            ]," \
+        "            'working_dir': self._working_dir," \
+        "        }" \
+        "" \
+        "    def _add_mongo(self):" \
+        '        """Add MongoDB service to configuration."""' \
+        "        self._config['services']['mongo'] = {" \
+        "            'container_name':" \
+        "            f'{self._container_prefix}_mongodb'," \
+        "            'image':" \
+        "            'mongo'," \
+        "            'env_file':" \
+        "            '.env'," \
+        "            'environment': {" \
+        "                'MONGO_INITDB_ROOT_PASSWORD': '/run/secrets/db-init-password'," \
+        "                'MONGO_INITDB_ROOT_USERNAME': '/run/secrets/db-init-username'," \
+        "                'PORT_MONGO': '\${PORT_MONGO}'," \
+        "            }," \
+        "            'networks': [self._network]," \
+        "            'ports': [" \
+        "                '\$PORT_MONGO:27017'," \
+        "            ]," \
+        "            'restart':" \
+        "            'always'," \
+        "            'secrets': [" \
+        "                'db-init-password'," \
+        "                'db-init-username'," \
+        "            ]," \
+        "            'volumes': [" \
+        "                f'{self._volume_db}:/var/lib/mongodb/data'," \
+        "                './mongo_init:/docker-entrypoint-initdb.d'," \
+        "                *self._mask_secrets" \
+        "            ]," \
+        "        }" \
+        "        self._update_depends_on(ComposeService.MONGO)" \
+        "        self._add_secrets()" \
+        "        self._mongo_init_dir.mkdir(parents=True, exist_ok=True)" \
+        "        self._mongo_create_admin()" \
+        "        self._mongo_create_user()" \
+        "" \
+        "    def _mongo_create_admin(self):" \
+        '        """Write script file that creates MongoDB Admin user."""' \
+        "        text = [" \
+        "            '#!/bin/bash'," \
+        "            '# create_admin.sh'," \
+        "            ''," \
+        "            '# Create Administrator'," \
+        "            'mongo admin -u \$MONGO_INITDB_ROOT_USERNAME '" \
+        "            '-p \$MONGO_INITDB_ROOT_PASSWORD << EOF'," \
+        "            '    db.createUser({user: \"admin\", pwd: \"admin\", '" \
+        "            'roles: [\"root\"]});'" \
+        "            'EOF'," \
+        "            ''," \
+        "        ]" \
+        "        with open(self._mongo_init_dir / 'create_admin', 'w') as f:" \
+        "            f.writelines('\n'.join(text))" \
+        "" \
+        "    def _mongo_create_user(self):" \
+        '        """Write script file that creates MongoDB user."""' \
+        "        text = [" \
+        "            '#!/bin/bash'," \
+        "            ''," \
+        "            'help_function()'," \
+        "            '{'," \
+        "            '   echo ""'," \
+        "            '   echo \"Script will create a MongoDB database user with '" \
+        "            'supplied password.\"'," \
+        "            '   echo \"\"'," \
+        "            '   echo \"Usage: \$0 -u username -p password -db database\"'," \
+        "            '   echo -e \"\t-u username\"'," \
+        "            '   echo -e \"\t-p password\"'," \
+        "            '   echo -e \"\t-d database\"'," \
+        "            '  exit 1'," \
+        "            '}'," \
+        "            ''," \
+        "            'while getopts \"u:p:d:\" opt'," \
+        "            'do'," \
+        "            '    case \"\$opt\" in'," \
+        "            '      u ) username=\"\$OPTARG\" ;;'," \
+        "            '      p ) password=\"\$OPTARG\" ;;'," \
+        "            '      d ) database=\"\$OPTARG\" ;;'," \
+        "            '      ? ) help_function ;;'," \
+        "            '   esac'," \
+        "            'done'," \
+        "            ''," \
+        "            '# Print help_function in case parameters are empty'," \
+        "            'if [ -z \"\$username\" ] || [ -z \"\$password\" ] || '" \
+        "            '[ -z \"\$database\" ]'," \
+        "            'then'," \
+        "            '   echo ""'," \
+        "            '   echo \"Missing Parameters: All parameters are required.\";'," \
+        "            '   help_function'," \
+        "            'fi'," \
+        "            ''," \
+        "            '# Create User'," \
+        "            'mongo admin -u \$MONGO_INITDB_ROOT_USERNAME '" \
+        "            '-p \$MONGO_INITDB_ROOT_PASSWORD << EOF'," \
+        "            '    db.createUser({user: \"\${username}\", pwd: \"\${password}\", '" \
+        "            'roles: [\"readWrite\"]});'" \
+        "            'EOF'," \
+        "            ''," \
+        "            ]" \
+        "        with open(self._mongo_init_dir / 'create_user.sh', 'w') as f:" \
+        "            f.writelines('\n'.join(text))" \
+        "" \
+        "    def _add_nginx(self):" \
+        '        """Add NGINX service to configuration."""' \
+        "        self._config['services']['nginx'] = {" \
+        "            'container_name': f'{self._container_prefix}_nginx'," \
+        "            'env_file': '.env'," \
+        "            'environment': {" \
+        "                'PORT_NGINX': '\${PORT_NGINX}'," \
+        "            }," \
+        "            'image': 'nginx:alpine'," \
+        "            'networks': [self._network]," \
+        "            'ports': [" \
+        "                '\${PORT_NGINX}:80'," \
+        "            ]," \
+        "            'restart': 'always'," \
+        "            'volumes': [" \
+        "                '../docs/_build/html:/usr/share/nginx/html:ro'," \
+        "                *self._mask_secrets," \
+        "            ]," \
+        "        }" \
+        "" \
+        "    def _add_postgres(self):" \
+        '        """Add PostgreSQL service to configuration."""' \
+        "        self._config['services']['postgres'] = {" \
+        "            'container_name': f'{self._container_prefix}_postgres'," \
+        "            'env_file': '.env'," \
+        "            'image': 'postgres:alpine'," \
+        "            'environment': {" \
+        "                'PORT_POSTGRES': '\${PORT_POSTGRES}'," \
+        "                'POSTGRES_DB_FILE': '/run/secrets/db-database'," \
+        "                'POSTGRES_PASSWORD_FILE': '/run/secrets/db-password'," \
+        "                'POSTGRES_USER_FILE': '/run/secrets/db-username'," \
+        "            }," \
+        "            'networks': [self._network]," \
+        "            'ports': [" \
+        "                '\$PORT_POSTGRES:5432'," \
+        "            ]," \
+        "            'restart': 'always'," \
+        "            'secrets': [" \
+        "                'db-database'," \
+        "                'db-password'," \
+        "                'db-username'," \
+        "            ]," \
+        "            'volumes': [" \
+        "                f'{self._volume_db}:/var/lib/postgresql/data'," \
+        "                *self._mask_secrets," \
+        "            ]," \
+        "        }" \
+        "        self._update_depends_on(ComposeService.POSTGRES)" \
+        "        self._add_secrets()" \
+        "" \
+        "    def _add_pgadmin(self):" \
+        '        """Add PGAdmin service to configuration."""' \
+        "        self._config['services']['pgadmin'] = {" \
+        "            'container_name':" \
+        "            f'{self._container_prefix}_pgadmin'," \
+        "            'env_file':" \
+        "            '.env'," \
+        "            'environment': {" \
+        "                'PGADMIN_DEFAULT_EMAIL':" \
+        "                '\${PGADMIN_DEFAULT_EMAIL:-pgadmin@pgadmin.org}'," \
+        "                'PGADMIN_DEFAULT_PASSWORD':" \
+        "                '\${PGADMIN_DEFAULT_PASSWORD:-admin}'," \
+        "                'PORT_DATABASE_ADMINISTRATION':" \
+        "                '\$PORT_DATABASE_ADMINISTRATION'," \
+        "            }," \
+        "            'external_links': [" \
+        "                f'{self._package}_postgres:{self._package}_postgres'," \
+        "            ]," \
+        "            'image':" \
+        "            'dpage/pgadmin4'," \
+        "            'depends_on': ['postgres']," \
+        "            'networks': [self._network]," \
+        "            'ports': [" \
+        "                '\$PORT_DATABASE_ADMINISTRATION:80'," \
+        "            ]," \
+        "            'volumes': [" \
+        "                *self._mask_secrets," \
+        "            ]," \
+        "        }" \
+        "" \
+        "    def _update_depends_on(self, service_name: ComposeService):" \
+        '        """Update the Python service `depends_on` tag."""' \
+        "        py_tag = self._config['services']['python']" \
+        "        py_tag['depends_on'] = (py_tag.get('depends_on', [])" \
+        "                                + [service_name.value])" \
+        "" \
+        "    def add_gpu(self):" \
+        '        """Add GPU configuration to Python container."""' \
+        "        py_service = self._config['services']['python']" \
+        "        py_service['build']['shm_size'] = '1g'" \
+        "        py_service['deploy'] = {" \
+        "            'resources': {" \
+        "                'reservations': {" \
+        "                    'devices': [" \
+        "                        {'capabilities': ['gpu']}," \
+        "                    ]," \
+        "                }," \
+        "            }," \
+        "        }" \
+        "        py_service['ipc'] = 'host'" \
+        "        py_service['shm_size'] = '16g'" \
+        "        py_service['ulimits'] = {'memlock': -1}" \
+        "" \
+        "    def add_service(self, service_name: ComposeService):" \
+        '        """' \
+        "        Add service to configuration." \
+        "" \
+        "        :param service_name: Name of the Docker service to add" \
+        '        """' \
+        "        service_name = service_name.value" \
+        "        getattr(self, f'_add_{service_name}')()" \
+        "        logger.debug('Docker service added: %s' % service_name)" \
+        "" \
+        "    def remove_service(self, service_name: ComposeService):" \
+        '        """' \
+        "        Remove service from configuration." \
+        "" \
+        "        :param service_name: Name of the Docker service to remove" \
+        '        """' \
+        "        service_name = service_name.value" \
+        "        del self._config['services'][service_name]" \
+        "        logger.debug('Docker service removed: %s' % service_name)" \
+        "" \
+        "    def write(self, des: Optional[Path] = None):" \
+        '        """' \
+        "        Write Docker Compose configuration YAML file." \
+        "" \
+        "        :param des: Destination path to write configuration (default: the \\" \
+        "            initial filepath supplied during instantiation)" \
+        '        """' \
+        "        des = des if des else self.filepath" \
+        "        with open(des, 'w') as f:" \
+        "            yaml.dump(self._config, f)" \
+        "        logger.debug('Docker Compose Configuration file written: %s' % des)" \
+        "" \
+        "" \
+        "if __name__ == '__main__':" \
+        "    config = ComposeConfiguration()" \
+        "    services = (" \
+        "        ComposeService.MONGO," \
+        "    )" \
+        "    for s in services:" \
+        "        config.add_service(s)" \
+        "    config.add_gpu()" \
+        "    config.write()" \
+        "" \
+        > "${script_name}"
+    chmod u+x ./"${script_name}"
 }
 
 
@@ -875,7 +1144,7 @@ makefile() {
         "" \
         "CONTAINER_PREFIX:=\$(COMPOSE_PROJECT_NAME)_\$(PROJECT)" \
         "DOCKER_IMAGE=\$(shell head -n 1 docker/\$(ENVIRONMENT).Dockerfile | cut -d ' ' -f 2)" \
-        "PKG_MANAGER=conda" \
+        "PKG_MANAGER=pip" \
         'PROFILE_PY:=""' \
         "PROFILE_PROF:=\$(notdir \$(PROFILE_PY:.py=.prof))" \
         "PROFILE_PATH:=profiles/\$(PROFILE_PROF)" \
@@ -950,10 +1219,10 @@ makefile() {
         "\t\t/bin/bash -c \"latexmk -f -pdf \$(TEX_FILE) && latexmk -c\"" \
         "" \
         "mongo-create-admin: docker-up" \
-        "\tdocker container exec \$(CONTAINER_PREFIX)_mongodb ./docker-entrypoint-initdb.d/create_admin.sh" \
+        "\tdocker container exec \$(CONTAINER_PREFIX)_mongo ./docker-entrypoint-initdb.d/create_admin.sh" \
         "" \
         "mongo-create-user: docker-up" \
-        "\tdocker container exec \$(CONTAINER_PREFIX)_mongodb ./docker-entrypoint-initdb.d/create_user.sh -u \$(DB_USERNAME) -p \$(DB_PASSWORD) -d \$(DB)" \
+        "\tdocker container exec \$(CONTAINER_PREFIX)_mongo ./docker-entrypoint-initdb.d/create_user.sh -u \$(DB_USERNAME) -p \$(DB_PASSWORD) -d \$(DB)" \
         "" \
         "notebook: docker-up notebook-server" \
         "\t@echo \"\\\\n\\\\n\\\\n##################################################\"" \
@@ -985,17 +1254,17 @@ makefile() {
         "\t\t\"# Backpack Version: \$(VERSION)\" \\\\" \
         "\t\t\"# From NVIDIA NGC CONTAINER: \$(DOCKER_IMAGE)\" \\\\" \
         "\t\t\"#\" \\\\" \
-        "\t> requirements_\$(ENVIRONMENT).txt" \
+        "\t> requirements.txt" \
         "ifeq (\"\${PKG_MANAGER}\", \"conda\")" \
         "\tdocker container exec \$(CONTAINER_PREFIX)_python \\\\" \
         "\t\t/bin/bash -c \\\\" \
-        "\t\t\t\"conda list --export >> requirements_\$(ENVIRONMENT).txt \\\\" \
-        "\t\t\t && sed -i -e '/^\$(PROJECT)/ s/./# &/' requirements_\$(ENVIRONMENT).txt\"" \
+        "\t\t\t\"conda list --export >> requirements.txt \\\\" \
+        "\t\t\t && sed -i -e '/^\$(PROJECT)/ s/./# &/' requirements.txt\"" \
         "else ifeq (\"\${PKG_MANAGER}\", \"pip\")" \
         "\tdocker container exec \$(CONTAINER_PREFIX)_python \\\\" \
         "\t\t/bin/bash -c \\\\" \
-        "\t\t\t\"pip freeze >> requirements_\$(ENVIRONMENT).txt \\\\" \
-        "\t\t\t && sed -i -e '/^-e/d' requirements_\$(ENVIRONMENT).txt\"" \
+        "\t\t\t\"pip freeze >> requirements.txt \\\\" \
+        "\t\t\t && sed -i -e '/^-e/d' requirements.txt\"" \
         "endif" \
         "" \
         "pgadmin: docker-up" \
@@ -1010,18 +1279,13 @@ makefile() {
         "\t\tpsql -U \${POSTGRES_USER} \$(PROJECT)" \
         "" \
         "secret-templates:" \
-        "\tdocker container run --rm \\\\" \
-        "\t\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\" \
-        "\t-w /usr/src/\$(PROJECT)/docker/secrets \\\\" \
-        "\tubuntu \\\\" \
-        "\t\t/bin/bash -c \\\\" \
-        "\t\t\t\"printf '%s' \"password\" >> 'password.txt' \\\\" \
-        "\t\t\t&& printf '%s' \"username\" >> 'username.txt' \\\\" \
-        "\t\t\t&& printf '%s' \"\$(PROJECT)\" >> 'package.txt' \\\\" \
-        "\t\t\t&& printf '%s' \"admin\" >> 'db_init_password.txt' \\\\" \
-        "\t\t\t&& printf '%s' \"admin\" >> 'db_init_username.txt' \\\\" \
-        "\t\t\t&& useradd -u \$(USER_ID) \$(USER) &> /dev/null || true \\\\" \
-        "\t\t\t&& chown -R \$(USER):\$(USER) *\"" \
+        "\tcd docker/secrets \\" \
+        "\t\t&& printf '%s' \"\$(PROJECT)\" >> 'db_database.txt' \\" \
+        "\t\t&& printf '%s' \"admin\" >> 'db_init_password.txt' \\" \
+        "\t\t&& printf '%s' \"admin\" >> 'db_init_username.txt' \\" \
+        "\t\t&& printf '%s' \"password\" >> 'db_password.txt' \\" \
+        "\t\t&& printf '%s' \"username\" >> 'db_username.txt' \\" \
+        "\t\t&& printf '%s' \"\$(PROJECT)\" >> 'package.txt'" \
         "" \
         "snakeviz: docker-up profile snakeviz-server" \
         "\tsleep 0.5" \
@@ -1074,63 +1338,6 @@ manifest() {
     printf "%s\n" \
         "include LICENSE.txt" \
         > "${ROOT_PATH}MANIFEST.in"
-}
-
-
-mongo_create_admin() {
-    printf "%s\n" \
-        "#!/bin/bash" \
-        "# create_admin.sh" \
-        "" \
-        "# Create Administrator" \
-        "mongo admin -u \$MONGO_INITDB_ROOT_USERNAME -p \$MONGO_INITDB_ROOT_PASSWORD << EOF" \
-        '    db.createUser({user: "admin", pwd: "admin", roles: ["root"]});' \
-        "EOF" \
-        "" \
-        > "${MONGO_INIT_PATH}create_admin.sh"
-}
-
-
-mongo_create_user() {
-    printf "%s\n" \
-        "#!/bin/bash" \
-        "" \
-        "help_function()" \
-        "{" \
-        "   echo \"\"" \
-        "   echo \"Script will create a MongoDB database user with supplied password.\"" \
-        "   echo \"\"" \
-        "   echo \"Usage: \$0 -u username -p password -db database\"" \
-        "   echo -e \"\t-u username\"" \
-        "   echo -e \"\t-p password\"" \
-        "   echo -e \"\t-d database\"" \
-        "   exit 1" \
-        "}" \
-        "" \
-        'while getopts "u:p:d:" opt' \
-        "do" \
-        "    case \"\$opt\" in" \
-        "      u ) username=\"\$OPTARG\" ;;" \
-        "      p ) password=\"\$OPTARG\" ;;" \
-        "      d ) database=\"\$OPTARG\" ;;" \
-        "      ? ) help_function ;;" \
-        "   esac" \
-        "done" \
-        "" \
-        "# Print help_function in case parameters are empty" \
-        "if [ -z \"\$username\" ] || [ -z \"\$password\" ] || [ -z \"\$database\" ]" \
-        "then" \
-        "   echo \"\"" \
-        "   echo \"Missing Parameters: All parameters are required.\";" \
-        "   help_function" \
-        "fi" \
-        "" \
-        "# Create User" \
-        "mongo admin -u \$MONGO_INITDB_ROOT_USERNAME -p \$MONGO_INITDB_ROOT_PASSWORD << EOF" \
-        "    db.createUser({user: \"\${username}\", pwd: \"\${password}\", roles: [\"readWrite\"]});" \
-        "EOF" \
-        "" \
-        > "${MONGO_INIT_PATH}create_user.sh"
 }
 
 
@@ -1285,37 +1492,10 @@ requirements() {
 }
 
 
-secret_db_database() {
+secret_package() {
     printf "%s" \
         "${MAIN_DIR}" \
-        > "${SECRETS_PATH}db_database.txt"
-}
-
-
-secret_db_password() {
-    printf "%s" \
-        "postgres" \
-        > "${SECRETS_PATH}db_password.txt"
-}
-
-
-secret_db_username() {
-    printf "%s" \
-        "postgres" \
-        > "${SECRETS_PATH}db_username.txt"
-}
-
-secret_db_init_password() {
-    printf "%s" \
-        "admin" \
-        > "${SECRETS_PATH}db_init_password.txt"
-}
-
-
-secret_db_init_username() {
-    printf "%s" \
-        "admin" \
-        > "${SECRETS_PATH}db_init_username.txt"
+        > "${SECRETS_PATH}package.txt"
 }
 
 
@@ -1457,6 +1637,7 @@ setup_py() {
         "          'click'," \
         "          'matplotlib'," \
         "          'pandas'," \
+        "          'pyyaml'," \
         "          'yapf'," \
         "      ]," \
         "      extras_require={" \
@@ -1771,7 +1952,7 @@ test_utils() {
         "" \
         "# Test docker_secret()" \
         "docker_secret = {" \
-        "    'database': ('db-database', '${MAIN_DIR}')," \
+        "    'package': ('package', '${SOURCE_DIR}')," \
         "}" \
         "" \
         "" \
@@ -2256,6 +2437,7 @@ constructor_pkg
 constructor_test
 db
 docker_compose
+docker_config_py
 docker_env_link
 docker_ignore
 docker_python
@@ -2269,17 +2451,11 @@ pkg_globals
 license
 makefile
 manifest
-mongo_create_admin
-mongo_create_user
 pull_request_template
 readme
 release_history
 requirements
-secret_db_database
-secret_db_password
-secret_db_username
-secret_db_init_password
-secret_db_init_username
+secret_package
 setup_cfg
 setup_py
 test_cli
@@ -2299,6 +2475,12 @@ docker container exec  "${COMPOSE_PROJECT_NAME}_${SOURCE_DIR}_python" \
     ./scripts/update_sphinx_config.py
 rm ./scripts/update_sphinx_config.py
 make docs
+make package-dependencies
+make secret-templates
 make update-nvidia-base-images
 make test
 git_init
+
+# Update scripts/docker_config.py with desired services and then call:
+#   $ docker container exec ${CONTAINER_PREFIX}_python scripts/docker_config.py
+#   $ make docker-rebuild
