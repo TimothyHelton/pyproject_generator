@@ -1254,17 +1254,17 @@ makefile() {
         "\t\t\"# Backpack Version: \$(VERSION)\" \\\\" \
         "\t\t\"# From NVIDIA NGC CONTAINER: \$(DOCKER_IMAGE)\" \\\\" \
         "\t\t\"#\" \\\\" \
-        "\t> requirements_\$(ENVIRONMENT).txt" \
+        "\t> requirements.txt" \
         "ifeq (\"\${PKG_MANAGER}\", \"conda\")" \
         "\tdocker container exec \$(CONTAINER_PREFIX)_python \\\\" \
         "\t\t/bin/bash -c \\\\" \
-        "\t\t\t\"conda list --export >> requirements_\$(ENVIRONMENT).txt \\\\" \
-        "\t\t\t && sed -i -e '/^\$(PROJECT)/ s/./# &/' requirements_\$(ENVIRONMENT).txt\"" \
+        "\t\t\t\"conda list --export >> requirements.txt \\\\" \
+        "\t\t\t && sed -i -e '/^\$(PROJECT)/ s/./# &/' requirements.txt\"" \
         "else ifeq (\"\${PKG_MANAGER}\", \"pip\")" \
         "\tdocker container exec \$(CONTAINER_PREFIX)_python \\\\" \
         "\t\t/bin/bash -c \\\\" \
-        "\t\t\t\"pip freeze >> requirements_\$(ENVIRONMENT).txt \\\\" \
-        "\t\t\t && sed -i -e '/^-e/d' requirements_\$(ENVIRONMENT).txt\"" \
+        "\t\t\t\"pip freeze >> requirements.txt \\\\" \
+        "\t\t\t && sed -i -e '/^-e/d' requirements.txt\"" \
         "endif" \
         "" \
         "pgadmin: docker-up" \
