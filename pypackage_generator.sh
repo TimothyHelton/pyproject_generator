@@ -1162,16 +1162,16 @@ makefile() {
         "\t@echo git push origin v\$(VERSION)" \
         "" \
         "docker-down:" \
-        "\tdocker-compose -f docker/docker-compose.yaml down" \
+        "\tdocker compose -f docker/docker-compose.yaml down" \
         "" \
         "docker-images-update:" \
         "\tdocker image ls | grep -v REPOSITORY | cut -d ' ' -f 1 | xargs -L1 docker pull" \
         ""\
         "docker-rebuild: setup.py" \
-        "\tdocker-compose -f docker/docker-compose.yaml up -d --build" \
+        "\tdocker compose -f docker/docker-compose.yaml up -d --build" \
         "" \
         "docker-up:" \
-        "\tdocker-compose -f docker/docker-compose.yaml up -d" \
+        "\tdocker compose -f docker/docker-compose.yaml up -d" \
         "" \
         "docs: docker-up" \
         "\tdocker container exec \$(CONTAINER_PREFIX)_python \\\\" \
@@ -1191,7 +1191,7 @@ makefile() {
         "\t\t\t\t--ext-viewcode \\\\" \
         "\t\t\t\t--makefile \\\\" \
         "\t\t\t\t--no-batchfile\"" \
-        "\tdocker-compose -f docker/docker-compose.yaml restart nginx" \
+        "\tdocker compose -f docker/docker-compose.yaml restart nginx" \
         "\tgit fetch" \
         "\tgit checkout origin/master -- docs/" \
         "" \
@@ -1719,7 +1719,7 @@ sphinx_initialization() {
              && useradd -u ${HOST_USER_ID} ${HOST_USER} &> /dev/null || true \
              && groupadd ${HOST_USER} &> /dev/null || true \
              && chown -R ${HOST_USER}:${HOST_USER} *"
-    docker-compose -f docker/docker-compose.yaml restart nginx
+    docker compose -f docker/docker-compose.yaml restart nginx
     sphinx_autodoc
     sphinx_custom_css
     sphinx_links
@@ -2114,7 +2114,7 @@ update_nvidia_tags() {
         "" \
         "" \
         "def update_dockerfiles():" \
-        '    """Update NVIDIA Dockerfiles with latest tags."""' \
+        '    """Update NVIDIA Dockerfiles with the latest tags."""' \
         "" \
         "    for framework in FRAMEWORKS:" \
         "        page = urllib.request.urlopen(f'{NVIDIA_NGC_URL}{framework}')" \
