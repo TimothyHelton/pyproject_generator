@@ -907,10 +907,10 @@ docker_pytorch() {
         "COPY . ." \
         "" \
         "RUN pip install -e .[all] \\" \
-        "/t&& apt update -y \\" \
+        "\t&& apt update -y \\" \
         "\t# && apt -y upgrade \\" \
         "\t&& apt install -y\\" \
-        "\t        fonts-humor-sans \\" \
+        "\t\tfonts-humor-sans \\" \
         "\t# && conda update -y conda \\" \
         "\t# && while read requirement; do conda install --yes \${requirement}; done < requirements_pytorch.txt \\" \
         "\t&& rm -rf /tmp/* \\" \
