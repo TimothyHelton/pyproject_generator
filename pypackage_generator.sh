@@ -1173,7 +1173,12 @@ makefile() {
         "docker-up:" \
         "\tdocker compose -f docker/docker-compose.yaml up -d" \
         "" \
-        "docs: docker-up" \
+        "docker-update-config: docker-update-compose-file docker-rebuild" \
+        "\t@echo \"Docker environment updated successfully\"" \
+        "" \
+        "docker-update-compose-file:" \
+        "\tdocker container exec \$(CONTAINER_PREFIX)_python scripts/docker_config.py" \
+        "" \        "docs: docker-up" \
         "\tdocker container exec \$(CONTAINER_PREFIX)_python \\\\" \
         "\t\t/bin/bash -c \"pip install -e .[docs] && cd docs && make html\"" \
         "\t\${BROWSER} http://localhost:\$(PORT_NGINX) &" \
