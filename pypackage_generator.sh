@@ -1405,70 +1405,140 @@ pkg_globals() {
 
 readme() {
     printf "%s\n" \
-        "# Define System Variables" \
-        "1. Enter your username and password for PGAdmin and Postgres" \
+        "# ${SRC_DIR} Project" \
+        "The ${SRC_DIR} project is <enter_description>." \
         "" \
-        "# PGAdmin Setup" \
-        "1. From the main directory call \`make pgadmin\`" \
-        "    - The default browser will open to \`localhost:5000\`" \
-        "1. Enter the **PGAdmin** default user and password." \
-        "1. CHANGE THE PASSWORD" \
-        "    - The pgAdmin container requires a default password to get started." \
-        "1. Click \`Add New Server\`." \
-        "    - General Name: Enter the <project_name>" \
-        "    - Connection Host: Enter <project_name>_postgres" \
-        "    - Connection Username and Password: Enter **Postgres** username and password" \
+        "## Getting Started" \
+        "${SRC_DIR} is a fully functioning Python package that may be installed using" \
+        "\`pip\`." \
+        "Docker Images are built into the package and a Makefile provides an easy to call" \
+        "repetitive commands." \
         "" \
-        "# PyCharm Setup" \
-        "## Database Configuration" \
-        "1. Make sure any new users are added to the database." \
-        "    \`\`\`postgresql" \
-        "    GRANT CONNECT ON DATABASE ${MAIN_DIR} TO new_user;" \
-        "    GRANT USAGE ON SCHEMA public TO new_user;" \
-        "    GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO new_user;" \
-        "    \`\`\`" \
-        "1. \`Database\` -> \`New\` -> \`Data Source\` -> \`PostgresSQL\`" \
-        "1. \`Name\`: ${MAIN_DIR}_postgres@localhost" \
-        "1. \`Host\`: localhost" \
-        "1. \`Port\`: 5432" \
-        "1. \`Database\`: ${MAIN_DIR}" \
-        "1. \`User\`: **Postgres** username" \
-        "1. \`Password\`: **Postgres** password" \
+        "### Makefile Code Completion" \
+        "It's handy to have code completion when calling targets from the Makefile." \
+        "To enable this feature add the following to your user profile file." \
+        "- On Ubuntu this would be your \`~/.profile\` file." \
+        "- On a Mac this would be you \`~/.bash_profile\` file." \
+        "\`\`\`bash" \
+        "complete -W \"\`grep -oE '^[a-zA-Z0-9_.-]+:([^=]|$)' Makefile | sed 's/[^a-zA-Z0-9_.-]*$//'\`\" make" \
+        "\`\`\`" \
         "" \
-        "1. \`Settings\` -> \`Project\` -> \`Project Interpreter\` -> point to docker compose file" \
+        "### Clone the Repository" \
+        "First, make a local copy of the project." \
+        "After setting up SSH keys on GitHub call the following command to clone the" \
+        "repository." \
+        "\`\`\`bash" \
+        "git clone <enter_path_to_repo>${SRC_DIR}.git" \
+        "\`\`\`" \
+        "A directory called \`${MAIN_DIR}\` will be created where the command was executed." \
+        "This \`${MAIN_DIR}\` directory will be referred to as the \"package root directory\"" \
+        "throughout the project." \
         "" \
-        "## Unit Test Configuration" \
-        "1. \`Run/Debug Configurations\` -> \`+\` -> \`Python tests\` -> \`pytest\`" \
-        "1. \`Target\` -> \`Script path\`" \
-        "    - Enter the path to the project root directory." \
-        "1. Add the following to the \`Additional Arguments\` field:" \
-        "    - \`-vvv\`" \
-        "    - \`-r all\`" \
-        "    - \`--basetemp=pytest\`" \
-        "    - \`--ff\`" \
-        "    - \`doctest-modules\`" \
-        "        - To ignore specific modules add \`--ignore=<module_name>\`"\
-        "1. Check Box -> \`Add content roots to PYTHONPATH\`" \
-        "1. Check Box -> \`Add source roots to PYTHONPATH\`" \
+        "### Initialize the Project" \
+        "Some functionality of the package is created locally." \
+        "Run the following command from the package root directory to finish setting up" \
+        "the project." \
+        "\`\`\`bash" \
+        "make getting-started" \
+        "\`\`\`" \
         "" \
-        "# SNAKEVIZ Execution" \
-        "1. Create profile file" \
-        "    - Jupyter Notebook" \
-        "        - \`%prun -D profile.prof enter_cmd_or_file\`" \
-        "    - Command Line" \
-        "        - \`python -m cProfile -o profile.prof program.py\`" \
-        "1. Start server **from the command line** on port 10000" \
-        "    - \`snakeviz profile.prof --hostname 0.0.0.0 --port 10000 -s\`" \
-        "1. Open host web browser" \
-        "    - \`http://0.0.0.0:10000/snakeviz/\`" \
+        "### Jupyter Notebooks" \
+        "While Jupyter notebooks are not ideal for source code, they can be powerful" \
+        "when applied to path finding and creating training material." \
+        "The ${MAIN_DIR} project is capable of creating a Jupyter server in the" \
+        "Python container." \
+        "Since the package root directory is mounted to the Docker container any changes" \
+        "made on the client will persist on the host and vice versa." \
+        "For consistency when creating notebooks please store them in the \`notebooks\`" \
+        "directory." \
+        "Call the following commands from the package root directory to start and stop" \
+        "the Jupyter server." \
         "" \
-        "# Memory Profiler" \
+        "#### Create a Notebook Server" \
+        "\`\`\`bash" \
+        "make notebook" \
+        "\`\`\`" \
+        "" \
+        "#### Shutdown a Notebook Server" \
+        "\`\`\`bash" \
+        "make notebook-stop-server" \
+        "\`\`\`" \
+        "" \
+        "### Test Framework" \
+        "The ${MAIN_DIR_DIR} is configured to use the pytest test framework in conjunction with" \
+        "coverage and the YAPF style linter." \
+        "To run the tests and display a coverage report call the following command from" \
+        "the package root directory." \
+        "" \
+        "#### Test Coverage" \
+        "\`\`\`bash" \
+        "make test-coverage" \
+        "\`\`\`" \
+        "" \
+        "To only run the tests, and not display the coverage, call the following." \
+        "" \
+        "### Tests" \
+        "\`\`\`bash" \
+        "make test" \
+        "\`\`\`" \
+        "" \
+        "#### Update Style" \
+        "To only run the YAPF style linter call this command from the package root" \
+        "directory." \
+        "\`\`\`bash" \
+        "make format-style" \
+        "\`\`\`" \
+        "" \
+        "## Dependencies" \
+        "Since the ${MAIN_DIR} utilizes NVIDIA optimized Docker images most " \
+        "of the Python dependencies could be installed using PIP or Conda." \
+        "The \`requirements.txt\` file contains a reference to the specific" \
+        "base image used during development and a list of dependencies." \
+        "" \
+        "There is a make target to update the requirements file." \
+        "" \
+        "\`\`\`bash" \
+        "make package-dependencies" \
+        "\`\`\`" \
+        "" \
+        "## Documentation" \
+        "The package also has an NGINX container to host interactive documentation." \
+        "Calling the following commands from the package root directory will result in" \
+        "a local web browser displaying the package HTML documentation." \
+        "" \
+        "### Build Documentation" \
+        "\`\`\`bash" \
+        "make docs" \
+        "\`\`\`" \
+        "" \
+        "### View Documentation without Building" \
+        "\`\`\`bash" \
+        "make docs-view" \
+        "\`\`\`" \
+        "" \
+        "## Profilers" \
+        "Before refactoring it's usually a ***great*** idea to profile the code." \
+        "The following methods describe the profilers that are available in the ${MAIN_DIR}" \
+        "environment, and how to use them." \
+        "" \
+        "" \
+        "### SNAKEVIZ Execution" \
+        "To test an entire script just enter the following from the project root" \
+        "directory." \
+        "" \
+        "#### Profile Script" \
+        "\`\`\`bash" \
+        "make snakeviz PROFILE_PY=script.py" \
+        "\`\`\`" \
+        "" \
+        "### Memory Profiler" \
         "1. Open Jupyter Notebook" \
         "1. Load Extension" \
         "    - \`%load_ext memory_profiler\`" \
         "1. Run profiler" \
         "    - \`%memit enter_code_here\`" \
-        > "${ROOT_PATH}README.md"
+        "" \
+        > "${MAIN_DIR}${FILE_SEP}README.md"
 }
 
 
