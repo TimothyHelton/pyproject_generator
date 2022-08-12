@@ -69,67 +69,11 @@ with Git version control.
 - Python Setup File
 - Wheel Directory
 
-#### The Package hierarchy
-```bash
-├── example_package
-│   ├── LICENSE.txt
-│   ├── MANIFEST.in
-│   ├── Makefile
-│   ├── README.md
-│   ├── data
-│   ├── docker
-│   │   ├── docker-compose.yml
-│   │   └── python-Dockerfile
-│   │   ├── pytorch-Dockerfile
-│   │   └── tensorflow-Dockerfile
-│   ├── docs
-│   ├── envfile
-│   ├── envfile_template
-│   ├── example_package
-│   │   ├── __init__.py
-│   │   ├── cli.py
-│   │   ├── db.py
-│   │   ├── exceptions.py
-│   │   ├── globals.py
-│   │   ├── tests
-│   │   │   ├── __init__.py
-│   │   │   └── conftest.py
-│   │   └── utils.py
-│   ├── .gitattributes
-│   ├── .gitconfig
-│   ├── .gitignore
-│   ├── notebooks
-│   ├── profiles
-│   ├── requirements.txt
-│   ├── setup.py
-│   └── wheels
-```
-
 ## Makefile Targets
 After the package is created there are a number of helpful shortcuts in the
-**Makefile**.  For instance, to spin up the docker containers related to the
-project call:
-```bash
-make docker-up
-```
-
-To build the SPHINX documentation for the first time in a local repository 
-execute the following:
-```bash
-make docs-init
-```
-
-After the documentation has be configured in a local repository to rebuild the
-documentations call:
-```bash
-make docs
-```
-
-If you only want to view the documentation without rebuilding run:
-```bash
-make docs-view
-```
-
+**Makefile**.
+The generated package `README.md` file has details for a number of the make
+targets.
 
 ## Background
 I found myself writing various pieces of code and wanted to make them easy to
@@ -139,11 +83,13 @@ As long as everything is in the right place creating Python packages and
 hosting them on PIP is a piece of cake. 
 
 The bash script **pypackage_generator.sh** will automate the setup process 
-for creating a Python package, which uses
-[SPHINX](http://www.sphinx-doc.org/en/stable/#) for documentation,
-[PostgreSQL](https://www.postgresql.org/) for persistent data storage,
-[PGAdmin](https://www.pgadmin.org/) for database interactions,
-[Git](https://git-scm.com/) for version control,
-and is packaged in [Docker](https://www.docker.com/) containers.
+for creating a Python package utilizing [Docker](https://www.docker.com/) 
+and a number of great open source tools.
+- [Git](https://git-scm.com/) for version control,
+- [MongoDB](https://www.mongodb.com/) persistent data storage (optional),
+- [pytest](https://docs.pytest.org/) for unit testing,
+- [PGAdmin](https://www.pgadmin.org/) for database interactions (optional),
+- [PostgreSQL](https://www.postgresql.org/) for persistent data storage(optional),
+- [SPHINX](http://www.sphinx-doc.org/en/stable/#) for documentation,
 
 #### Thanks for looking around and enjoy the day!
