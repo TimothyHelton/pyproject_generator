@@ -609,7 +609,7 @@ docker_config_py() {
         '        """Add MongoDB service to configuration."""' \
         "        self._config['services']['mongo'] = {" \
         "            'container_name':" \
-        "            f'{self._container_prefix}_mongodb'," \
+        "            f'{self._container_prefix}_mongo'," \
         "            'image':" \
         "            'mongo'," \
         "            'env_file':" \
@@ -630,7 +630,7 @@ docker_config_py() {
         "                'db-init-username'," \
         "            ]," \
         "            'volumes': [" \
-        "                f'{self._volume_db}:/var/lib/mongodb/data'," \
+        "                f'{self._volume_db}:/var/lib/mongo/data'," \
         "                './mongo_init:/docker-entrypoint-initdb.d'," \
         "                *self._mask_secrets" \
         "            ]," \
