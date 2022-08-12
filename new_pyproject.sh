@@ -10,16 +10,8 @@ GENERATOR=pypackage_generator.sh
 curl -O https://raw.githubusercontent.com/TimothyHelton/pyproject_generator/master/${GENERATOR}
 chmod u+x ${GENERATOR}
 
-# Source Environment Variables
-if [ -f envfile ]; then
-    source envfile
-else
-    echo "Environment variable file (envfile) not found."
-    echo "Default values will be used."
-fi
-
 # Create Project
-./pypackage_generator.sh ${NAME} ${SOURCE_DIR}
+./pypackage_generator.sh "${NAME}" "${SOURCE_DIR}"
 
 # Remove Generator
 rm ${GENERATOR}

@@ -21,6 +21,10 @@ echo
 echo "################################"
 echo "Creating Test package..."
 ./pyproject_generator/pypackage_generator.sh "${test_dir}" \
-    && cd "${test_dir}"
-docker container exec "${USER}_${test_dir}_python" scripts/docker_config.py
+
+echo
+echo "################################"
+echo "Update Docker configuration file..."
+cd "${test_dir}" \
+    && make docker-update-config
 

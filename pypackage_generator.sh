@@ -609,7 +609,7 @@ docker_config_py() {
         '        """Add MongoDB service to configuration."""' \
         "        self._config['services']['mongo'] = {" \
         "            'container_name':" \
-        "            f'{self._container_prefix}_mongodb'," \
+        "            f'{self._container_prefix}_mongo'," \
         "            'image':" \
         "            'mongo'," \
         "            'env_file':" \
@@ -630,7 +630,7 @@ docker_config_py() {
         "                'db-init-username'," \
         "            ]," \
         "            'volumes': [" \
-        "                f'{self._volume_db}:/var/lib/mongodb/data'," \
+        "                f'{self._volume_db}:/var/lib/mongo/data'," \
         "                './mongo_init:/docker-entrypoint-initdb.d'," \
         "                *self._mask_secrets" \
         "            ]," \
@@ -1173,7 +1173,12 @@ makefile() {
         "docker-up:" \
         "\tdocker compose -f docker/docker-compose.yaml up -d" \
         "" \
-        "docs: docker-up" \
+        "docker-update-config: docker-update-compose-file docker-rebuild" \
+        "\t@echo \"Docker environment updated successfully\"" \
+        "" \
+        "docker-update-compose-file:" \
+        "\tdocker container exec \$(CONTAINER_PREFIX)_python scripts/docker_config.py" \
+        "" \        "docs: docker-up" \
         "\tdocker container exec \$(CONTAINER_PREFIX)_python \\\\" \
         "\t\t/bin/bash -c \"pip install -e .[docs] && cd docs && make html\"" \
         "\t\${BROWSER} http://localhost:\$(PORT_NGINX) &" \
