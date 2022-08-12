@@ -4,6 +4,7 @@
 
 [@T1M_Helton](https://twitter.com/T1M_Helton)
 
+---
 
 ## Installation
 All you need are the files **new_pyproject.sh** and **envfile_template**.
@@ -22,6 +23,7 @@ All you need are the files **new_pyproject.sh** and **envfile_template**.
     mv envfile_template envfile
     ```
 
+---
 
 ## Quick Start Guide
 
@@ -43,6 +45,40 @@ The script has a single required argument, which is the name of the package.
 ```
 A new repository will be generated in the current directory and initialized
 with Git version control.
+
+### Update the Docker Configuration
+The base script make creates the minimum number of objects to define a Python
+and NGINX container.
+This is done to allow the automation of initializing the Sphinx documentation.
+Once the script has been executed, modify the `if __name__ = 'main':` section
+of `scripts/docker_config.py` to add additional services.
+The following example would add a MongoDB container and configure the Python
+container to utilize a GPU.
+
+```bash
+if __name__ == '__main__':
+    config = ComposeConfiguration()
+    services = (
+        ComposeService.MONGO,
+    )
+    for s in services:
+        config.add_service(s)
+    config.add_gpu()
+    config.write()
+```
+
+### Rebuild the Docker Environment
+Once the `scrips/docker_config.py` file has been modified to the user's liking
+call the following make target to update the Docker environment.
+This will:
+- update the `docker/docker-compose.yaml` file
+- rebuild the Docker environment
+
+```bash
+make docker-update-config
+```
+
+---
 
 ## What will the script generate?
 - Package Main Directory
