@@ -1178,10 +1178,9 @@ makefile() {
         "\t@echo \"\\\\nUse this link on the host to access the Jupyter server.\"" \
         "\t@docker container exec \$(CONTAINER_PREFIX)_python \\\\" \
         "\t\t/bin/bash -c \\\\" \
-        "\t\t\t\"jupyter lab list \\\\" \
+        "\t\t\t\"jupyter notebook list \\\\" \
         "\t\t\t | grep -o '^http\S*' \\\\" \
-        "\t\t\t | sed -e 's/\(http:\/\/\).*\(:\)/\1localhost:\2/' \\\\" \
-        "\t\t\t | sed -e 's/tree/lab/'\"" \
+        "\t\t\t | sed -e 's/\(http:\/\/\).*\(:\)/localhost:/'\"" \
         "\t@echo \"\\\\n##################################################\"" \
         "" \
         "notebook-server: notebook-stop-server" \
