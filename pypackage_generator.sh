@@ -1199,7 +1199,7 @@ makefile() {
         "" \
         "package-dependencies: docker-up" \
         "\tprintf \"%s\\\\n\" \\\\" \
-        "\t\t\"# Backpack Version: \$(VERSION)\" \\\\" \
+        "\t\t\"# ${PROJECT} Version: \$(VERSION)\" \\\\" \
         "\t\t\"# From NVIDIA NGC CONTAINER: \$(DOCKER_IMAGE)\" \\\\" \
         "\t\t\"#\" \\\\" \
         "\t> requirements.txt" \
