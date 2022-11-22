@@ -21,9 +21,10 @@ SOURCE_DIR="${2:-$1}"
 : "${DOCKER_DIR:=docker}"
 : "${DOCS_DIR:=docs}"
 : "${FILE_SEP:=/}"
-: "${HOST_USER:="$USER"}" \
-: "${HOST_GROUP_ID:=$(id -g "$HOST_USER")}" \
-: "${HOST_USER_ID:=$(id -u "$HOST_USER")}" \
+: "${HOST_USER:="$USER"}"
+: "${HOST_GROUP_ID:=$(id -g "$HOST_USER")}"
+: "${HOST_USER_ID:=$(id -u "$HOST_USER")}"
+: "${MONGO_INIT_DIR:=mongo_init}"
 : "${NODEJS_VERSION:=12}"
 : "${NOTEBOOK_DIR:=notebooks}"
 : "${PROFILE_DIR:=profiles}"
@@ -42,8 +43,6 @@ if [[ ${SOURCE_DIR} == *-* ]]; then
     printf %b "${msg}"
     exit 0
 fi
-
-YEAR=$(date +%Y)
 
 SUB_DIRECTORIES=("${DATA_DIR}" \
                  "${DOCKER_DIR}" \
@@ -608,26 +607,27 @@ docker_config_py() {
         "    def _add_mongo(self):" \
         '        """Add MongoDB service to configuration."""' \
         "        self._config['services']['mongo'] = {" \
-        "            'container_name':" \
-        "            f'{self._container_prefix}_mongo'," \
-        "            'image':" \
-        "            'mongo'," \
-        "            'env_file':" \
-        "            '.env'," \
+        "            'container_name': f'{self._container_prefix}_mongo'," \
+        "            'image': 'mongo'," \
+        "            'env_file': '.env'," \
         "            'environment': {" \
         "                'MONGO_INITDB_ROOT_PASSWORD': '/run/secrets/db-init-password'," \
         "                'MONGO_INITDB_ROOT_USERNAME': '/run/secrets/db-init-username'," \
+        "                'MONGO_DATABASE': self._package," \
+        "                'MONGO_PASSWORD': '/run/secrets/mongo-password'," \
+        "                'MONGO_USERNAME': '/run/secrets/mongo-username'," \
         "                'PORT_MONGO': '\${PORT_MONGO}'," \
         "            }," \
         "            'networks': [self._network]," \
         "            'ports': [" \
         "                '\$PORT_MONGO:27017'," \
         "            ]," \
-        "            'restart':" \
-        "            'always'," \
+        "            'restart': 'always'," \
         "            'secrets': [" \
         "                'db-init-password'," \
         "                'db-init-username'," \
+        "                'mongo-password'," \
+        "                'mongo-username'," \
         "            ]," \
         "            'volumes': [" \
         "                f'{self._volume_db}:/var/lib/mongo/data'," \
@@ -638,71 +638,59 @@ docker_config_py() {
         "        self._update_depends_on(ComposeService.MONGO)" \
         "        self._add_secrets()" \
         "        self._mongo_init_dir.mkdir(parents=True, exist_ok=True)" \
-        "        self._mongo_create_admin()" \
-        "        self._mongo_create_user()" \
+        "        self._mongo_create_user_js()" \
+        "        self._mongo_create_user_sh()" \
         "" \
-        "    def _mongo_create_admin(self):" \
-        '        """Write script file that creates MongoDB Admin user."""' \
+        "    def _mongo_create_user_js(self):" \
+        '        """Write JS script to create MongoDB user."""' \
+        "        text = [" \
+        "            'const fs = require(\"fs\")'," \
+        "            ''," \
+        "            'function readSecret(secretName) {'," \
+        "            '  return fs.readFileSync(\"/run/secrets/\" + secretName, \"utf8\").trim()'," \
+        "            '}'," \
+        "            ''," \
+        "            'const db_name = process.env.MONGO_DATABASE'," \
+        "            'const password = readSecret(\"mongo-password\")'," \
+        "            'const username = readSecret(\"mongo-username\")'," \
+        "            ''," \
+        "            'console.log(\"\nDisable usage data collection.\")'," \
+        "            'disableTelemetry()'," \
+        "            ''," \
+        "            'try {'," \
+        "            '  db.createUser('," \
+        "            '    {'," \
+        "            '      user: username,'," \
+        "            '      pwd: password,'," \
+        "            '      roles:'," \
+        "            '        ['," \
+        "            '          {role: \"readWrite\", db: \"admin\" },'," \
+        "            '          {role: \"readWrite\", db: db_name },'," \
+        "            f'          {{role: \"dbOwner\", db: \"test_{self._package}\"}},'," \
+        "            '        ]'," \
+        "            '    }'," \
+        "            '  )'," \
+        "            '  console.log(\"\nAdding user: \" + username)'," \
+        "            '} catch(error) {'," \
+        "            '  console.log(\"\nUser already exists: \" + username)'," \
+        "            '}'," \
+        "            ''," \
+        "        ]" \
+        "        with open(self._mongo_init_dir / 'create_admin.js', 'w') as f:" \
+        "            f.writelines('\n'.join(text))" \
+        "" \
+        "    def _mongo_create_user_sh(self):" \
+        '        """Write bash script to call MongoDB JS script to create user."""' \
         "        text = [" \
         "            '#!/bin/bash'," \
         "            '# create_admin.sh'," \
         "            ''," \
-        "            '# Create Administrator'," \
-        "            'mongo admin -u \$MONGO_INITDB_ROOT_USERNAME '" \
-        "            '-p \$MONGO_INITDB_ROOT_PASSWORD << EOF'," \
-        "            '    db.createUser({user: \"admin\", pwd: \"admin\", '" \
-        "            'roles: [\"root\"]});'" \
-        "            'EOF'," \
-        "            ''," \
+        "            'mongosh \\'," \
+        "            '    -u \"\${MONGO_INITDB_ROOT_USERNAME}\" \\'," \
+        "            '    -p \"\${MONGO_INITDB_ROOT_PASSWORD}\" \\'," \
+        "            '    admin \\'," \
+        "            '    /docker-entrypoint-initdb.d/create_user.js'," \
         "        ]" \
-        "        with open(self._mongo_init_dir / 'create_admin', 'w') as f:" \
-        "            f.writelines('\n'.join(text))" \
-        "" \
-        "    def _mongo_create_user(self):" \
-        '        """Write script file that creates MongoDB user."""' \
-        "        text = [" \
-        "            '#!/bin/bash'," \
-        "            ''," \
-        "            'help_function()'," \
-        "            '{'," \
-        "            '   echo ""'," \
-        "            '   echo \"Script will create a MongoDB database user with '" \
-        "            'supplied password.\"'," \
-        "            '   echo \"\"'," \
-        "            '   echo \"Usage: \$0 -u username -p password -db database\"'," \
-        "            '   echo -e \"\t-u username\"'," \
-        "            '   echo -e \"\t-p password\"'," \
-        "            '   echo -e \"\t-d database\"'," \
-        "            '  exit 1'," \
-        "            '}'," \
-        "            ''," \
-        "            'while getopts \"u:p:d:\" opt'," \
-        "            'do'," \
-        "            '    case \"\$opt\" in'," \
-        "            '      u ) username=\"\$OPTARG\" ;;'," \
-        "            '      p ) password=\"\$OPTARG\" ;;'," \
-        "            '      d ) database=\"\$OPTARG\" ;;'," \
-        "            '      ? ) help_function ;;'," \
-        "            '   esac'," \
-        "            'done'," \
-        "            ''," \
-        "            '# Print help_function in case parameters are empty'," \
-        "            'if [ -z \"\$username\" ] || [ -z \"\$password\" ] || '" \
-        "            '[ -z \"\$database\" ]'," \
-        "            'then'," \
-        "            '   echo ""'," \
-        "            '   echo \"Missing Parameters: All parameters are required.\";'," \
-        "            '   help_function'," \
-        "            'fi'," \
-        "            ''," \
-        "            '# Create User'," \
-        "            'mongo admin -u \$MONGO_INITDB_ROOT_USERNAME '" \
-        "            '-p \$MONGO_INITDB_ROOT_PASSWORD << EOF'," \
-        "            '    db.createUser({user: \"\${username}\", pwd: \"\${password}\", '" \
-        "            'roles: [\"readWrite\"]});'" \
-        "            'EOF'," \
-        "            ''," \
-        "            ]" \
         "        with open(self._mongo_init_dir / 'create_user.sh', 'w') as f:" \
         "            f.writelines('\n'.join(text))" \
         "" \
@@ -1125,7 +1113,8 @@ makefile() {
         "" \
         "docker-update-compose-file:" \
         "\tdocker container exec \$(CONTAINER_PREFIX)_python scripts/docker_config.py" \
-        "" \        "docs: docker-up" \
+        "" \
+        "docs: docker-up" \
         "\tdocker container exec \$(CONTAINER_PREFIX)_python \\\\" \
         "\t\t/bin/bash -c \"pip install -e .[docs] && cd docs && make html\"" \
         "\t\${BROWSER} http://localhost:\$(PORT_NGINX) &" \
@@ -1159,6 +1148,11 @@ makefile() {
         "\tmkdir -p notebooks" \
         "\tmkdir -p profiles" \
         "\tmkdir -p wheels" \
+        "\t@echo \"\\\\n\\\\n\\\\n##################################################\"" \
+        "\t@echo \"\\\\nIn the directory docker/secrets, please update the following files:\"" \
+        "\t@echo \"\\\\n\\\\t- mongo_username.txt\"" \
+        "\t@echo \"\\\\n\\\\t- mongo_password.txt\"" \
+        "\t@echo \"\\\\n\\\\n\\\\n##################################################\"" \
         "" \
         "ipython: docker-up" \
         "\tdocker container exec -it \$(CONTAINER_PREFIX)_python ipython" \
@@ -1167,21 +1161,19 @@ makefile() {
         "\tdocker container exec -w \$(TEX_WORKING_DIR) \$(CONTAINER_PREFIX)_latex \\\\" \
         "\t\t/bin/bash -c \"latexmk -f -pdf \$(TEX_FILE) && latexmk -c\"" \
         "" \
-        "mongo-create-admin: docker-up" \
-        "\tdocker container exec \$(CONTAINER_PREFIX)_mongo ./docker-entrypoint-initdb.d/create_admin.sh" \
-        "" \
-        "mongo-create-user: docker-up" \
-        "\tdocker container exec \$(CONTAINER_PREFIX)_mongo ./docker-entrypoint-initdb.d/create_user.sh -u \$(DB_USERNAME) -p \$(DB_PASSWORD) -d \$(DB)" \
+        "mongo-create-user:" \
+        "\t@sleep 2" \
+        "\t@docker container exec \$(CONTAINER_PREFIX)_mongo /docker-entrypoint-initdb.d/create_user.sh" \
         "" \
         "notebook: docker-up notebook-server" \
-        "\t@echo \"\\\\n\\\\n\\\\n##################################################\"" \
+        "\t@echo \"\\\\n\\\\n\\\\n##########################################################\"" \
         "\t@echo \"\\\\nUse this link on the host to access the Jupyter server.\"" \
         "\t@docker container exec \$(CONTAINER_PREFIX)_python \\\\" \
         "\t\t/bin/bash -c \\\\" \
-        "\t\t\t\"jupyter notebook list \\\\" \
-        "\t\t\t | grep -o '^http\S*' \\\\" \
-        "\t\t\t | sed -e 's/\(http:\/\/\).*\(:\)/localhost:/'\"" \
-        "\t@echo \"\\\\n##################################################\"" \
+        "\t\t\t\"jupyter lab list \\\\" \
+        "\t\t\t | grep -o '^http.*\$(PORT_JUPYTER)\S*' \\\\" \
+        "\t\t\t | sed -e 's/\(http:\/\/\).*\(:\)/\1localhost:/'\"" \
+        "\t@echo \"\\\\n##########################################################\"" \
         "" \
         "notebook-server: notebook-stop-server" \
         "\t@docker container exec \$(CONTAINER_PREFIX)_python \\\\" \
@@ -1195,7 +1187,7 @@ makefile() {
         "" \
         "notebook-stop-server:" \
         "\t@-docker container exec \$(CONTAINER_PREFIX)_python \\\\" \
-        "\t\t/bin/bash -c \"jupyter notebook stop \$(PORT_JUPYTER)\"" \
+        "\t\t/bin/bash -c \"jupyter lab stop \$(PORT_JUPYTER)\"" \
         "" \
         "package-dependencies: docker-up" \
         "\tprintf \"%s\\\\n\" \\\\" \
@@ -1251,6 +1243,10 @@ makefile() {
         "" \
         "test: docker-up format-style" \
         "\tdocker container exec \$(CONTAINER_PREFIX)_python py.test \$(PROJECT)" \
+        "\t@docker container exec \$(CONTAINER_PREFIX)_python \\\\" \
+        "\t\t/bin/bash -c \\\\" \
+        "\t\t\t\"adduser --system --no-create-home --uid \$(USER_ID) --group \$(USER) &> /dev/null; \\\\" \
+        "\t\t\t chown -R \$(USER):\$(USER) pytest" \
         "" \
         "test-coverage: test" \
         "\t\${BROWSER} htmlcov/index.html &"\
