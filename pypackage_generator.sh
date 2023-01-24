@@ -49,6 +49,7 @@ SUB_DIRECTORIES=("${DATA_DIR}" \
                  "${DOCS_DIR}" \
                  "${NOTEBOOK_DIR}" \
                  "${PROFILE_DIR}" \
+                 "pytest" \
                  "${SCRIPTS_DIR}" \
                  "${SOURCE_DIR}" \
                  "${WHEEL_DIR}" \
@@ -345,13 +346,13 @@ db() {
         "    :param database: name of database" \
         "    :param schema: name of table schema" \
         "    :param table_name: name of table" \
-        "    :param query: callable that returns a ORM SQLAlchemy select statement" \
+        "    :param query: callable that returns an ORM SQLAlchemy select statement" \
         "    :return: data frame containing data from query" \
         "" \
-        "    Example \`query\`:" \
-        "    def query_example(session, table):" \
-        "        cols = ('col1', 'col2')" \
-        "        return session.query(*[table.c[x] for x in cols]).statement" \
+        "    Example \`query\`::" \
+        "        def query_example(session, table):" \
+        "            cols = ('col1', 'col2')" \
+        "            return session.query(*[table.c[x] for x in cols]).statement" \
         '    """' \
         "    with Connect(host=host, database=database) as c:" \
         "        table = sa.Table(" \
@@ -439,7 +440,7 @@ docker_compose() {
         "    networks:"\
         "      - ${MAIN_DIR}-network" \
         "    ports:" \
-        "      - '\${PORT_NGINX}:80'" \
+        "      - \${PORT_NGINX}:80" \
         "    restart: always" \
         "    volumes:" \
         "      - ../docs/_build/html:/usr/share/nginx/html:ro" \
@@ -448,7 +449,7 @@ docker_compose() {
         "    container_name: \${COMPOSE_PROJECT_NAME:-default}_${MAIN_DIR}_python" \
         "    build:" \
         "      context: .." \
-        "      dockerfile: docker/\${ENVIRONMENT}.Dockerfile" \
+        "      dockerfile: docker/python.Dockerfile" \
         "    env_file:" \
         "        .env" \
         "    environment:" \
@@ -532,11 +533,11 @@ docker_config_py() {
         "        self.filepath = filepath if filepath else self.default_filepath" \
         "        with open(self.filepath, 'r') as f:" \
         "            self._config = yaml.safe_load(f)" \
-        "        logger.debug('Initial Docker Compose Configuration:\n\n%s'" \
-        "                     % self._config)" \
+        "        logger.debug('Initial Docker Compose Configuration:\n\n%s' %" \
+        "                     self._config)" \
         "" \
         "        self._container_prefix = (" \
-        "            self._config['services']['python']['container_name']" \
+        "            self._config['services']['python']['container_name'] \\" \
         "            .rsplit('_', 1)[0])" \
         "        self._package = self._container_prefix.rsplit('}_', 1)[1]" \
         "        self._network = f'{self._package}-network'" \
@@ -565,11 +566,24 @@ docker_config_py() {
         "    def _add_secrets(self):" \
         '        """Add database secrets."""' \
         "        secrets = {" \
-        "            'db-database': {'file': 'secrets/db_database.txt'}," \
-        "            'db-password': {'file': 'secrets/db_password.txt'}," \
-        "            'db-username': {'file': 'secrets/db_username.txt'}," \
-        "            'db-init-password': {'file': 'secrets/db_init_password.txt'}," \
-        "            'db-init-username': {'file': 'secrets/db_init_username.txt'}," \
+        "            'db-database': {" \
+        "                'file': 'secrets/db_database.txt'" \
+        "            }," \
+        "            'db-password': {" \
+        "                'file': 'secrets/db_password.txt'" \
+        "            }," \
+        "            'db-username': {" \
+        "                'file': 'secrets/db_username.txt'" \
+        "            }," \
+        "            'db-init-password': {" \
+        "                'file': 'secrets/db_init_password.txt'" \
+        "            }," \
+        "            'db-init-username': {" \
+        "                'file': 'secrets/db_init_username.txt'" \
+        "            }," \
+        "            'package': {" \
+        "                'file': 'secrets/package.txt'" \
+        "            }," \
         "        }" \
         "        self._config['secrets'] = {" \
         "            **self._config.get('secrets', {})," \
@@ -581,6 +595,7 @@ docker_config_py() {
         "            'db-username'," \
         "            'db-init-password'," \
         "            'db-init-username'," \
+        "            'package'," \
         "        ]" \
         "" \
         "    def _add_db_volume(self):" \
@@ -614,8 +629,8 @@ docker_config_py() {
         "                'MONGO_INITDB_ROOT_PASSWORD': '/run/secrets/db-init-password'," \
         "                'MONGO_INITDB_ROOT_USERNAME': '/run/secrets/db-init-username'," \
         "                'MONGO_DATABASE': self._package," \
-        "                'MONGO_PASSWORD': '/run/secrets/mongo-password'," \
-        "                'MONGO_USERNAME': '/run/secrets/mongo-username'," \
+        "                'MONGO_PASSWORD': '/run/secrets/db-password'," \
+        "                'MONGO_USERNAME': '/run/secrets/db-username'," \
         "                'PORT_MONGO': '\${PORT_MONGO}'," \
         "            }," \
         "            'networks': [self._network]," \
@@ -626,13 +641,13 @@ docker_config_py() {
         "            'secrets': [" \
         "                'db-init-password'," \
         "                'db-init-username'," \
-        "                'mongo-password'," \
-        "                'mongo-username'," \
+        "                'db-password'," \
+        "                'db-username'," \
         "            ]," \
         "            'volumes': [" \
         "                f'{self._volume_db}:/var/lib/mongo/data'," \
         "                './mongo_init:/docker-entrypoint-initdb.d'," \
-        "                *self._mask_secrets" \
+        "                *self._mask_secrets," \
         "            ]," \
         "        }" \
         "        self._update_depends_on(ComposeService.MONGO)" \
@@ -685,10 +700,10 @@ docker_config_py() {
         "            '#!/bin/bash'," \
         "            '# create_admin.sh'," \
         "            ''," \
-        "            'mongosh \\'," \
-        "            '    -u \"\${MONGO_INITDB_ROOT_USERNAME}\" \\'," \
-        "            '    -p \"\${MONGO_INITDB_ROOT_PASSWORD}\" \\'," \
-        "            '    admin \\'," \
+        "            'mongosh \\\\'," \
+        "            '    -u \"\${MONGO_INITDB_ROOT_USERNAME}\" \\\\'," \
+        "            '    -p \"\${MONGO_INITDB_ROOT_PASSWORD}\" \\\\'," \
+        "            '    admin \\\\'," \
         "            '    /docker-entrypoint-initdb.d/create_user.js'," \
         "        ]" \
         "        with open(self._mongo_init_dir / 'create_user.sh', 'w') as f:" \
@@ -777,8 +792,8 @@ docker_config_py() {
         "    def _update_depends_on(self, service_name: ComposeService):" \
         '        """Update the Python service `depends_on` tag."""' \
         "        py_tag = self._config['services']['python']" \
-        "        py_tag['depends_on'] = (py_tag.get('depends_on', [])" \
-        "                                + [service_name.value])" \
+        "        py_tag['depends_on'] = (py_tag.get('depends_on', []) +" \
+        "                                [service_name.value])" \
         "" \
         "    def add_gpu(self):" \
         '        """Add GPU configuration to Python container."""' \
@@ -788,7 +803,9 @@ docker_config_py() {
         "            'resources': {" \
         "                'reservations': {" \
         "                    'devices': [" \
-        "                        {'capabilities': ['gpu']}," \
+        "                        {" \
+        "                            'capabilities': ['gpu']" \
+        "                        }," \
         "                    ]," \
         "                }," \
         "            }," \
@@ -945,6 +962,7 @@ exceptions() {
         '""" Exception Module' \
         "" \
         '"""' \
+        "from typing import Optional" \
         "" \
         "" \
         "class Error(Exception):" \
@@ -955,13 +973,17 @@ exceptions() {
         "    - **expression**: *str* input expression in which the error occurred" \
         "    - **message**: *str* explanation of the error" \
         '    """' \
-        "    def __init__(self, expression: str, message: str):" \
+        "    def __init__(" \
+        "        self," \
+        "        expression: Optional[str] = None," \
+        "        message: Optional[str] = None," \
+        "    ):" \
         "        self.expression = expression" \
         "        self.message = message" \
         "" \
         "" \
         "class InputError(Error):" \
-        '    """Exception raised for errors in the input."""' \
+        "    \"\"\"Exception raised for errors in the input.\"\"\"" \
         > "${SRC_PATH}exceptions.py"
 }
 
@@ -1057,11 +1079,9 @@ makefile() {
     printf "%b\n" \
         "PROJECT=${MAIN_DIR}" \
         "" \
+        "\$(shell scripts/create_usr_vars.sh)" \
         "ifeq (, \$(wildcard docker/.env))" \
-        "        \$(shell scripts/create_usr_vars.sh)" \
-        "        \$(info #######################################################)" \
-        "        \$(info # Created user variables file: usr_vars #)" \
-        "        \$(info #######################################################)" \
+        "        \$(shell ln -s ../usr_vars docker/.env)" \
         "endif" \
         "include usr_vars" \
         "export" \
@@ -1075,53 +1095,53 @@ makefile() {
         "endif" \
         "" \
         "CONTAINER_PREFIX:=\$(COMPOSE_PROJECT_NAME)_\$(PROJECT)" \
-        "DOCKER_IMAGE=\$(shell head -n 1 docker/\$(ENVIRONMENT).Dockerfile | cut -d ' ' -f 2)" \
+        "DOCKER_IMAGE=\$(shell head -n 1 docker/python.Dockerfile | cut -d ' ' -f 2)" \
         "PKG_MANAGER=pip" \
         'PROFILE_PY:=""' \
         "PROFILE_PROF:=\$(notdir \$(PROFILE_PY:.py=.prof))" \
         "PROFILE_PATH:=profiles/\$(PROFILE_PROF)" \
-        "SRC_DIR=/usr/src/${SOURCE_DIR}" \
+        "SRC_DIR=/usr/src/\$(PROJECT)" \
         "TEX_WORKING_DIR=\${SRC_DIR}/\${TEX_DIR}" \
         "USER:=\$(shell echo \$\${USER%%@*})" \
         "USER_ID:=\$(shell id -u \$(USER))" \
-        "VERSION=\$(shell echo \$(shell cat ${SOURCE_DIR}/__init__.py | grep \"^__version__\" | cut -d = -f 2))" \
+        "VERSION=\$(shell echo \$(shell cat \$(PROJECT)/__init__.py | grep \"^__version__\" | cut -d = -f 2))" \
         "" \
         ".PHONY: docs format-style upgrade-packages" \
         "" \
         "deploy: docker-up" \
-        "\tdocker container exec \$(CONTAINER_PREFIX)_python pip3 wheel --wheel-dir=wheels ." \
-        "\tgit tag -a v\$(VERSION) -m \"Version \$(VERSION)\"" \
+        "\t@docker container exec \$(CONTAINER_PREFIX)_python pip3 wheel --wheel-dir=wheels .[all]" \
+        "\t@git tag -a v\$(VERSION) -m \"Version \$(VERSION)\"" \
         "\t@echo" \
         "\t@echo" \
         "\t@echo Enter the following to push this tag to the repository:" \
         "\t@echo git push origin v\$(VERSION)" \
         "" \
         "docker-down:" \
-        "\tdocker compose -f docker/docker-compose.yaml down" \
+        "\t@docker compose -f docker/docker-compose.yaml down" \
         "" \
         "docker-images-update:" \
-        "\tdocker image ls | grep -v REPOSITORY | cut -d ' ' -f 1 | xargs -L1 docker pull" \
+        "\t@docker image ls | grep -v REPOSITORY | cut -d ' ' -f 1 | xargs -L1 docker pull" \
         ""\
         "docker-rebuild: setup.py" \
-        "\tdocker compose -f docker/docker-compose.yaml up -d --build" \
+        "\t@docker compose -f docker/docker-compose.yaml up -d --build" \
         "" \
         "docker-up:" \
-        "\tdocker compose -f docker/docker-compose.yaml up -d" \
+        "\t@docker compose -f docker/docker-compose.yaml up -d" \
         "" \
         "docker-update-config: docker-update-compose-file docker-rebuild" \
         "\t@echo \"Docker environment updated successfully\"" \
         "" \
         "docker-update-compose-file:" \
-        "\tdocker container exec \$(CONTAINER_PREFIX)_python scripts/docker_config.py" \
+        "\t@docker container exec \$(CONTAINER_PREFIX)_python scripts/docker_config.py" \
         "" \
         "docs: docker-up" \
-        "\tdocker container exec \$(CONTAINER_PREFIX)_python \\\\" \
-        "\t\t/bin/bash -c \"pip install -e .[docs] && cd docs && make html\"" \
-        "\t\${BROWSER} http://localhost:\$(PORT_NGINX) &" \
+        "\t@docker container exec \$(CONTAINER_PREFIX)_python \\\\" \
+        "\t\t/bin/bash -c \"cd docs && make html\"" \
+        "\t@\${BROWSER} http://localhost:\$(PORT_NGINX) 2>&1 &" \
         "" \
-        "docs-init: docker-up" \
+        "docs-first-run-delete: docker-up" \
         "\tfind docs -maxdepth 1 -type f -delete" \
-        "\tdocker container exec \$(CONTAINER_PREFIX)_python \\\\" \
+        "\tdocker container exec \$(PROJECT)_python \\\\" \
         "\t\t/bin/bash -c \\\\" \
         "\t\t\t\"cd docs \\\\" \
         "\t\t\t && sphinx-quickstart -q \\\\" \
@@ -1132,27 +1152,78 @@ makefile() {
         "\t\t\t\t--ext-viewcode \\\\" \
         "\t\t\t\t--makefile \\\\" \
         "\t\t\t\t--no-batchfile\"" \
-        "\tdocker compose -f docker/docker-compose.yaml restart nginx" \
+        "\tdocker-compose -f docker/docker-compose.yaml restart nginx" \
+        "ifeq (\"\$(shell git remote)\", \"origin\")" \
         "\tgit fetch" \
         "\tgit checkout origin/master -- docs/" \
+        "else" \
+        "\tdocker container run --rm \\\\" \
+        "\t\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\" \
+        "\t\t-w /usr/src/\$(PROJECT)/docs \\\\" \
+        "\t\tubuntu \\\\" \
+        "\t\t/bin/bash -c \\\\" \
+        "\t\t\t\"sed -i -e 's/# import os/import os/g' conf.py \\\\" \
+        "\t\t\t && sed -i -e 's/# import sys/import sys/g' conf.py \\\\" \
+        "\t\t\t && sed -i \\\\\"/# sys.path.insert(0, os.path.abspath('.'))/d\\\\\" \\\\" \
+        "\t\t\t\tconf.py \\\\" \
+        "\t\t\t && sed -i -e \\\\\"/import sys/a \\\\" \
+        "\t\t\t\tfrom ${SOURCE_DIR} import __version__ \\\\" \
+        "\t\t\t\t\\\\n\\\\nsys.path.insert(0, os.path.abspath('../${SOURCE_DIR}'))\\\\\" \\\\" \
+        "\t\t\t\tconf.py \\\\" \
+        "\t\t\t && sed -i -e \\\\\"s/version = '0.1.0'/version = __version__/g\\\\\" \\\\" \
+        "\t\t\t\tconf.py \\\\" \
+        "\t\t\t && sed -i -e \\\\\"s/release = '0.1.0'/release = __version__/g\\\\\" \\\\" \
+        "\t\t\t\tconf.py \\\\" \
+        "\t\t\t && sed -i -e \\\\\"s/alabaster/sphinx_rtd_theme/g\\\\\" \\\\" \
+        "\t\t\t\tconf.py \\\\" \
+        "\t\t\t && sed -i -e 's/[ \\\\t]*\$\$//g' conf.py \\\\" \
+        "\t\t\t && echo >> conf.py \\\\" \
+        "\t\t\t && sed -i \\\\\"/   :caption: Contents:/a \\\\" \
+        "\t\t\t\t\\\\\\\\\\\\\\\\\\\\n   package\\\\\" \\\\" \
+        "\t\t\t\tindex.rst\"" \
+        "endif" \
+        "" \
+        "docs-init:" \
+        "\t@rm -rf docs/*" \
+        "\t@docker compose -f docker/docker-compose.yaml build python" \
+        "\t@docker container run --rm -v \`pwd\`:/usr/src/\$(PROJECT) \$(PROJECT)_python \\\\" \
+        "\t\t/bin/bash -c \\\\" \
+        "\t\t\t\"cd /usr/src/\$(PROJECT)/docs \\\\" \
+        "\t\t\t && sphinx-quickstart -q \\\\" \
+        "\t\t\t\t-p \$(PROJECT) \\\\" \
+        "\t\t\t\t-a \"${AUTHOR}\" \\\\" \
+        "\t\t\t\t-v \$(VERSION) \\\\" \
+        "\t\t\t\t--ext-autodoc \\\\" \
+        "\t\t\t\t--ext-viewcode \\\\" \
+        "\t\t\t\t--makefile \\\\" \
+        "\t\t\t\t--no-batchfile \\\\" \
+        "\t\t\t && cd .. \\\\" \
+        "\t\t\t adduser --system --no-create-home --uid \$(USER_ID) --group \$(USER) &> /dev/null \\\\" \
+        "\t\t\t chown -R \$(USER):\$(USER) docs\"" \
+        "\t@git fetch" \
+        "\t@git checkout origin/master -- docs/" \
         "" \
         "docs-view: docker-up" \
-        "\t\${BROWSER} http://localhost:\$(PORT_NGINX) &" \
+        "\t@\${BROWSER} http://localhost:\$(PORT_NGINX) &" \
         "" \
         "format-style: docker-up" \
         "\tdocker container exec \$(CONTAINER_PREFIX)_python yapf -i -p -r --style \"pep8\" \${SRC_DIR}" \
         "" \
         "getting-started: secret-templates docs-init" \
-        "\tmkdir -p cache" \
-        "\tmkdir -p htmlcov" \
-        "\tmkdir -p notebooks" \
-        "\tmkdir -p profiles" \
-        "\tmkdir -p wheels" \
-        "\t@echo \"\\\\n\\\\n\\\\n##################################################\"" \
-        "\t@echo \"\\\\nIn the directory docker/secrets, please update the following files:\"" \
-        "\t@echo \"\\\\n\\\\t- mongo_username.txt\"" \
-        "\t@echo \"\\\\n\\\\t- mongo_password.txt\"" \
-        "\t@echo \"\\\\n\\\\n\\\\n##################################################\"" \
+        "\t@mkdir -p cache \\\\" \
+        "\t\t&& mkdir -p htmlcov \\\\" \
+        "\t\t&& mkdir -p notebooks \\\\" \
+        "\t\t&& mkdir -p profiles \\\\" \
+        "\t\t&& mkdir -p wheels \\\\" \
+        "\t\t&& printf \"%s\\\\n\" \\\\" \
+        "\t\t\t\"\" \\\\" \
+        "\t\t\t\"\" \\\\" \
+        "\t\t\t\"\" \\\\" \
+        "\t\t\t\"####################################################################\" \\\\" \
+        "\t\t\t\"In the directory docker/secrets, please update the following files:\" \\\\" \
+        "\t\t\t\"    - mongo_username.txt\" \\\\" \
+        "\t\t\t\"    - mongo_password.txt\" \\\\" \
+        "\t\t\t\"####################################################################\"" \
         "" \
         "ipython: docker-up" \
         "\tdocker container exec -it \$(CONTAINER_PREFIX)_python ipython" \
@@ -1166,14 +1237,20 @@ makefile() {
         "\t@docker container exec \$(CONTAINER_PREFIX)_mongo /docker-entrypoint-initdb.d/create_user.sh" \
         "" \
         "notebook: docker-up notebook-server" \
-        "\t@echo \"\\\\n\\\\n\\\\n##########################################################\"" \
-        "\t@echo \"\\\\nUse this link on the host to access the Jupyter server.\"" \
+        "\t@printf \"%s\\\\n\" \\\\" \
+        "\t\t\"\" \\\\" \
+        "\t\t\"\" \\\\" \
+        "\t\t\"\" \\\\" \
+        "\t\t\"####################################################################\" \\\\" \
+        "\t\t\"Use this link on the host to access the Jupyter server.\"" \
         "\t@docker container exec \$(CONTAINER_PREFIX)_python \\\\" \
         "\t\t/bin/bash -c \\\\" \
-        "\t\t\t\"jupyter lab list \\\\" \
-        "\t\t\t | grep -o '^http.*\$(PORT_JUPYTER)\S*' \\\\" \
-        "\t\t\t | sed -e 's/\(http:\/\/\).*\(:\)/\1localhost:/'\"" \
-        "\t@echo \"\\\\n##########################################################\"" \
+        "\t\t\t\"jupyter notebook list 2>&1 \\\\" \
+        "\t\t\t | grep -o 'http.*\$(PORT_JUPYTER)\S*' \\\\" \
+        "\t\t\t | sed -e 's/\(http:\/\/\).*\(:\)/\\\\1localhost:/'\"" \
+        "\t@printf \"%s\\\\n\" \\\\" \
+        "\t\t\"\" \\\\" \
+        "\t\t\"####################################################################\"" \
         "" \
         "notebook-server: notebook-stop-server" \
         "\t@docker container exec \$(CONTAINER_PREFIX)_python \\\\" \
@@ -1187,24 +1264,23 @@ makefile() {
         "" \
         "notebook-stop-server:" \
         "\t@-docker container exec \$(CONTAINER_PREFIX)_python \\\\" \
-        "\t\t/bin/bash -c \"jupyter lab stop \$(PORT_JUPYTER)\"" \
+        "\t\t/bin/bash -c \"jupyter notebook stop \$(PORT_JUPYTER)\"" \
         "" \
         "package-dependencies: docker-up" \
-        "\tprintf \"%s\\\\n\" \\\\" \
-        "\t\t\"# ${PROJECT} Version: \$(VERSION)\" \\\\" \
+        "\t@printf \"%s\\\\n\" \\\\" \
+        "\t\t\"# \${PROJECT} Version: \$(VERSION)\" \\\\" \
         "\t\t\"# From NVIDIA NGC CONTAINER: \$(DOCKER_IMAGE)\" \\\\" \
         "\t\t\"#\" \\\\" \
-        "\t> requirements.txt" \
+        "\t\t> requirements.txt" \
         "ifeq (\"\${PKG_MANAGER}\", \"conda\")" \
-        "\tdocker container exec \$(CONTAINER_PREFIX)_python \\\\" \
+        "\t@docker container exec \$(CONTAINER_PREFIX)_python \\\\" \
         "\t\t/bin/bash -c \\\\" \
         "\t\t\t\"conda list --export >> requirements.txt \\\\" \
         "\t\t\t && sed -i -e '/^\$(PROJECT)/ s/./# &/' requirements.txt\"" \
         "else ifeq (\"\${PKG_MANAGER}\", \"pip\")" \
-        "\tdocker container exec \$(CONTAINER_PREFIX)_python \\\\" \
+        "\t@docker container exec \$(CONTAINER_PREFIX)_python \\\\" \
         "\t\t/bin/bash -c \\\\" \
-        "\t\t\t\"pip freeze >> requirements.txt \\\\" \
-        "\t\t\t && sed -i -e '/^-e/d' requirements.txt\"" \
+        "\t\t\t\"pip freeze -l --exclude \$(PROJECT) >> requirements.txt\"" \
         "endif" \
         "" \
         "pgadmin: docker-up" \
@@ -1219,7 +1295,8 @@ makefile() {
         "\t\tpsql -U \${POSTGRES_USER} \$(PROJECT)" \
         "" \
         "secret-templates:" \
-        "\tcd docker/secrets \\" \
+        "\t@mkdir -p docker/secrets \\" \
+        "\t\t&& cd docker/secrets \\" \
         "\t\t&& printf '%s' \"\$(PROJECT)\" > 'db_database.txt' \\" \
         "\t\t&& printf '%s' \"admin\" > 'db_init_password.txt' \\" \
         "\t\t&& printf '%s' \"admin\" > 'db_init_username.txt' \\" \
@@ -1228,8 +1305,8 @@ makefile() {
         "\t\t&& printf '%s' \"\$(PROJECT)\" > 'package.txt'" \
         "" \
         "snakeviz: docker-up profile snakeviz-server" \
-        "\tsleep 0.5" \
-        "\t\${BROWSER} http://0.0.0.0:\$(PORT_PROFILE)/snakeviz/ &" \
+        "\t@sleep 0.5" \
+        "\t@\${BROWSER} http://0.0.0.0:\$(PORT_PROFILE)/snakeviz/ &" \
         "" \
         "snakeviz-server: docker-up" \
         "\t@docker container exec \\\\" \
@@ -1242,14 +1319,14 @@ makefile() {
         "\t\t\t\t--server &\"" \
         "" \
         "test: docker-up format-style" \
-        "\tdocker container exec \$(CONTAINER_PREFIX)_python py.test \$(PROJECT)" \
+        "\t@docker container exec \$(CONTAINER_PREFIX)_python py.test \$(PROJECT)" \
         "\t@docker container exec \$(CONTAINER_PREFIX)_python \\\\" \
         "\t\t/bin/bash -c \\\\" \
         "\t\t\t\"adduser --system --no-create-home --uid \$(USER_ID) --group \$(USER) &> /dev/null; \\\\" \
-        "\t\t\t chown -R \$(USER):\$(USER) pytest" \
+        "\t\t\t chown -R \$(USER):\$(USER) pytest\"" \
         "" \
         "test-coverage: test" \
-        "\t\${BROWSER} htmlcov/index.html &"\
+        "\t@\${BROWSER} htmlcov/index.html &"\
         "" \
         "update-nvidia-base-images: docker-up" \
         "\tdocker container exec \$(CONTAINER_PREFIX)_python \\\\" \
@@ -1274,6 +1351,7 @@ makefile() {
         "\t\t\t && pip freeze > requirements.txt \\\\" \
         "\t\t\t && sed -i -e '/^-e/d' requirements.txt\"" \
         "endif" \
+        "" \
         > "${ROOT_PATH}Makefile"
 }
 
@@ -2181,8 +2259,6 @@ usr_vars() {
         "INITIAL_PORT=\$(( (\$UID - 500) * 50 + 10000 ))" \
         "printf \"%s\n\" \\" \
         "    'COMPOSE_PROJECT_NAME=\${USER}' \\" \
-        "    \"\" \\" \
-        "    'ENVIRONMENT=python' \\" \
         "    \"\" \\" \
         "    \"# Ports\" \\" \
         "    \"PORT_GOOGLE=\$INITIAL_PORT\" \\" \
