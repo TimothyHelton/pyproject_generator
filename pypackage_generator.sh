@@ -1095,6 +1095,8 @@ makefile() {
         "endif" \
         "" \
         "CONTAINER_PREFIX:=\$(COMPOSE_PROJECT_NAME)_\$(PROJECT)" \
+        "DOCKER_CMD=docker" \
+        "DOCKER_COMPOSE_CMD=docker compose" \
         "DOCKER_IMAGE=\$(shell head -n 1 docker/python.Dockerfile | cut -d ' ' -f 2)" \
         "PKG_MANAGER=pip" \
         'PROFILE_PY:=""' \
@@ -1109,7 +1111,7 @@ makefile() {
         ".PHONY: docs format-style upgrade-packages" \
         "" \
         "deploy: docker-up" \
-        "\t@docker container exec \$(CONTAINER_PREFIX)_python pip3 wheel --wheel-dir=wheels .[all]" \
+        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python pip3 wheel --wheel-dir=wheels .[all]" \
         "\t@git tag -a v\$(VERSION) -m \"Version \$(VERSION)\"" \
         "\t@echo" \
         "\t@echo" \
@@ -1117,31 +1119,31 @@ makefile() {
         "\t@echo git push origin v\$(VERSION)" \
         "" \
         "docker-down:" \
-        "\t@docker compose -f docker/docker-compose.yaml down" \
+        "\t@\$(DOCKER_COMPOSE_CMD) -f docker/docker-compose.yaml down" \
         "" \
         "docker-images-update:" \
-        "\t@docker image ls | grep -v REPOSITORY | cut -d ' ' -f 1 | xargs -L1 docker pull" \
+        "\t@\$(DOCKER_CMD) image ls | grep -v REPOSITORY | cut -d ' ' -f 1 | xargs -L1 \$(DOCKER_CMD) pull" \
         ""\
         "docker-rebuild: setup.py" \
-        "\t@docker compose -f docker/docker-compose.yaml up -d --build" \
+        "\t@\$(DOCKER_COMPOSE_CMD) -f docker/docker-compose.yaml up -d --build" \
         "" \
         "docker-up:" \
-        "\t@docker compose -f docker/docker-compose.yaml up -d" \
+        "\t@\$(DOCKER_COMPOSE_CMD) -f docker/docker-compose.yaml up -d" \
         "" \
         "docker-update-config: docker-update-compose-file docker-rebuild" \
         "\t@echo \"Docker environment updated successfully\"" \
         "" \
         "docker-update-compose-file:" \
-        "\t@docker container exec \$(CONTAINER_PREFIX)_python scripts/docker_config.py" \
+        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python scripts/docker_config.py" \
         "" \
         "docs: docker-up" \
-        "\t@docker container exec \$(CONTAINER_PREFIX)_python \\\\" \
+        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python \\\\" \
         "\t\t/bin/bash -c \"cd docs && make html\"" \
         "\t@\${BROWSER} http://localhost:\$(PORT_NGINX) 2>&1 &" \
         "" \
         "docs-first-run-delete: docker-up" \
         "\tfind docs -maxdepth 1 -type f -delete" \
-        "\tdocker container exec \$(PROJECT)_python \\\\" \
+        "\t\$(DOCKER_CMD) container exec \$(PROJECT)_python \\\\" \
         "\t\t/bin/bash -c \\\\" \
         "\t\t\t\"cd docs \\\\" \
         "\t\t\t && sphinx-quickstart -q \\\\" \
@@ -1152,12 +1154,12 @@ makefile() {
         "\t\t\t\t--ext-viewcode \\\\" \
         "\t\t\t\t--makefile \\\\" \
         "\t\t\t\t--no-batchfile\"" \
-        "\tdocker-compose -f docker/docker-compose.yaml restart nginx" \
+        "\t\$(DOCKER_COMPOSE_CMD) -f docker/docker-compose.yaml restart nginx" \
         "ifeq (\"\$(shell git remote)\", \"origin\")" \
         "\tgit fetch" \
         "\tgit checkout origin/master -- docs/" \
         "else" \
-        "\tdocker container run --rm \\\\" \
+        "\t\$(DOCKER_CMD) container run --rm \\\\" \
         "\t\t-v \`pwd\`:/usr/src/\$(PROJECT) \\\\" \
         "\t\t-w /usr/src/\$(PROJECT)/docs \\\\" \
         "\t\tubuntu \\\\" \
@@ -1185,8 +1187,8 @@ makefile() {
         "" \
         "docs-init:" \
         "\t@rm -rf docs/*" \
-        "\t@docker compose -f docker/docker-compose.yaml build python" \
-        "\t@docker container run --rm -v \`pwd\`:/usr/src/\$(PROJECT) \$(PROJECT)_python \\\\" \
+        "\t@\$(DOCKER_COMPOSE_CMD) -f docker/docker-compose.yaml build python" \
+        "\t@\$(DOCKER_CMD) container run --rm -v \`pwd\`:/usr/src/\$(PROJECT) \$(PROJECT)_python \\\\" \
         "\t\t/bin/bash -c \\\\" \
         "\t\t\t\"cd /usr/src/\$(PROJECT)/docs \\\\" \
         "\t\t\t && sphinx-quickstart -q \\\\" \
@@ -1207,7 +1209,7 @@ makefile() {
         "\t@\${BROWSER} http://localhost:\$(PORT_NGINX) &" \
         "" \
         "format-style: docker-up" \
-        "\tdocker container exec \$(CONTAINER_PREFIX)_python yapf -i -p -r --style \"pep8\" \${SRC_DIR}" \
+        "\t\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python yapf -i -p -r --style \"pep8\" \${SRC_DIR}" \
         "" \
         "getting-started: secret-templates docs-init" \
         "\t@mkdir -p cache \\\\" \
@@ -1226,15 +1228,15 @@ makefile() {
         "\t\t\t\"####################################################################\"" \
         "" \
         "ipython: docker-up" \
-        "\tdocker container exec -it \$(CONTAINER_PREFIX)_python ipython" \
+        "\t\$(DOCKER_CMD) container exec -it \$(CONTAINER_PREFIX)_python ipython" \
         "" \
         "latexmk: docker-up" \
-        "\tdocker container exec -w \$(TEX_WORKING_DIR) \$(CONTAINER_PREFIX)_latex \\\\" \
+        "\t\$(DOCKER_CMD) container exec -w \$(TEX_WORKING_DIR) \$(CONTAINER_PREFIX)_latex \\\\" \
         "\t\t/bin/bash -c \"latexmk -f -pdf \$(TEX_FILE) && latexmk -c\"" \
         "" \
         "mongo-create-user:" \
         "\t@sleep 2" \
-        "\t@docker container exec \$(CONTAINER_PREFIX)_mongo /docker-entrypoint-initdb.d/create_user.sh" \
+        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_mongo /docker-entrypoint-initdb.d/create_user.sh" \
         "" \
         "notebook: docker-up notebook-server" \
         "\t@printf \"%s\\\\n\" \\\\" \
@@ -1243,7 +1245,7 @@ makefile() {
         "\t\t\"\" \\\\" \
         "\t\t\"####################################################################\" \\\\" \
         "\t\t\"Use this link on the host to access the Jupyter server.\"" \
-        "\t@docker container exec \$(CONTAINER_PREFIX)_python \\\\" \
+        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python \\\\" \
         "\t\t/bin/bash -c \\\\" \
         "\t\t\t\"jupyter notebook list 2>&1 \\\\" \
         "\t\t\t | grep -o 'http.*\$(PORT_JUPYTER)\S*' \\\\" \
@@ -1253,7 +1255,7 @@ makefile() {
         "\t\t\"####################################################################\"" \
         "" \
         "notebook-server: notebook-stop-server" \
-        "\t@docker container exec \$(CONTAINER_PREFIX)_python \\\\" \
+        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python \\\\" \
         "\t\t/bin/bash -c \\\\" \
         "\t\t\t\"jupyter lab \\\\" \
         "\t\t\t\t--allow-root \\\\" \
@@ -1263,7 +1265,7 @@ makefile() {
         "\t\t\t\t&\"" \
         "" \
         "notebook-stop-server:" \
-        "\t@-docker container exec \$(CONTAINER_PREFIX)_python \\\\" \
+        "\t@-\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python \\\\" \
         "\t\t/bin/bash -c \"jupyter notebook stop \$(PORT_JUPYTER)\"" \
         "" \
         "package-dependencies: docker-up" \
@@ -1273,12 +1275,12 @@ makefile() {
         "\t\t\"#\" \\\\" \
         "\t\t> requirements.txt" \
         "ifeq (\"\${PKG_MANAGER}\", \"conda\")" \
-        "\t@docker container exec \$(CONTAINER_PREFIX)_python \\\\" \
+        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python \\\\" \
         "\t\t/bin/bash -c \\\\" \
         "\t\t\t\"conda list --export >> requirements.txt \\\\" \
         "\t\t\t && sed -i -e '/^\$(PROJECT)/ s/./# &/' requirements.txt\"" \
         "else ifeq (\"\${PKG_MANAGER}\", \"pip\")" \
-        "\t@docker container exec \$(CONTAINER_PREFIX)_python \\\\" \
+        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python \\\\" \
         "\t\t/bin/bash -c \\\\" \
         "\t\t\t\"pip freeze -l --exclude \$(PROJECT) >> requirements.txt\"" \
         "endif" \
@@ -1287,11 +1289,11 @@ makefile() {
         "\t\${BROWSER} http://localhost:\$(PORT_DATABASE_ADMINISTRATION) &" \
         "" \
         "profile: docker-up" \
-        "\t@docker container exec \$(CONTAINER_PREFIX)_python \\\\" \
+        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python \\\\" \
         "\t\t/bin/bash -c \\\\" \
         "\t\t\t\"python -m cProfile -o \$(PROFILE_PATH) \$(PROFILE_PY)\"" \
         "psql: docker-up" \
-        "\tdocker container exec -it \$(CONTAINER_PREFIX)_postgres \\\\" \
+        "\t\$(DOCKER_CMD) container exec -it \$(CONTAINER_PREFIX)_postgres \\\\" \
         "\t\tpsql -U \${POSTGRES_USER} \$(PROJECT)" \
         "" \
         "secret-templates:" \
@@ -1309,7 +1311,7 @@ makefile() {
         "\t@\${BROWSER} http://0.0.0.0:\$(PORT_PROFILE)/snakeviz/ &" \
         "" \
         "snakeviz-server: docker-up" \
-        "\t@docker container exec \\\\" \
+        "\t@\$(DOCKER_CMD) container exec \\\\" \
         "\t\t-w /usr/src/\$(PROJECT)/profiles \\\\" \
         "\t\t\$(CONTAINER_PREFIX)_python \\\\" \
         "\t\t/bin/bash -c \\\\" \
@@ -1319,8 +1321,8 @@ makefile() {
         "\t\t\t\t--server &\"" \
         "" \
         "test: docker-up format-style" \
-        "\t@docker container exec \$(CONTAINER_PREFIX)_python py.test \$(PROJECT)" \
-        "\t@docker container exec \$(CONTAINER_PREFIX)_python \\\\" \
+        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python py.test \$(PROJECT)" \
+        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python \\\\" \
         "\t\t/bin/bash -c \\\\" \
         "\t\t\t\"adduser --system --no-create-home --uid \$(USER_ID) --group \$(USER) &> /dev/null; \\\\" \
         "\t\t\t chown -R \$(USER):\$(USER) pytest\"" \
@@ -1329,12 +1331,12 @@ makefile() {
         "\t@\${BROWSER} htmlcov/index.html &"\
         "" \
         "update-nvidia-base-images: docker-up" \
-        "\tdocker container exec \$(CONTAINER_PREFIX)_python \\\\" \
+        "\t\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python \\\\" \
         "\t\t./${SCRIPTS_DIR}/update_nvidia_tags.py \\\\" \
         "" \
         "upgrade-packages: docker-up" \
         "ifeq (\"\${PKG_MANAGER}\", \"pip\")" \
-        "\tdocker container exec \$(CONTAINER_PREFIX)_python \\\\" \
+        "\t\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python \\\\" \
         "\t\t/bin/bash -c \\\\" \
         "\t\t\t\"pip3 install -U pip \\\\" \
         "\t\t\t && pip3 freeze | \\\\" \
@@ -1344,7 +1346,7 @@ makefile() {
         "\t\t\t && pip3 freeze > requirements.txt \\\\" \
         "\t\t\t && sed -i -e '/^-e/d' requirements.txt\"" \
         "else ifeq (\"\${PKG_MANAGER}\", \"conda\")" \
-        "\tdocker container exec \$(CONTAINER_PREFIX)_python \\\\" \
+        "\t\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python \\\\" \
         "\t\t/bin/bash -c \\\\" \
         "\t\t\t\"conda update conda \\\\" \
         "\t\t\t && conda update --all \\\\" \
@@ -1616,10 +1618,12 @@ setup_cfg() {
         "addopts =" \
         "    -rvvv" \
         "    --basetemp pytest" \
+        "    #--cache-clear" \
         "    --cov ." \
         "    --cov-report html" \
         "    --doctest-modules" \
         "    --ff" \
+        "    --force-sugar" \
         "    --pycodestyle" \
         "testpaths =" \
         "    ${SOURCE_DIR}" \
@@ -1671,6 +1675,7 @@ setup_py() {
         "        'pytest'," \
         "        'pytest-cov'," \
         "        'pytest-pycodestyle'," \
+        "        'pytest-sugar'," \
         "    }," \
         "}" \
         "" \
@@ -2233,7 +2238,6 @@ update_nvidia_tags() {
 
 usr_vars() {
     script_name=${SCRIPTS_PATH}"create_usr_vars.sh"
-    file_name=${ROOT_PATH}"usr_vars"
     printf "%s\n" \
         "#!/bin/bash" \
         "# create_usr_vars.sh" \
@@ -2269,7 +2273,7 @@ usr_vars() {
         "    \"PORT_MONGO=\$((\$INITIAL_PORT + 5))\" \\" \
         "    \"PORT_DATABASE_ADMINISTRATION=\$((\$INITIAL_PORT + 6))\" \\" \
         "    \"\" \\" \
-        "    > \"${file_name}\"" \
+        "    > \"usr_vars\"" \
         "echo \"Successfully created: usr_vars\"" \
         "" \
         > "${script_name}"
