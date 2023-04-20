@@ -5,13 +5,13 @@
 ## Installation
 All you need are the files **new_pyproject.sh** and **envfile_template**.
 
-1. go to the [source file](https://git.gmdslabs.com/thelton/pyproject_generator/-/blob/master/new_pyproject.sh)
+1. go to the [source file](https://github.com/TimothyHelton/pyproject_generator/blob/master/new_pyproject.sh)
 1. Save as...
 1. Change permissions to make the file user executable
     ```bash
     chmod u+x new_pyproject.sh
     ```
-1. go to the [environment variable file ](https://git.gmdslabs.com/thelton/pyproject_generator/-/blob/master/envfile_template)
+1. go to the [environment variable file ](https://github.com/TimothyHelton/pyproject_generator/blob/master/envfile_template)
 1. Save as...
     1. save the file in the same location as **new_project.sh**
 1. Rename file to **envfile**
@@ -31,7 +31,7 @@ All you need are the files **new_pyproject.sh** and **envfile_template**.
         ```
     1. Enter your email address in the email argument
         ```bash
-        export EMAIL="timothy.helton@greymattersdefense.com"
+        export EMAIL="timothy.j.helton@gmail.com"
         ```
 
 ### Execution

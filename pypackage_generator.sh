@@ -1369,7 +1369,10 @@ pull_request_template() {
         "< Description of PR >" \
         "" \
         "# Test Plan" \
-        "- < Item(s) a reviewer should be able to verify >" \
+        "- pass all unit tests" \
+        "    - `make test`" \
+        "- build documentation without warnings or errors" \
+        "    - `make docs`" \
         "" \
         "# Checklist" \
         "- [ ] PEP8 Compliant" \
@@ -1619,6 +1622,7 @@ setup_cfg() {
         "    -rvvv" \
         "    --basetemp pytest" \
         "    #--cache-clear" \
+        "    --color yes" \
         "    --cov ." \
         "    --cov-report html" \
         "    --doctest-modules" \
@@ -2161,7 +2165,8 @@ test_utils() {
         "    def foo():" \
         "        return 5" \
         "" \
-        "    foo()" \
+        "    with caplog.at_level(logging.DEBUG):" \
+        "        foo()" \
         "    assert 'Initiated: foo' in caplog.text" \
         "" \
         "" \
