@@ -450,20 +450,30 @@ docker_compose() {
         "    build:" \
         "      context: .." \
         "      dockerfile: docker/python.Dockerfile" \
+        "    cap_add:" \
+        "      - SYS_PTRACE" \
         "    env_file:" \
         "        .env" \
         "    environment:" \
         "      - ENVIRONMENT=\${ENVIRONMENT}" \
+        "      - PORT_DASH=\${PORT_DASH}" \
         "      - PORT_GOOGLE=\${PORT_GOOGLE}" \
         "      - PORT_JUPYTER=\${PORT_JUPYTER}" \
+        "      - PORT_MLFLOW=\${PORT_MLFLOW}" \
         "      - PORT_PROFILE=\${PORT_PROFILE}" \
+        "      - PORT_RAY_DASHBOARD=\${PORT_RAY_DASHBOARD}" \
+        "      - PORT_RAY_SERVER=\${PORT_RAY_SERVER}" \
         "    image: ${MAIN_DIR}_python" \
         "    networks:"\
         "      - ${MAIN_DIR}-network" \
         "    ports:" \
-        "      - \${PORT_GOOGLE}:6006" \
+        "      - \${PORT_DASH}:\${PORT_DASH}" \
+        "      - \${PORT_GOOGLE}:\${PORT_GOOGLE}" \
         "      - \${PORT_JUPYTER}:\${PORT_JUPYTER}" \
+        "      - \${PORT_MLFLOW}:5000" \
         "      - \${PORT_PROFILE}:\${PORT_PROFILE}" \
+        "      - \${PORT_RAY_DASHBOARD}:\${PORT_RAY_DASHBOARD}" \
+        "      - \${PORT_RAY_SERVER}:\${PORT_RAY_SERVER}" \
         "    restart: always" \
         "    secrets:" \
         "      - package" \
@@ -799,6 +809,7 @@ docker_config_py() {
         '        """Add GPU configuration to Python container."""' \
         "        py_service = self._config['services']['python']" \
         "        py_service['build']['shm_size'] = '1g'" \
+        "        py_service['cap_add'] = 'SYS_PTRACE'" \
         "        py_service['deploy'] = {" \
         "            'resources': {" \
         "                'reservations': {" \
@@ -811,7 +822,7 @@ docker_config_py() {
         "            }," \
         "        }" \
         "        py_service['ipc'] = 'host'" \
-        "        py_service['shm_size'] = '16g'" \
+        "        py_service['shm_size'] = '24g'" \
         "        py_service['ulimits'] = {'memlock': -1}" \
         "" \
         "    def add_service(self, service_name: ComposeService):" \
@@ -911,13 +922,15 @@ docker_pytorch() {
         "" \
         "COPY . ." \
         "" \
-        "RUN pip install -e .[all] \\" \
+        "RUN pip install --upgrade pip \\" \
+        "\t&& pip install -e .[all] \\" \
         "\t&& apt update -y \\" \
         "\t# && apt -y upgrade \\" \
         "\t&& apt install -y\\" \
         "\t\tfonts-humor-sans \\" \
         "\t# && conda update -y conda \\" \
         "\t# && while read requirement; do conda install --yes \${requirement}; done < requirements_pytorch.txt \\" \
+        "\t# Clean up" \
         "\t&& rm -rf /tmp/* \\" \
         "\t&& rm -rf /var/lib/apt/lists/* \\" \
         "\t&& apt clean -y" \
@@ -990,32 +1003,44 @@ exceptions() {
 
 git_ignore() {
     printf "%s\n" \
+        "# Cached files" \
+        "cache/" \
+        "" \
+        "# C++ files" \
+        "build/" \
+        "/cmake-build-debug/" \
+        "cpp_tests/lib/" \
+        "" \
         "# Compiled source" \
-        "build${FILE_SEP}*" \
         "*.com" \
-        "dist${FILE_SEP}*" \
-        "*.egg-info${FILE_SEP}*" \
+        "dist/" \
+        "*.egg-info/" \
         "*.class" \
         "*.dll" \
         "*.exe" \
         "*.o" \
         "*.pdf" \
         "*.pyc" \
-        "*.so" \
+        "*.so*" \
         "" \
         "# Docker files" \
         "docker/.env" \
-        "docker/secrets/*" \
+        "docker/secrets/" \
         "" \
         "# Ipython files" \
         ".ipynb_checkpoints" \
         "" \
         "# Logs and databases" \
         "*.log" \
+        "logs/" \
         "*make.bat" \
+        "runs/" \
         "*.sql" \
         "*.sqlite" \
         "" \
+        "# MLFlow experiments" \
+        "ai_logs/" \
+        "mlruns/" \
         "# OS generated files" \
         ".DS_Store" \
         ".DS_store?" \
@@ -1037,7 +1062,7 @@ git_ignore() {
         "" \
         "# Profile files" \
         "*.coverage" \
-        "htmlcov/*" \
+        "htmlcov/" \
         "*.profile" \
         "" \
         "# Project files" \
@@ -1056,14 +1081,13 @@ git_ignore() {
         "${DATA_DIR}${FILE_SEP}*" \
         "" \
         "# Sphinx files" \
-        "docs/_build/*" \
-        "docs/_static/*" \
-        "docs/_templates/*" \
+        "docs/_build/" \
+        "docs/_static/" \
+        "docs/_templates/" \
         "docs/Makefile" \
         "" \
         "# User specific files" \
         "usr_vars" \
-        "" \
         > "${ROOT_PATH}.gitignore"
 }
 
@@ -1103,12 +1127,21 @@ makefile() {
         "PROFILE_PROF:=\$(notdir \$(PROFILE_PY:.py=.prof))" \
         "PROFILE_PATH:=profiles/\$(PROFILE_PROF)" \
         "SRC_DIR=/usr/src/\$(PROJECT)" \
+        "TENSORBOARD_DIR:=\"ai_logs\"" \
         "TEX_WORKING_DIR=\${SRC_DIR}/\${TEX_DIR}" \
         "USER:=\$(shell echo \$\${USER%%@*})" \
         "USER_ID:=\$(shell id -u \$(USER))" \
         "VERSION=\$(shell echo \$(shell cat \$(PROJECT)/__init__.py | grep \"^__version__\" | cut -d = -f 2))" \
         "" \
         ".PHONY: docs format-style upgrade-packages" \
+        "" \
+        "cpp-build:" \
+        "\t@rm -rf build \\\\" \
+        "\t\t&& mkdir -p build lib \\\\" \
+        "\t\t&& cd build \\\\" \
+        "\t\t&& cmake .. \\\\" \
+        "\t\t&& cmake --build . \\\\" \
+        "\t\t&& cp lib/*.so* ../lib" \
         "" \
         "deploy: docker-up" \
         "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python pip3 wheel --wheel-dir=wheels .[all]" \
@@ -1125,7 +1158,7 @@ makefile() {
         "\t@\$(DOCKER_CMD) image ls | grep -v REPOSITORY | cut -d ' ' -f 1 | xargs -L1 \$(DOCKER_CMD) pull" \
         ""\
         "docker-rebuild: setup.py" \
-        "\t@\$(DOCKER_COMPOSE_CMD) -f docker/docker-compose.yaml up -d --build" \
+        "\t@\$(DOCKER_COMPOSE_CMD) -f docker/docker-compose.yaml up -d --build 2>&1 | tee docker/image_build.log" \
         "" \
         "docker-up:" \
         "\t@\$(DOCKER_COMPOSE_CMD) -f docker/docker-compose.yaml up -d" \
@@ -1234,6 +1267,31 @@ makefile() {
         "\t\$(DOCKER_CMD) container exec -w \$(TEX_WORKING_DIR) \$(CONTAINER_PREFIX)_latex \\\\" \
         "\t\t/bin/bash -c \"latexmk -f -pdf \$(TEX_FILE) && latexmk -c\"" \
         "" \
+        "mlflow: docker-up mlflow-server" \
+        "\t\t&& printf \"%s\\\\n\" \\\\" \
+        "\t\t\t\"\" \\\\" \
+        "\t\t\t\"\" \\\\" \
+        "\t\t\t\"\" \\\\" \
+        "\t\t\t\"####################################################################\" \\\\" \
+        "\t\t\t\"Use this link on the host to access the MLFlow server.\" \\\\" \
+        "\t\t\t\"\" \\\\" \
+        "\t\t\t\"http://localhost:\$(PORT_MLFLOW)\" \\\\" \
+        "\t\t\t\"\" \\\\" \
+        "\t\t\t\"####################################################################\"" \
+        "" \
+        "mlflow-clean: docker-up" \
+        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python mlflow gc" \
+        "" \
+        "mlflow-server: docker-up" \
+        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python \\\\" \
+        "\t\t/bin/bash -c \\\\" \
+        "\t\t\t\"mlflow server \\\\" \
+        "\t\t\t\t--host 0.0.0.0 \\\\" \
+        "\t\t\t\t&\"" \
+        "" \
+        "mlflow-stop-server: docker-up" \
+        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python pkill -f gunicorn" \
+        "" \
         "mongo-create-user:" \
         "\t@sleep 2" \
         "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_mongo /docker-entrypoint-initdb.d/create_user.sh" \
@@ -1245,28 +1303,33 @@ makefile() {
         "\t\t\"\" \\\\" \
         "\t\t\"####################################################################\" \\\\" \
         "\t\t\"Use this link on the host to access the Jupyter server.\"" \
+        "\t\t\"\"" \
         "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python \\\\" \
         "\t\t/bin/bash -c \\\\" \
-        "\t\t\t\"jupyter notebook list 2>&1 \\\\" \
+        "\t\t\t\"jupyter lab list 2>&1 \\\\" \
         "\t\t\t | grep -o 'http.*\$(PORT_JUPYTER)\S*' \\\\" \
         "\t\t\t | sed -e 's/\(http:\/\/\).*\(:\)/\\\\1localhost:/'\"" \
         "\t@printf \"%s\\\\n\" \\\\" \
         "\t\t\"\" \\\\" \
         "\t\t\"####################################################################\"" \
         "" \
+        "notebook-delete-checkpoints: docker-up" \
+        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python \\\\" \
+        "\t\trm -rf \`find -L -type d -name .ipynb_checkpoints\`" \
+        "" \
         "notebook-server: notebook-stop-server" \
         "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python \\\\" \
         "\t\t/bin/bash -c \\\\" \
         "\t\t\t\"jupyter lab \\\\" \
-        "\t\t\t\t--allow-root \\\\" \
-        "\t\t\t\t--ip=0.0.0.0 \\\\" \
+        "\t\t\t\t--ServerApp.allow-root=True \\\\" \
+        "\t\t\t\t--ServerApp.ip=0.0.0.0 \\\\" \
         "\t\t\t\t--no-browser \\\\" \
-        "\t\t\t\t--port=\$(PORT_JUPYTER) \\\\" \
+        "\t\t\t\t--ServerApp.port=\$(PORT_JUPYTER) \\\\" \
         "\t\t\t\t&\"" \
         "" \
         "notebook-stop-server:" \
         "\t@-\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python \\\\" \
-        "\t\t/bin/bash -c \"jupyter notebook stop \$(PORT_JUPYTER)\"" \
+        "\t\t/bin/bash -c \"jupyter lab stop \$(PORT_JUPYTER)\"" \
         "" \
         "package-dependencies: docker-up" \
         "\t@printf \"%s\\\\n\" \\\\" \
@@ -1319,6 +1382,28 @@ makefile() {
         "\t\t\t\t--hostname 0.0.0.0 \\\\" \
         "\t\t\t\t--port \$(PORT_PROFILE) \\\\" \
         "\t\t\t\t--server &\"" \
+        "" \
+        "tensorboard: docker-up tensorboard-server" \
+        "\t\t&& printf \"%s\\\\n\" \\\\" \
+        "\t\t\t\"\" \\\\" \
+        "\t\t\t\"\" \\\\" \
+        "\t\t\t\"\" \\\\" \
+        "\t\t\t\"####################################################################\" \\\\" \
+        "\t\t\t\"Use this link on the host to access the TensorBoard.\" \\\\" \
+        "\t\t\t\"\" \\\\" \
+        "\t\t\t\"http://localhost:\$(PORT_GOOGLE)\" \\\\" \
+        "\t\t\t\"\" \\\\" \
+        "\t\t\t\"####################################################################\"" \
+        "" \
+        "tensorboard-server: docker-up" \
+        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python \\\\" \
+        "\t\t/bin/bash -c \\\\" \
+        "\t\t\t\"tensorboard --load_fast=false --logdir \$(TENSORBOARD_DIR) &\"" \
+        "" \
+        "tensorboard-stop-server: docker-up" \
+        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python \\\\" \
+        "\t\t/bin/bash -c \\\\" \
+        "\t\t\t\"ps -e | grep tensorboard | tr -s ' ' | cut -d ' ' -f 2 | xargs kill\"" \
         "" \
         "test: docker-up format-style" \
         "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python py.test \$(PROJECT)" \
@@ -1395,6 +1480,11 @@ pkg_globals() {
         "from pathlib import Path" \
         "" \
         "PACKAGE_ROOT = Path(__file__).parents[1]" \
+        "with open((PACKAGE_ROOT / 'docker', / 'pytorch.Dockerfile'), 'r') as f:" \
+        "    line = f.readline()" \
+        "NVIDIA_NGC_BASE_IMAGE = line \\" \
+        "    .strip('FROM ') \\" \
+        "    .rstrip('\n')" \
         "" \
         "FONT_SIZE = {" \
         "    'axis': 18," \
@@ -1422,6 +1512,8 @@ pkg_globals() {
         "        'color': 'black'," \
         "    }," \
         "}" \
+        "" \
+        "TENSORBOARD_DIR = PACKAGE_ROOT / 'ai_logs'" \
         "" \
         "TIME_FORMAT = '%Y_%m_%d_%H_%M_%S'" \
         "" \
@@ -1660,7 +1752,9 @@ setup_py() {
         "    }," \
         "    'jupyter': {" \
         "        'jupyter'," \
-        "        'jupyterlab'," \
+        "        'jupyterlab>=3'," \
+        "        'kaleido'," \
+        "        'protobuf<4'," \
         "    }," \
         "    'mongo': {" \
         "        'pymongo'," \
@@ -1672,6 +1766,11 @@ setup_py() {
         "    'postgres': {" \
         "        'psycopg2-binary'," \
         "        'sqlalchemy'," \
+        "    }," \
+        "    'ray': {" \
+        "        'gpustat==1.0.0," \
+        "        'optuna'," \
+        "        'ray[default,air,serve,tune]'," \
         "    }," \
         "    'test': {" \
         "        'Faker'," \
@@ -1733,10 +1832,21 @@ setup_py() {
         "          '*tests'," \
         "      ])," \
         "      install_requires=[" \
+        "          'captum'," \
         "          'click'," \
-        "          'matplotlib'," \
-        "          'pandas'," \
+        "          'dash'," \
+        "          # 'dask'," \
+        "          'lovely-tensors'," \
+        "          # 'matplotlib'," \
+        "          'mlflow'," \
+        "          # 'pandas'," \
+        "          'plotly'," \
         "          'pyyaml'," \
+        "          # 'torch'," \
+        "          # 'torchdata'," \
+        "          'torchmetrics'," \
+        "          # 'torchvision'," \
+        "          'ujson'," \
         "          'yapf'," \
         "      ]," \
         "      extras_require={" \
@@ -1749,6 +1859,7 @@ setup_py() {
         "          'postgres': combine_dependencies(" \
         "              [x for x in dependencies if 'mongo' not in x])," \
         "          'profile': combine_dependencies('profile')," \
+        "          'ray': combine_dependencies('ray')," \
         "          'test': combine_dependencies('test')," \
         "      }," \
         "      package_dir={'${MAIN_DIR}': '${SOURCE_DIR}'}," \
@@ -2265,18 +2376,22 @@ usr_vars() {
         "done" \
         "" \
         "# Create usr_vars configuration file" \
-        "INITIAL_PORT=\$(( (\$UID - 500) * 50 + 10000 ))" \
+        "INITIAL_PORT=\$(( (UID - 500) * 50 + 10000 ))" \
         "printf \"%s\n\" \\" \
-        "    'COMPOSE_PROJECT_NAME=\${USER}' \\" \
+        "    \"COMPOSE_PROJECT_NAME=\${USER}\" \\" \
         "    \"\" \\" \
         "    \"# Ports\" \\" \
-        "    \"PORT_GOOGLE=\$INITIAL_PORT\" \\" \
-        "    \"PORT_JUPYTER=\$((\$INITIAL_PORT + 1))\" \\" \
-        "    \"PORT_NGINX=\$((\$INITIAL_PORT + 2))\" \\" \
-        "    \"PORT_PROFILE=\$((\$INITIAL_PORT + 3))\" \\" \
-        "    \"PORT_POSTGRES=\$((\$INITIAL_PORT + 4))\" \\" \
-        "    \"PORT_MONGO=\$((\$INITIAL_PORT + 5))\" \\" \
-        "    \"PORT_DATABASE_ADMINISTRATION=\$((\$INITIAL_PORT + 6))\" \\" \
+        "    \"PORT_DASH=\$INITIAL_PORT\" \\" \
+        "    \"PORT_GOOGLE=\$((INITIAL_PORT + 1))\" \\" \
+        "    \"PORT_JUPYTER=\$((INITIAL_PORT + 2))\" \\" \
+        "    \"PORT_MLFLOW=\$((INITIAL_PORT + 3))\" \\" \
+        "    \"PORT_NGINX=\$((INITIAL_PORT + 4))\" \\" \
+        "    \"PORT_PROFILE=\$((INITIAL_PORT + 5))\" \\" \
+        "    \"PORT_DATABASE_ADMINISTRATION=\$((INITIAL_PORT + 6))\" \\" \
+        "    \"PORT_POSTGRES=\$((INITIAL_PORT + 7))\" \\" \
+        "    \"PORT_MONGO=\$((INITIAL_PORT + 8))\" \\" \
+        "    \"PORT_RAY_DASHBOARD=\$((INITIAL_PORT + 9))\" \\" \
+        "    \"PORT_RAY_SERVER=\$((INITIAL_PORT + 10))\" \\" \
         "    \"\" \\" \
         "    > \"usr_vars\"" \
         "echo \"Successfully created: usr_vars\"" \
@@ -2298,6 +2413,7 @@ utils() {
         "import logging.config" \
         "import functools" \
         "import operator" \
+        "import os" \
         "from pathlib import Path" \
         "import time" \
         "from typing import Any, Dict, List, Optional, Tuple, Union" \
@@ -2305,6 +2421,8 @@ utils() {
         "" \
         "import matplotlib.pyplot as plt" \
         "import numpy as np" \
+        "import ray" \
+        "import ray._private.worker import BaseContext" \
         "" \
         "from ${SOURCE_DIR}.exceptions import InputError" \
         "from ${SOURCE_DIR}.pkg_globals import FONT_SIZE, TIME_FORMAT" \
@@ -2437,6 +2555,29 @@ utils() {
         "            message='Current item value \`n\` must be less than total.')" \
         "    progress_msg = f'\r{msg}: {n / total: .1%}'" \
         "    return progress_msg if n < total else progress_msg + '\n\n'" \
+        "" \
+        "" \
+        "def ray_init(" \
+        "    host: str = '0.0.0.0'," \
+        "    port: Optional[int] = None," \
+        ") -> ray._private.worker.RayContext:" \
+        '    """' \
+        "    Initialize Ray cluster utilizing provided host and port." \
+        "" \
+        "    :param host: Host address to bind dashboard" \
+        "    :param port: Host port to bind dashboard (if None then the environment \\" \
+        "        variable RAY_DASHBOARD port will be used)" \
+        "    :return: Ray server context and Ray dashboard URL" \
+        "" \
+        "    .. note::" \
+        "        When using Ray inside a Docker container set the host to '0.0.0.0' and" \
+        "        chose a port that is mapped from the host to the container." \
+        '    """' \
+        "    port = int(os.getenv('PORT_RAY_DASHBOARD')) if port is None else port" \
+        "    return ray.init(" \
+        "        dashboard_host=host," \
+        "        dashboard_port=port," \
+        "    )" \
         "" \
         "" \
         "def rle(arr: Union[List[Any], np.ndarray]) \\" \
