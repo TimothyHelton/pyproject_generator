@@ -2319,7 +2319,7 @@ update_nvidia_tags() {
         "" \
         "DOCKER_DIR = PACKAGE_ROOT / 'docker'" \
         "NVIDIA_NGC_URL = 'https://catalog.ngc.nvidia.com/orgs/nvidia/containers/'" \
-        "REGEX = r'(?<=latestTag\":\")(.*?)(?=\")'" \
+        "REGEX = r'(?<=latestTag\":\")(.*?)(?<=py3)'" \
         "FRAMEWORKS = (" \
         "    'pytorch'," \
         "    'tensorflow'," \
