@@ -1454,9 +1454,9 @@ pull_request_template() {
         "" \
         "# Test Plan" \
         "- pass all unit tests" \
-        "    - `make test`" \
+        "    - \`make test\`" \
         "- build documentation without warnings or errors" \
-        "    - `make docs`" \
+        "    - \`make docs\`" \
         "" \
         "# Checklist" \
         "- [ ] PEP8 Compliant" \
