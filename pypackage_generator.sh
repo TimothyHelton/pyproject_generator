@@ -455,7 +455,6 @@ docker_compose() {
         "    env_file:" \
         "        .env" \
         "    environment:" \
-        "      - ENVIRONMENT=\${ENVIRONMENT}" \
         "      - PORT_DASH=\${PORT_DASH}" \
         "      - PORT_GOOGLE=\${PORT_GOOGLE}" \
         "      - PORT_JUPYTER=\${PORT_JUPYTER}" \
@@ -494,6 +493,7 @@ docker_compose() {
         "  ${MAIN_DIR}-db:" \
         "    name: \${COMPOSE_PROJECT_NAME:-default}-${MAIN_DIR}-db" \
         "  ${MAIN_DIR}-secret:" \
+        "    name: \${COMPOSE_PROJECT_NAME:-default}-${MAIN_DIR}-secret" \
         "" \
         > "${DOCKER_PATH}docker-compose.yaml"
 }
@@ -1479,7 +1479,7 @@ pkg_globals() {
         "from pathlib import Path" \
         "" \
         "PACKAGE_ROOT = Path(__file__).parents[1]" \
-        "with open((PACKAGE_ROOT / 'docker', / 'pytorch.Dockerfile'), 'r') as f:" \
+        "with open((PACKAGE_ROOT / 'docker' / 'pytorch.Dockerfile'), 'r') as f:" \
         "    line = f.readline()" \
         "NVIDIA_NGC_BASE_IMAGE = line \\" \
         "    .strip('FROM ') \\" \
@@ -1753,7 +1753,7 @@ setup_py() {
         "        'jupyter'," \
         "        'jupyterlab>=3'," \
         "        'kaleido'," \
-        "        'protobuf<4'," \
+        "        'protobuf'," \
         "    }," \
         "    'mongo': {" \
         "        'pymongo'," \
@@ -1766,11 +1766,19 @@ setup_py() {
         "        'psycopg2-binary'," \
         "        'sqlalchemy'," \
         "    }," \
-        "    'ray': {" \
-        "        'gpustat==1.0.0," \
-        "        'optuna'," \
-        "        'ray[default,air,serve,tune]'," \
-        "    }," \
+        "    # 'pytorch': {" \
+        "        # 'captum'," \
+        "        # 'gpustat==1.0.0'," \
+        "        # 'lovely-tensors'," \
+        "        # # 'opencv-python'," \
+        "        # 'optuna'," \
+        "        # 'ray[all]'," \
+        "        # # 'torch'," \
+        "        # # 'torchdata'," \
+        "        # 'torchinfo'," \
+        "        # 'torchmetrics'," \
+        "        # # 'torchvision'," \
+        "    # }," \
         "    'test': {" \
         "        'Faker'," \
         "        'git-lint'," \
@@ -1831,20 +1839,14 @@ setup_py() {
         "          '*tests'," \
         "      ])," \
         "      install_requires=[" \
-        "          'captum'," \
         "          'click'," \
         "          'dash'," \
         "          # 'dask'," \
-        "          'lovely-tensors'," \
         "          # 'matplotlib'," \
         "          'mlflow'," \
         "          # 'pandas'," \
         "          'plotly'," \
         "          'pyyaml'," \
-        "          # 'torch'," \
-        "          # 'torchdata'," \
-        "          'torchmetrics'," \
-        "          # 'torchvision'," \
         "          'ujson'," \
         "          'yapf'," \
         "      ]," \
@@ -1858,14 +1860,16 @@ setup_py() {
         "          'postgres': combine_dependencies(" \
         "              [x for x in dependencies if 'mongo' not in x])," \
         "          'profile': combine_dependencies('profile')," \
-        "          'ray': combine_dependencies('ray')," \
         "          'test': combine_dependencies('test')," \
         "      }," \
         "      package_dir={'${MAIN_DIR}': '${SOURCE_DIR}'}," \
         "      include_package_data=True," \
-        "      entry_points={'console_scripts': [" \
-        "          'count=${SOURCE_DIR}.cli:count'," \
-        "      ]})" \
+        "      entry_points={" \
+        "          'console_scripts': [" \
+        "              'count=${SOURCE_DIR}.cli:count'," \
+        "          ]" \
+        "      }," \
+        ")" \
         "" \
         "if __name__ == '__main__':" \
         "    pass" \
@@ -2374,6 +2378,8 @@ usr_vars() {
         "    esac" \
         "done" \
         "" \
+        "VERSION=\"\$(grep \"^__version__\" < ${MAIN_DIR}/__init__.py | cut -d = -f 2 | tr -d \"\'[:blank:]\")\"" \
+        "" \
         "# Create usr_vars configuration file" \
         "INITIAL_PORT=\$(( (UID - 500) * 50 + 10000 ))" \
         "printf \"%s\n\" \\" \
@@ -2420,8 +2426,8 @@ utils() {
         "" \
         "import matplotlib.pyplot as plt" \
         "import numpy as np" \
-        "import ray" \
-        "import ray._private.worker import BaseContext" \
+        "# import ray" \
+        "# from ray._private.worker import BaseContext" \
         "" \
         "from ${SOURCE_DIR}.exceptions import InputError" \
         "from ${SOURCE_DIR}.pkg_globals import FONT_SIZE, TIME_FORMAT" \
@@ -2556,27 +2562,27 @@ utils() {
         "    return progress_msg if n < total else progress_msg + '\n\n'" \
         "" \
         "" \
-        "def ray_init(" \
-        "    host: str = '0.0.0.0'," \
-        "    port: Optional[int] = None," \
-        ") -> ray._private.worker.RayContext:" \
-        '    """' \
-        "    Initialize Ray cluster utilizing provided host and port." \
-        "" \
-        "    :param host: Host address to bind dashboard" \
-        "    :param port: Host port to bind dashboard (if None then the environment \\" \
-        "        variable RAY_DASHBOARD port will be used)" \
-        "    :return: Ray server context and Ray dashboard URL" \
-        "" \
-        "    .. note::" \
-        "        When using Ray inside a Docker container set the host to '0.0.0.0' and" \
-        "        chose a port that is mapped from the host to the container." \
-        '    """' \
-        "    port = int(os.getenv('PORT_RAY_DASHBOARD')) if port is None else port" \
-        "    return ray.init(" \
-        "        dashboard_host=host," \
-        "        dashboard_port=port," \
-        "    )" \
+        "# def ray_init(" \
+        "#     host: str = '0.0.0.0'," \
+        "#     port: Optional[int] = None," \
+        "# ) -> ray._private.worker.RayContext:" \
+        '#     """' \
+        "#     Initialize Ray cluster utilizing provided host and port." \
+        "#" \
+        "#     :param host: Host address to bind dashboard" \
+        "#     :param port: Host port to bind dashboard (if None then the environment \\" \
+        "#         variable RAY_DASHBOARD port will be used)" \
+        "#     :return: Ray server context and Ray dashboard URL" \
+        "#" \
+        "#     .. note::" \
+        "#         When using Ray inside a Docker container set the host to '0.0.0.0' and" \
+        "#         chose a port that is mapped from the host to the container." \
+        '#     """' \
+        "#     port = int(os.getenv('PORT_RAY_DASHBOARD')) if port is None else port" \
+        "#     return ray.init(" \
+        "#         dashboard_host=host," \
+        "#         dashboard_port=port," \
+        "#     )" \
         "" \
         "" \
         "def rle(arr: Union[List[Any], np.ndarray]) \\" \

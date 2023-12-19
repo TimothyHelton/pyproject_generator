@@ -5,7 +5,7 @@ test_dir="test123"
 
 if [ -d "${test_dir}" ]; then
     echo "Closing containers and deleting test package"
-    cd "${test_dir}";
+    cd "${test_dir}" || exit;
     make docker-down;
     cd .. && sudo rm -rf "${test_dir}"
 fi
@@ -13,9 +13,9 @@ fi
 echo
 echo "################################"
 echo "Cleaning Docker Artifacts..."
-docker image rm "${test_dir}_python"
+docker image rm "${test_dir}_python:0.1.0"
 docker network rm "${USER}-${test_dir}-network"
-docker volume rm "${USER}_${test_dir}-secret"
+docker volume rm "${USER}-${test_dir}-secret"
 
 echo
 echo "################################"
