@@ -431,7 +431,7 @@ docker_compose() {
         "services:" \
         "" \
         "  nginx:" \
-        "    container_name: \${COMPOSE_PROJECT_NAME:-default}_${MAIN_DIR}_nginx" \
+        "    container_name: \${COMPOSE_PROJECT_NAME:-default}-${MAIN_DIR}-nginx" \
         "    env_file:" \
         "        .env" \
         "    environment:" \
@@ -446,7 +446,7 @@ docker_compose() {
         "      - ../docs/_build/html:/usr/share/nginx/html:ro" \
         "" \
         "  python:" \
-        "    container_name: \${COMPOSE_PROJECT_NAME:-default}_${MAIN_DIR}_python" \
+        "    container_name: \${COMPOSE_PROJECT_NAME:-default}-${MAIN_DIR}-python" \
         "    build:" \
         "      context: .." \
         "      dockerfile: docker/python.Dockerfile" \
@@ -455,7 +455,6 @@ docker_compose() {
         "    env_file:" \
         "        .env" \
         "    environment:" \
-        "      - ENVIRONMENT=\${ENVIRONMENT}" \
         "      - PORT_DASH=\${PORT_DASH}" \
         "      - PORT_GOOGLE=\${PORT_GOOGLE}" \
         "      - PORT_JUPYTER=\${PORT_JUPYTER}" \
@@ -494,6 +493,7 @@ docker_compose() {
         "  ${MAIN_DIR}-db:" \
         "    name: \${COMPOSE_PROJECT_NAME:-default}-${MAIN_DIR}-db" \
         "  ${MAIN_DIR}-secret:" \
+        "    name: \${COMPOSE_PROJECT_NAME:-default}-${MAIN_DIR}-secret" \
         "" \
         > "${DOCKER_PATH}docker-compose.yaml"
 }
@@ -548,8 +548,8 @@ docker_config_py() {
         "" \
         "        self._container_prefix = (" \
         "            self._config['services']['python']['container_name'] \\" \
-        "            .rsplit('_', 1)[0])" \
-        "        self._package = self._container_prefix.rsplit('}_', 1)[1]" \
+        "            .rsplit('-', 1)[0])" \
+        "        self._package = self._container_prefix.rsplit('}-', 1)[1]" \
         "        self._network = f'{self._package}-network'" \
         "        self._volume_db = f'{self._package}-db'" \
         "        self._volume_secret = f'{self._package}-secret'" \
@@ -617,7 +617,7 @@ docker_config_py() {
         "    def _add_latex(self):" \
         '        """Add LaTeX service to configuration."""' \
         "        self._config['services']['latex'] = {" \
-        "            'container_name': f'{self._container_prefix}_latex'," \
+        "            'container_name': f'{self._container_prefix}-latex'," \
         "            'image': 'blang/latex'," \
         "            'networks': [self._network]," \
         "            'restart': 'always'," \
@@ -632,7 +632,7 @@ docker_config_py() {
         "    def _add_mongo(self):" \
         '        """Add MongoDB service to configuration."""' \
         "        self._config['services']['mongo'] = {" \
-        "            'container_name': f'{self._container_prefix}_mongo'," \
+        "            'container_name': f'{self._container_prefix}-mongo'," \
         "            'image': 'mongo'," \
         "            'env_file': '.env'," \
         "            'environment': {" \
@@ -722,7 +722,7 @@ docker_config_py() {
         "    def _add_nginx(self):" \
         '        """Add NGINX service to configuration."""' \
         "        self._config['services']['nginx'] = {" \
-        "            'container_name': f'{self._container_prefix}_nginx'," \
+        "            'container_name': f'{self._container_prefix}-nginx'," \
         "            'env_file': '.env'," \
         "            'environment': {" \
         "                'PORT_NGINX': '\${PORT_NGINX}'," \
@@ -742,7 +742,7 @@ docker_config_py() {
         "    def _add_postgres(self):" \
         '        """Add PostgreSQL service to configuration."""' \
         "        self._config['services']['postgres'] = {" \
-        "            'container_name': f'{self._container_prefix}_postgres'," \
+        "            'container_name': f'{self._container_prefix}-postgres'," \
         "            'env_file': '.env'," \
         "            'image': 'postgres:alpine'," \
         "            'environment': {" \
@@ -772,8 +772,7 @@ docker_config_py() {
         "    def _add_pgadmin(self):" \
         '        """Add PGAdmin service to configuration."""' \
         "        self._config['services']['pgadmin'] = {" \
-        "            'container_name':" \
-        "            f'{self._container_prefix}_pgadmin'," \
+        "            'container_name': f'{self._container_prefix}-pgadmin'," \
         "            'env_file':" \
         "            '.env'," \
         "            'environment': {" \
@@ -809,7 +808,7 @@ docker_config_py() {
         '        """Add GPU configuration to Python container."""' \
         "        py_service = self._config['services']['python']" \
         "        py_service['build']['shm_size'] = '1g'" \
-        "        py_service['cap_add'] = 'SYS_PTRACE'" \
+        "        py_service['cap_add'] = ['SYS_PTRACE']" \
         "        py_service['deploy'] = {" \
         "            'resources': {" \
         "                'reservations': {" \
@@ -1118,7 +1117,7 @@ makefile() {
         "\tBROWSER=open" \
         "endif" \
         "" \
-        "CONTAINER_PREFIX:=\$(COMPOSE_PROJECT_NAME)_\$(PROJECT)" \
+        "CONTAINER_PREFIX:=\$(COMPOSE_PROJECT_NAME)-\$(PROJECT)" \
         "DOCKER_CMD=docker" \
         "DOCKER_COMPOSE_CMD=docker compose" \
         "DOCKER_IMAGE=\$(shell head -n 1 docker/python.Dockerfile | cut -d ' ' -f 2)" \
@@ -1144,7 +1143,7 @@ makefile() {
         "\t\t&& cp lib/*.so* ../lib" \
         "" \
         "deploy: docker-up" \
-        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python pip3 wheel --wheel-dir=wheels .[all]" \
+        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)-python pip3 wheel --wheel-dir=wheels .[all]" \
         "\t@git tag -a v\$(VERSION) -m \"Version \$(VERSION)\"" \
         "\t@echo" \
         "\t@echo" \
@@ -1167,10 +1166,10 @@ makefile() {
         "\t@echo \"Docker environment updated successfully\"" \
         "" \
         "docker-update-compose-file:" \
-        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python scripts/docker_config.py" \
+        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)-python scripts/docker_config.py" \
         "" \
         "docs: docker-up" \
-        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python \\\\" \
+        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)-python \\\\" \
         "\t\t/bin/bash -c \"cd docs && make html\"" \
         "\t@\${BROWSER} http://localhost:\$(PORT_NGINX) 2>&1 &" \
         "" \
@@ -1242,7 +1241,7 @@ makefile() {
         "\t@\${BROWSER} http://localhost:\$(PORT_NGINX) &" \
         "" \
         "format-style: docker-up" \
-        "\t\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python yapf -i -p -r --style \"pep8\" \${SRC_DIR}" \
+        "\t\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)-python yapf -i -p -r --style \"pep8\" \${SRC_DIR}" \
         "" \
         "getting-started: secret-templates docs-init" \
         "\t@mkdir -p cache \\\\" \
@@ -1261,10 +1260,10 @@ makefile() {
         "\t\t\t\"####################################################################\"" \
         "" \
         "ipython: docker-up" \
-        "\t\$(DOCKER_CMD) container exec -it \$(CONTAINER_PREFIX)_python ipython" \
+        "\t\$(DOCKER_CMD) container exec -it \$(CONTAINER_PREFIX)-python ipython" \
         "" \
         "latexmk: docker-up" \
-        "\t\$(DOCKER_CMD) container exec -w \$(TEX_WORKING_DIR) \$(CONTAINER_PREFIX)_latex \\\\" \
+        "\t\$(DOCKER_CMD) container exec -w \$(TEX_WORKING_DIR) \$(CONTAINER_PREFIX)-latex \\\\" \
         "\t\t/bin/bash -c \"latexmk -f -pdf \$(TEX_FILE) && latexmk -c\"" \
         "" \
         "mlflow: docker-up mlflow-server" \
@@ -1280,21 +1279,21 @@ makefile() {
         "\t\t\t\"####################################################################\"" \
         "" \
         "mlflow-clean: docker-up" \
-        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python mlflow gc" \
+        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)-python mlflow gc" \
         "" \
         "mlflow-server: docker-up" \
-        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python \\\\" \
+        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)-python \\\\" \
         "\t\t/bin/bash -c \\\\" \
         "\t\t\t\"mlflow server \\\\" \
         "\t\t\t\t--host 0.0.0.0 \\\\" \
         "\t\t\t\t&\"" \
         "" \
         "mlflow-stop-server: docker-up" \
-        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python pkill -f gunicorn" \
+        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)-python pkill -f gunicorn" \
         "" \
         "mongo-create-user:" \
         "\t@sleep 2" \
-        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_mongo /docker-entrypoint-initdb.d/create_user.sh" \
+        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)-mongo /docker-entrypoint-initdb.d/create_user.sh" \
         "" \
         "notebook: docker-up notebook-server" \
         "\t@printf \"%s\\\\n\" \\\\" \
@@ -1302,9 +1301,9 @@ makefile() {
         "\t\t\"\" \\\\" \
         "\t\t\"\" \\\\" \
         "\t\t\"####################################################################\" \\\\" \
-        "\t\t\"Use this link on the host to access the Jupyter server.\"" \
+        "\t\t\"Use this link on the host to access the Jupyter server.\" \\\\" \
         "\t\t\"\"" \
-        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python \\\\" \
+        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)-python \\\\" \
         "\t\t/bin/bash -c \\\\" \
         "\t\t\t\"jupyter lab list 2>&1 \\\\" \
         "\t\t\t | grep -o 'http.*\$(PORT_JUPYTER)\S*' \\\\" \
@@ -1314,21 +1313,21 @@ makefile() {
         "\t\t\"####################################################################\"" \
         "" \
         "notebook-delete-checkpoints: docker-up" \
-        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python \\\\" \
+        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)-python \\\\" \
         "\t\trm -rf \`find -L -type d -name .ipynb_checkpoints\`" \
         "" \
         "notebook-server: notebook-stop-server" \
-        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python \\\\" \
+        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)-python \\\\" \
         "\t\t/bin/bash -c \\\\" \
         "\t\t\t\"jupyter lab \\\\" \
-        "\t\t\t\t--ServerApp.allow-root=True \\\\" \
-        "\t\t\t\t--ServerApp.ip=0.0.0.0 \\\\" \
+        "\t\t\t\t--allow-root \\\\" \
         "\t\t\t\t--no-browser \\\\" \
+        "\t\t\t\t--ServerApp.ip=0.0.0.0 \\\\" \
         "\t\t\t\t--ServerApp.port=\$(PORT_JUPYTER) \\\\" \
         "\t\t\t\t&\"" \
         "" \
         "notebook-stop-server:" \
-        "\t@-\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python \\\\" \
+        "\t@-\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)-python \\\\" \
         "\t\t/bin/bash -c \"jupyter lab stop \$(PORT_JUPYTER)\"" \
         "" \
         "package-dependencies: docker-up" \
@@ -1338,12 +1337,12 @@ makefile() {
         "\t\t\"#\" \\\\" \
         "\t\t> requirements.txt" \
         "ifeq (\"\${PKG_MANAGER}\", \"conda\")" \
-        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python \\\\" \
+        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)-python \\\\" \
         "\t\t/bin/bash -c \\\\" \
         "\t\t\t\"conda list --export >> requirements.txt \\\\" \
         "\t\t\t && sed -i -e '/^\$(PROJECT)/ s/./# &/' requirements.txt\"" \
         "else ifeq (\"\${PKG_MANAGER}\", \"pip\")" \
-        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python \\\\" \
+        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)-python \\\\" \
         "\t\t/bin/bash -c \\\\" \
         "\t\t\t\"pip freeze -l --exclude \$(PROJECT) >> requirements.txt\"" \
         "endif" \
@@ -1352,11 +1351,11 @@ makefile() {
         "\t\${BROWSER} http://localhost:\$(PORT_DATABASE_ADMINISTRATION) &" \
         "" \
         "profile: docker-up" \
-        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python \\\\" \
+        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)-python \\\\" \
         "\t\t/bin/bash -c \\\\" \
         "\t\t\t\"python -m cProfile -o \$(PROFILE_PATH) \$(PROFILE_PY)\"" \
         "psql: docker-up" \
-        "\t\$(DOCKER_CMD) container exec -it \$(CONTAINER_PREFIX)_postgres \\\\" \
+        "\t\$(DOCKER_CMD) container exec -it \$(CONTAINER_PREFIX)-postgres \\\\" \
         "\t\tpsql -U \${POSTGRES_USER} \$(PROJECT)" \
         "" \
         "secret-templates:" \
@@ -1376,7 +1375,7 @@ makefile() {
         "snakeviz-server: docker-up" \
         "\t@\$(DOCKER_CMD) container exec \\\\" \
         "\t\t-w /usr/src/\$(PROJECT)/profiles \\\\" \
-        "\t\t\$(CONTAINER_PREFIX)_python \\\\" \
+        "\t\t\$(CONTAINER_PREFIX)-python \\\\" \
         "\t\t/bin/bash -c \\\\" \
         "\t\t\t\"snakeviz \$(PROFILE_PROF) \\\\" \
         "\t\t\t\t--hostname 0.0.0.0 \\\\" \
@@ -1396,18 +1395,18 @@ makefile() {
         "\t\t\t\"####################################################################\"" \
         "" \
         "tensorboard-server: docker-up" \
-        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python \\\\" \
+        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)-python \\\\" \
         "\t\t/bin/bash -c \\\\" \
         "\t\t\t\"tensorboard --load_fast=false --logdir \$(TENSORBOARD_DIR) &\"" \
         "" \
         "tensorboard-stop-server: docker-up" \
-        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python \\\\" \
+        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)-python \\\\" \
         "\t\t/bin/bash -c \\\\" \
         "\t\t\t\"ps -e | grep tensorboard | tr -s ' ' | cut -d ' ' -f 2 | xargs kill\"" \
         "" \
         "test: docker-up format-style" \
-        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python py.test \$(PROJECT)" \
-        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python \\\\" \
+        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)-python py.test \$(PROJECT)" \
+        "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)-python \\\\" \
         "\t\t/bin/bash -c \\\\" \
         "\t\t\t\"adduser --system --no-create-home --uid \$(USER_ID) --group \$(USER) &> /dev/null; \\\\" \
         "\t\t\t chown -R \$(USER):\$(USER) pytest\"" \
@@ -1416,12 +1415,12 @@ makefile() {
         "\t@\${BROWSER} htmlcov/index.html &"\
         "" \
         "update-nvidia-base-images: docker-up" \
-        "\t\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python \\\\" \
+        "\t\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)-python \\\\" \
         "\t\t./${SCRIPTS_DIR}/update_nvidia_tags.py \\\\" \
         "" \
         "upgrade-packages: docker-up" \
         "ifeq (\"\${PKG_MANAGER}\", \"pip\")" \
-        "\t\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python \\\\" \
+        "\t\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)-python \\\\" \
         "\t\t/bin/bash -c \\\\" \
         "\t\t\t\"pip3 install -U pip \\\\" \
         "\t\t\t && pip3 freeze | \\\\" \
@@ -1431,7 +1430,7 @@ makefile() {
         "\t\t\t && pip3 freeze > requirements.txt \\\\" \
         "\t\t\t && sed -i -e '/^-e/d' requirements.txt\"" \
         "else ifeq (\"\${PKG_MANAGER}\", \"conda\")" \
-        "\t\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)_python \\\\" \
+        "\t\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)-python \\\\" \
         "\t\t/bin/bash -c \\\\" \
         "\t\t\t\"conda update conda \\\\" \
         "\t\t\t && conda update --all \\\\" \
@@ -1455,9 +1454,9 @@ pull_request_template() {
         "" \
         "# Test Plan" \
         "- pass all unit tests" \
-        "    - `make test`" \
+        "    - \`make test\`" \
         "- build documentation without warnings or errors" \
-        "    - `make docs`" \
+        "    - \`make docs\`" \
         "" \
         "# Checklist" \
         "- [ ] PEP8 Compliant" \
@@ -1480,7 +1479,7 @@ pkg_globals() {
         "from pathlib import Path" \
         "" \
         "PACKAGE_ROOT = Path(__file__).parents[1]" \
-        "with open((PACKAGE_ROOT / 'docker', / 'pytorch.Dockerfile'), 'r') as f:" \
+        "with open((PACKAGE_ROOT / 'docker' / 'pytorch.Dockerfile'), 'r') as f:" \
         "    line = f.readline()" \
         "NVIDIA_NGC_BASE_IMAGE = line \\" \
         "    .strip('FROM ') \\" \
@@ -1754,7 +1753,7 @@ setup_py() {
         "        'jupyter'," \
         "        'jupyterlab>=3'," \
         "        'kaleido'," \
-        "        'protobuf<4'," \
+        "        'protobuf'," \
         "    }," \
         "    'mongo': {" \
         "        'pymongo'," \
@@ -1767,11 +1766,19 @@ setup_py() {
         "        'psycopg2-binary'," \
         "        'sqlalchemy'," \
         "    }," \
-        "    'ray': {" \
-        "        'gpustat==1.0.0," \
-        "        'optuna'," \
-        "        'ray[default,air,serve,tune]'," \
-        "    }," \
+        "    # 'pytorch': {" \
+        "        # 'captum'," \
+        "        # 'gpustat==1.0.0'," \
+        "        # 'lovely-tensors'," \
+        "        # # 'opencv-python'," \
+        "        # 'optuna'," \
+        "        # 'ray[all]'," \
+        "        # # 'torch'," \
+        "        # # 'torchdata'," \
+        "        # 'torchinfo'," \
+        "        # 'torchmetrics'," \
+        "        # # 'torchvision'," \
+        "    # }," \
         "    'test': {" \
         "        'Faker'," \
         "        'git-lint'," \
@@ -1832,20 +1839,14 @@ setup_py() {
         "          '*tests'," \
         "      ])," \
         "      install_requires=[" \
-        "          'captum'," \
         "          'click'," \
         "          'dash'," \
         "          # 'dask'," \
-        "          'lovely-tensors'," \
         "          # 'matplotlib'," \
         "          'mlflow'," \
         "          # 'pandas'," \
         "          'plotly'," \
         "          'pyyaml'," \
-        "          # 'torch'," \
-        "          # 'torchdata'," \
-        "          'torchmetrics'," \
-        "          # 'torchvision'," \
         "          'ujson'," \
         "          'yapf'," \
         "      ]," \
@@ -1859,14 +1860,16 @@ setup_py() {
         "          'postgres': combine_dependencies(" \
         "              [x for x in dependencies if 'mongo' not in x])," \
         "          'profile': combine_dependencies('profile')," \
-        "          'ray': combine_dependencies('ray')," \
         "          'test': combine_dependencies('test')," \
         "      }," \
         "      package_dir={'${MAIN_DIR}': '${SOURCE_DIR}'}," \
         "      include_package_data=True," \
-        "      entry_points={'console_scripts': [" \
-        "          'count=${SOURCE_DIR}.cli:count'," \
-        "      ]})" \
+        "      entry_points={" \
+        "          'console_scripts': [" \
+        "              'count=${SOURCE_DIR}.cli:count'," \
+        "          ]" \
+        "      }," \
+        ")" \
         "" \
         "if __name__ == '__main__':" \
         "    pass" \
@@ -2320,7 +2323,7 @@ update_nvidia_tags() {
         "" \
         "DOCKER_DIR = PACKAGE_ROOT / 'docker'" \
         "NVIDIA_NGC_URL = 'https://catalog.ngc.nvidia.com/orgs/nvidia/containers/'" \
-        "REGEX = r'(?<=latestTag\":\")(.*?)(?=\")'" \
+        "REGEX = r'(?<=latestTag\":\")(.*?)(?<=py3)'" \
         "FRAMEWORKS = (" \
         "    'pytorch'," \
         "    'tensorflow'," \
@@ -2375,6 +2378,8 @@ usr_vars() {
         "    esac" \
         "done" \
         "" \
+        "VERSION=\"\$(grep \"^__version__\" < ${MAIN_DIR}/__init__.py | cut -d = -f 2 | tr -d \"\'[:blank:]\")\"" \
+        "" \
         "# Create usr_vars configuration file" \
         "INITIAL_PORT=\$(( (UID - 500) * 50 + 10000 ))" \
         "printf \"%s\n\" \\" \
@@ -2421,8 +2426,8 @@ utils() {
         "" \
         "import matplotlib.pyplot as plt" \
         "import numpy as np" \
-        "import ray" \
-        "import ray._private.worker import BaseContext" \
+        "# import ray" \
+        "# from ray._private.worker import BaseContext" \
         "" \
         "from ${SOURCE_DIR}.exceptions import InputError" \
         "from ${SOURCE_DIR}.pkg_globals import FONT_SIZE, TIME_FORMAT" \
@@ -2557,27 +2562,27 @@ utils() {
         "    return progress_msg if n < total else progress_msg + '\n\n'" \
         "" \
         "" \
-        "def ray_init(" \
-        "    host: str = '0.0.0.0'," \
-        "    port: Optional[int] = None," \
-        ") -> ray._private.worker.RayContext:" \
-        '    """' \
-        "    Initialize Ray cluster utilizing provided host and port." \
-        "" \
-        "    :param host: Host address to bind dashboard" \
-        "    :param port: Host port to bind dashboard (if None then the environment \\" \
-        "        variable RAY_DASHBOARD port will be used)" \
-        "    :return: Ray server context and Ray dashboard URL" \
-        "" \
-        "    .. note::" \
-        "        When using Ray inside a Docker container set the host to '0.0.0.0' and" \
-        "        chose a port that is mapped from the host to the container." \
-        '    """' \
-        "    port = int(os.getenv('PORT_RAY_DASHBOARD')) if port is None else port" \
-        "    return ray.init(" \
-        "        dashboard_host=host," \
-        "        dashboard_port=port," \
-        "    )" \
+        "# def ray_init(" \
+        "#     host: str = '0.0.0.0'," \
+        "#     port: Optional[int] = None," \
+        "# ) -> ray._private.worker.RayContext:" \
+        '#     """' \
+        "#     Initialize Ray cluster utilizing provided host and port." \
+        "#" \
+        "#     :param host: Host address to bind dashboard" \
+        "#     :param port: Host port to bind dashboard (if None then the environment \\" \
+        "#         variable RAY_DASHBOARD port will be used)" \
+        "#     :return: Ray server context and Ray dashboard URL" \
+        "#" \
+        "#     .. note::" \
+        "#         When using Ray inside a Docker container set the host to '0.0.0.0' and" \
+        "#         chose a port that is mapped from the host to the container." \
+        '#     """' \
+        "#     port = int(os.getenv('PORT_RAY_DASHBOARD')) if port is None else port" \
+        "#     return ray.init(" \
+        "#         dashboard_host=host," \
+        "#         dashboard_port=port," \
+        "#     )" \
         "" \
         "" \
         "def rle(arr: Union[List[Any], np.ndarray]) \\" \
@@ -2707,7 +2712,7 @@ cd "${MAIN_DIR}" || exit
 make docker-up
 sphinx_initialization
 source usr_vars
-docker container exec "${COMPOSE_PROJECT_NAME}_${SOURCE_DIR}_python" \
+docker container exec "${COMPOSE_PROJECT_NAME}-${SOURCE_DIR}-python" \
     ./scripts/update_sphinx_config.py
 rm ./scripts/update_sphinx_config.py
 make docs
@@ -2718,5 +2723,5 @@ make test-coverage
 git_init
 
 # Update scripts/docker_config.py with desired services and then call:
-#   $ docker container exec ${CONTAINER_PREFIX}_python scripts/docker_config.py
+#   $ docker container exec ${CONTAINER_PREFIX}-python scripts/docker_config.py
 #   $ make docker-rebuild
