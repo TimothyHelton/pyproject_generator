@@ -1301,7 +1301,7 @@ makefile() {
         "\t\t\"\" \\\\" \
         "\t\t\"\" \\\\" \
         "\t\t\"####################################################################\" \\\\" \
-        "\t\t\"Use this link on the host to access the Jupyter server.\"" \
+        "\t\t\"Use this link on the host to access the Jupyter server.\" \\\\" \
         "\t\t\"\"" \
         "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)-python \\\\" \
         "\t\t/bin/bash -c \\\\" \
@@ -1320,9 +1320,9 @@ makefile() {
         "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)-python \\\\" \
         "\t\t/bin/bash -c \\\\" \
         "\t\t\t\"jupyter lab \\\\" \
-        "\t\t\t\t--ServerApp.allow-root=True \\\\" \
-        "\t\t\t\t--ServerApp.ip=0.0.0.0 \\\\" \
+        "\t\t\t\t--allow-root \\\\" \
         "\t\t\t\t--no-browser \\\\" \
+        "\t\t\t\t--ServerApp.ip=0.0.0.0 \\\\" \
         "\t\t\t\t--ServerApp.port=\$(PORT_JUPYTER) \\\\" \
         "\t\t\t\t&\"" \
         "" \
