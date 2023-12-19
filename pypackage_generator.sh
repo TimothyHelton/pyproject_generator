@@ -155,28 +155,26 @@ constructor_pkg() {
     printf "%s\n" \
         "${PY_SHEBANG}" \
         "${PY_ENCODING}" \
+        "__version__ = '0.1.0'" \
         "" \
-        "from pkg_resources import get_distribution, DistributionNotFound" \
-        "from os import path" \
+        "# from mlflow import MlflowClient" \
+        "# from minio import Minio" \
         "" \
         "from . import pkg_globals" \
         "# from . import cli" \
         "# from . import db" \
         "from . import exceptions" \
+        "# from . import torch_utils" \
         "from . import utils" \
         "" \
-        "__version__ = '0.1.0'" \
-        "" \
-        "try:" \
-        "    _dist = get_distribution('${MAIN_DIR}')" \
-        "    dist_loc = path.normcase(_dist.location)" \
-        "    here = path.normcase(__file__)" \
-        "    if not here.startswith(path.join(dist_loc, '${MAIN_DIR}')):" \
-        "        raise DistributionNotFound" \
-        "except DistributionNotFound:" \
-        "    __version__ = 'Please install this project with setup.py'" \
-        "else:" \
-        "    __version__ = _dist.version" \
+        "# MLFLOW_CLIENT = MlflowClient()" \
+        "# MINIO_ARTIFACT_ROOT = 'mlruns'" \
+        "# MINIO_CLIENT = Minio(" \
+        "#     'mlflow-artifact-store:9000'," \
+        "#     secure=False," \
+        "#     access_key=utils.docker_secret('mlflow-minio-access-key')," \
+        "#     secret_key=utils.docker_secret('mlflow-minio-secret-access-key')," \
+        "# )" \
         > "${SRC_PATH}__init__.py"
 }
 
@@ -419,8 +417,6 @@ directories() {
     done
     # Secrets directory
     mkdir "${SECRETS_PATH}"
-    # Sphinx Documentation directory
-    mkdir -p "${ROOT_PATH}docs${FILE_SEP}_build${FILE_SEP}html"
     # Test directory
     mkdir "${SRC_PATH}${TEST_DIR}"
 }
@@ -431,50 +427,60 @@ docker_compose() {
         "services:" \
         "" \
         "  nginx:" \
+        "    image: nginx:alpine" \
+        "    restart: always" \
         "    container_name: \${COMPOSE_PROJECT_NAME:-default}-${MAIN_DIR}-nginx" \
-        "    env_file:" \
-        "        .env" \
         "    environment:" \
         "      PORT_NGINX: \${PORT_NGINX}" \
-        "    image: nginx:alpine" \
         "    networks:"\
         "      - ${MAIN_DIR}-network" \
         "    ports:" \
         "      - \${PORT_NGINX}:80" \
-        "    restart: always" \
         "    volumes:" \
         "      - ../docs/_build/html:/usr/share/nginx/html:ro" \
         "" \
         "  python:" \
+        "    image: ${MAIN_DIR}:\${VERSION}" \
+        "    restart: always" \
         "    container_name: \${COMPOSE_PROJECT_NAME:-default}-${MAIN_DIR}-python" \
         "    build:" \
         "      context: .." \
         "      dockerfile: docker/python.Dockerfile" \
         "    cap_add:" \
         "      - SYS_PTRACE" \
-        "    env_file:" \
-        "        .env" \
         "    environment:" \
-        "      - PORT_DASH=\${PORT_DASH}" \
-        "      - PORT_GOOGLE=\${PORT_GOOGLE}" \
-        "      - PORT_JUPYTER=\${PORT_JUPYTER}" \
-        "      - PORT_MLFLOW=\${PORT_MLFLOW}" \
-        "      - PORT_PROFILE=\${PORT_PROFILE}" \
-        "      - PORT_RAY_DASHBOARD=\${PORT_RAY_DASHBOARD}" \
-        "      - PORT_RAY_SERVER=\${PORT_RAY_SERVER}" \
-        "    image: ${MAIN_DIR}_python" \
+        "      # - AWS_ACCESS_KEY_ID:\${MINIO_ACCESS_KEY}" \
+        "      # - AWS_SECRET_ACCESS_KEY:\${MINIO_SECRET_ACCESS_KEY}" \
+        "      # - MLFLOW_S3_ENDPOINT_URL:http://mlflow-artifact-store:9000" \
+        "      # - MLFLOW_S3_IGNORE_TLS:true" \
+        "      # - MLFLOW_TRACKING_URI:http://mlflow-server:5000" \
+        "      - PORT_DASH:\${PORT_DASH}" \
+        "      - PORT_GOOGLE:\${PORT_GOOGLE}" \
+        "      - PORT_JUPYTER:\${PORT_JUPYTER}" \
+        "      - PORT_PROFILE:\${PORT_PROFILE}" \
+        "      # - PORT_RAY_DASHBOARD:\${PORT_RAY_DASHBOARD}" \
+        "      # - PORT_RAY_SERVER:\${PORT_RAY_SERVER}" \
         "    networks:"\
+        "      # - mlflow-backend" \
+        "      # - mlflow-frontend" \
         "      - ${MAIN_DIR}-network" \
         "    ports:" \
         "      - \${PORT_DASH}:\${PORT_DASH}" \
         "      - \${PORT_GOOGLE}:\${PORT_GOOGLE}" \
         "      - \${PORT_JUPYTER}:\${PORT_JUPYTER}" \
-        "      - \${PORT_MLFLOW}:5000" \
+        "      # - \${PORT_MLFLOW}:\${PORT_MLFLOW}" \
+        "      # - \${PORT_MINIO_CONSOLE}:\${PORT_MINIO_CONSOLE}" \
+        "      # - \${PORT_MINIO_SERVER}:\${PORT_MINIO_SERVER}" \
         "      - \${PORT_PROFILE}:\${PORT_PROFILE}" \
-        "      - \${PORT_RAY_DASHBOARD}:\${PORT_RAY_DASHBOARD}" \
-        "      - \${PORT_RAY_SERVER}:\${PORT_RAY_SERVER}" \
-        "    restart: always" \
+        "      - \${PORT_POSTGRES}:\${PORT_POSTGRES}" \
+        "      # - \${PORT_RAY_DASHBOARD}:\${PORT_RAY_DASHBOARD}" \
+        "      # - \${PORT_RAY_SERVER}:\${PORT_RAY_SERVER}" \
         "    secrets:" \
+        "      # - mlflow-minio-access-key" \
+        "      # - mlflow-minio-secret-access-key" \
+        "      # - mlflow-postgres-database" \
+        "      # - mlflow-postgres-password" \
+        "      # - mlflow-postgres-username" \
         "      - package" \
         "    tty: true" \
         "    volumes:" \
@@ -486,6 +492,16 @@ docker_compose() {
         "    name: \${COMPOSE_PROJECT_NAME:-default}-${MAIN_DIR}-network" \
         "" \
         "secrets:" \
+        "  # mlflow-minio-access-key:" \
+        "  #   file: /data/ai/ai_tools/mlflow/docker/secrets/minio_access_key.txt" \
+        "  # mlflow-minio-secret-access-key:" \
+        "  #   file: /data/ai/ai_tools/mlflow/docker/secrets/minio_secret_access_key.txt" \
+        "  # mlflow-postgres-database:" \
+        "  #   file: /data/ai/ai_tools/mlflow/docker/secrets/postgres_database.txt" \
+        "  # mlflow-postgres-password:" \
+        "  #   file: /data/ai/ai_tools/mlflow/docker/secrets/postgres_password.txt" \
+        "  # mlflow-postgres-username:" \
+        "  #   file: /data/ai/ai_tools/mlflow/docker/secrets/postgres_username.txt" \
         "  package:" \
         "    file: secrets/package.txt" \
         "" \
@@ -873,7 +889,7 @@ docker_config_py() {
 
 
 docker_env_link() {
-    ln "${ROOT_PATH}usr_vars" "${DOCKER_PATH}.env"
+    ln "usr_vars" "docker/.env"
 }
 
 
@@ -916,17 +932,26 @@ docker_pytorch() {
         "FROM nvcr.io/nvidia/pytorch:" \
         "" \
         "ENV TORCH_HOME=/usr/src/${MAIN_DIR}/cache" \
+        "ENV TZ=Etc/UTC" \
         "" \
         "WORKDIR /usr/src/${MAIN_DIR}" \
         "" \
         "COPY . ." \
         "" \
         "RUN pip install --upgrade pip \\" \
-        "\t&& pip install -e .[all] \\" \
         "\t&& apt update -y \\" \
         "\t# && apt -y upgrade \\" \
-        "\t&& apt install -y\\" \
+        "\t&& ln -snf /usr/share/zoneinfo/\$TZ /etc/localtime \\" \
+        "\t&& echo \$TZ > /etc/timezone \\" \
+        "\t&& apt install -y \\" \
         "\t\tfonts-humor-sans \\" \
+        "\t\tlibpq-dev \\" \
+        "\t\tpandoc \\" \
+        "\t\ttexlive-fonts-recommended \\" \
+        "\t\ttexlive-plain-generic \\" \
+        "\t\ttexlive-xetex \\" \
+        "\t\ttzdata \\" \
+        "\t&& pip install -e .[all] \\" \
         "\t# && conda update -y conda \\" \
         "\t# && while read requirement; do conda install --yes \${requirement}; done < requirements_pytorch.txt \\" \
         "\t# Clean up" \
@@ -954,6 +979,7 @@ docker_tensorflow() {
         "\t&& apt install -y \\\\" \
         "\t\tapt-utils \\\\" \
         "\t\tfonts-humor-sans \\" \
+        "\t\tpandoc \\" \
         "\t&& cd /usr/src/${SOURCE_DIR} \\\\" \
         "\t&& pip install --upgrade pip \\\\" \
         "\t&& pip install -e .[all] \\\\" \
@@ -1003,7 +1029,7 @@ exceptions() {
 git_ignore() {
     printf "%s\n" \
         "# Cached files" \
-        "cache/" \
+        "cache" \
         "" \
         "# C++ files" \
         "build/" \
@@ -1037,9 +1063,6 @@ git_ignore() {
         "*.sql" \
         "*.sqlite" \
         "" \
-        "# MLFlow experiments" \
-        "ai_logs/" \
-        "mlruns/" \
         "# OS generated files" \
         ".DS_Store" \
         ".DS_store?" \
@@ -1068,16 +1091,16 @@ git_ignore() {
         "*wheels" \
         "" \
         "# PyCharm files" \
-        ".idea${FILE_SEP}*" \
-        "${ROOT_PATH}.idea${FILE_SEP}*" \
+        ".idea" \
+        "${ROOT_PATH}/.idea" \
         "" \
         "# pytest files" \
-        ".cache${FILE_SEP}*" \
+        ".cache" \
         ".pytest_cache" \
         "pytest" \
         "" \
         "# Raw data" \
-        "${DATA_DIR}${FILE_SEP}*" \
+        "${DATA_DIR}" \
         "" \
         "# Sphinx files" \
         "docs/_build/" \
@@ -1220,7 +1243,7 @@ makefile() {
         "docs-init:" \
         "\t@rm -rf docs/*" \
         "\t@\$(DOCKER_COMPOSE_CMD) -f docker/docker-compose.yaml build python" \
-        "\t@\$(DOCKER_CMD) container run --rm -v \`pwd\`:/usr/src/\$(PROJECT) \$(PROJECT)_python \\\\" \
+        "\t@\$(DOCKER_CMD) container run --rm -v \`pwd\`:/usr/src/\$(PROJECT) \$(PROJECT)-python:\$(VERSION) \\\\" \
         "\t\t/bin/bash -c \\\\" \
         "\t\t\t\"cd /usr/src/\$(PROJECT)/docs \\\\" \
         "\t\t\t && sphinx-quickstart -q \\\\" \
@@ -1232,8 +1255,8 @@ makefile() {
         "\t\t\t\t--makefile \\\\" \
         "\t\t\t\t--no-batchfile \\\\" \
         "\t\t\t && cd .. \\\\" \
-        "\t\t\t adduser --system --no-create-home --uid \$(USER_ID) --group \$(USER) &> /dev/null \\\\" \
-        "\t\t\t chown -R \$(USER):\$(USER) docs\"" \
+        "\t\t\t && adduser --system --no-create-home --uid \$(USER_ID) --group \$(USER) &> /dev/null \\\\" \
+        "\t\t\t && chown -R \$(USER):\$(USER) docs\"" \
         "\t@git fetch" \
         "\t@git checkout origin/master -- docs/" \
         "" \
@@ -1319,7 +1342,8 @@ makefile() {
         "notebook-server: notebook-stop-server" \
         "\t@\$(DOCKER_CMD) container exec \$(CONTAINER_PREFIX)-python \\\\" \
         "\t\t/bin/bash -c \\\\" \
-        "\t\t\t\"jupyter lab \\\\" \
+        "\t\t\t\"jupyter labextension disable \\\\\"@jupyterlab/apputils-extension:announcements\\\\\" \\\\" \
+        "\t\t\t\" && jupyter lab \\\\" \
         "\t\t\t\t--allow-root \\\\" \
         "\t\t\t\t--no-browser \\\\" \
         "\t\t\t\t--ServerApp.ip=0.0.0.0 \\\\" \
@@ -1478,12 +1502,20 @@ pkg_globals() {
         '"""' \
         "from pathlib import Path" \
         "" \
+        "from ${SOURCE_DIR} import __version__" \
+        "" \
         "PACKAGE_ROOT = Path(__file__).parents[1]" \
-        "with open((PACKAGE_ROOT / 'docker' / 'pytorch.Dockerfile'), 'r') as f:" \
+        "DATASET_DIR = Path('/data/ai/datasets')" \
+        "with (PACKAGE_ROOT / 'docker' / 'pytorch.Dockerfile').open('r') as f:" \
         "    line = f.readline()" \
         "NVIDIA_NGC_BASE_IMAGE = line \\" \
         "    .strip('FROM ') \\" \
         "    .rstrip('\n')" \
+        "PACKAGE_NAME = PACKAGE_ROOT.name" \
+        "PACKAGE_VERSION = f'{PACKAGE_NAME} v{__version__}'" \
+        "with (PACKAGE_ROOT / 'usr_vars').open('r') as f:" \
+        "    line = f.readline()" \
+        "USER = line.split('=')[-1].rstrip('\n')" \
         "" \
         "FONT_SIZE = {" \
         "    'axis': 18," \
@@ -1492,7 +1524,6 @@ pkg_globals() {
         "    'super_title': 24," \
         "    'title': 20," \
         "}" \
-        "" \
         "FONT_FAMILY = 'Courier New, monospace'" \
         "PLOTLY_FONTS = {" \
         "    'axis_font': {" \
@@ -1511,8 +1542,6 @@ pkg_globals() {
         "        'color': 'black'," \
         "    }," \
         "}" \
-        "" \
-        "TENSORBOARD_DIR = PACKAGE_ROOT / 'ai_logs'" \
         "" \
         "TIME_FORMAT = '%Y_%m_%d_%H_%M_%S'" \
         "" \
@@ -1753,6 +1782,7 @@ setup_py() {
         "        'jupyter'," \
         "        'jupyterlab>=3'," \
         "        'kaleido'," \
+        "        'pandoc'," \
         "        'protobuf'," \
         "    }," \
         "    'mongo': {" \
@@ -1809,7 +1839,7 @@ setup_py() {
         "                        re.MULTILINE).group(1)" \
         "" \
         "here = Path(__file__).absolute().parent" \
-        "with open(here / 'README.md', encoding='utf-8') as f:" \
+        "with (here / 'README.md').open(encoding='utf-8') as f:" \
         "    long_description = f.read()" \
         "" \
         "setup(name='${MAIN_DIR}'," \
@@ -1879,11 +1909,11 @@ setup_py() {
 
 sphinx_autodoc() {
     printf "%s\n" \
-        "Package Modules" \
-        "===============" \
-        "" \
         ".. toctree::" \
         "    :maxdepth: 2" \
+        "" \
+        "Base Modules" \
+        "============" \
         "" \
         "cli" \
         "---" \
@@ -1891,6 +1921,13 @@ sphinx_autodoc() {
         "    :members:" \
         "    :show-inheritance:" \
         "    :synopsis: Package command line interface calls." \
+        "" \
+        "exceptions" \
+        "----------" \
+        ".. automodule:: exceptions" \
+        "    :members:" \
+        "    :show-inheritance:" \
+        "    :synopsis: Package exceptions module." \
         "" \
         "db" \
         "--" \
@@ -1906,11 +1943,28 @@ sphinx_autodoc() {
         "    :show-inheritance:" \
         "    :synopsis: Package utilities module." \
         "" \
+        "Tracking Sub-package" \
+        "====================" \
+        "" \
+        "minio" \
+        "-----" \
+        ".. automodule:: tracking.minio" \
+        "    :members:" \
+        "    :show-inheritance:" \
+        "    :synopsis: MinIO tracking module." \
+        "" \
+        "mlflow" \
+        "------" \
+        ".. automodule:: tracking.mlflow" \
+        "    :members:" \
+        "    :show-inheritance:" \
+        "    :synopsis: mlflow tracking module." \
         > "${DOCS_DIR}/package.rst"
 }
 
 
 sphinx_custom_css() {
+    mkdir -p "${ROOT_PATH}${DOCS_DIR}${FILE_SEP}_static"
     printf "%s\n" \
         ".wy-nav-content {" \
         "max-width: 1200px !important;" \
@@ -1920,8 +1974,7 @@ sphinx_custom_css() {
 
 
 sphinx_initialization() {
-    source usr_vars
-    docker container exec "${COMPOSE_PROJECT_NAME}_${MAIN_DIR}_python" \
+    docker container exec "${COMPOSE_PROJECT_NAME}-${MAIN_DIR}-python" \
         /bin/bash -c \
             "cd docs \
              && sphinx-quickstart -q \
@@ -1939,18 +1992,24 @@ sphinx_initialization() {
     sphinx_autodoc
     sphinx_custom_css
     sphinx_links
-    docker container exec "${COMPOSE_PROJECT_NAME}_${MAIN_DIR}_python" \
+    docker container exec "${COMPOSE_PROJECT_NAME}-${MAIN_DIR}-python" \
         yapf -i -p -r --style "pep8" docs
+    sphinx_update_config
+    docker container exec "${COMPOSE_PROJECT_NAME}-${SOURCE_DIR}-python" \
+        ./scripts/update_sphinx_config.py
+    rm ./scripts/update_sphinx_config.py
 }
 
 
 sphinx_links() {
-    touch "${DOCS_DIR}/links.rst"
+    printf "%s\n" \
+        ".. _PyTorch image read mode docs: https://pytorch.org/vision/stable/generated/torchvision.io.ImageReadMode.html" \
+        > "${DOCS_DIR}/links.rst"
 }
 
 
 sphinx_update_config() {
-    script_name=${SCRIPTS_PATH}"update_sphinx_config.py"
+    script_name="${SCRIPTS_DIR}${FILE_SEP}update_sphinx_config.py"
     printf "%s\n" \
         "${PY_SHEBANG}" \
         "${PY_ENCODING}" \
@@ -1986,7 +2045,7 @@ sphinx_update_config() {
         "    with open(conf_path, 'r+') as f:" \
         "        text = f.read()" \
         "" \
-        "        text = re.sub(r'0.1.0', '__version__', text)" \
+        "        text = re.sub(r\"'0.1.0'\", '__version__', text)" \
         "        text = re.sub(r'alabaster', 'sphinx_rtd_theme', text)" \
         "        text = re.sub(r\"'_build'\", \"'_build', 'links.rst'\", text)" \
         "" \
@@ -2179,6 +2238,25 @@ test_utils() {
         "" \
         "def test_docker_secret_missing():" \
         "    assert utils.docker_secret('missing-secret') is None" \
+        "" \
+        "" \
+        "# Test implementation_check()" \
+        "implementation_check = {" \
+        "    'implemented single': ('test', (str, ), False)," \
+        "    'implemented multiple': (0, (str, int), False)," \
+        "    'not implemented': ('test', (int, ), True)," \
+        "}" \
+        "" \
+        "" \
+        "@pytest.mark.parametrize('object_, implemented, raise_'," \
+        "                         list(implementation_check.values())," \
+        "                         ids=list(implementation_check.keys()))" \
+        "def test_implementation_check(object_, implemented, raise_):" \
+        "    if raise_:" \
+        "        with pytest.raises(NotImplementedError):" \
+        "            utils.implementation_check(object_, implemented)" \
+        "    else:" \
+        "        utils.implementation_check(object_, implemented)" \
         "" \
         "" \
         "# Test logger_setup()" \
@@ -2385,6 +2463,8 @@ usr_vars() {
         "printf \"%s\n\" \\" \
         "    \"COMPOSE_PROJECT_NAME=\${USER}\" \\" \
         "    \"\" \\" \
+        "    \"VERSION=\${VERSION}\" \\" \
+        "    \"\" \\" \
         "    \"# Ports\" \\" \
         "    \"PORT_DASH=\$INITIAL_PORT\" \\" \
         "    \"PORT_GOOGLE=\$((INITIAL_PORT + 1))\" \\" \
@@ -2403,7 +2483,6 @@ usr_vars() {
         "" \
         > "${script_name}"
     chmod u+x ./"${script_name}"
-    ./"${script_name}"
 }
 
 
@@ -2421,7 +2500,7 @@ utils() {
         "import os" \
         "from pathlib import Path" \
         "import time" \
-        "from typing import Any, Dict, List, Optional, Tuple, Union" \
+        "from typing import Any, Dict, List, Optional, Tuple" \
         "import warnings" \
         "" \
         "import matplotlib.pyplot as plt" \
@@ -2447,7 +2526,22 @@ utils() {
         "        return None" \
         "" \
         "" \
-        "def logger_setup(file_path: Union[None, Path, str] = None," \
+        "def implementation_check(object_: Any, implemented: Tuple[Any, ...]):" \
+        '    """' \
+        "    Raise error if implementation does not exist." \
+        "" \
+        "    :param object_: Object to check" \
+        "    :param implemented: Object(s) with an implementation" \
+        "    :raise: NotImplementedError" \
+        '    """' \
+        "    warning_text = '\n\t\t'.join([str(x) for x in implemented])" \
+        "    if not isinstance(object_, implemented):" \
+        "        raise NotImplementedError(" \
+        "            f'Input data type not implemented: {type(object_)}'" \
+        "            f'\n\tPlease choose from the following: {warning_text}')" \
+        "" \
+        "" \
+        "def logger_setup(file_path: Optional[Path | str] = None," \
         "                 logger_name: str = 'package') -> logging.Logger:" \
         '    """' \
         "    Configure logger with console and file handlers." \
@@ -2513,6 +2607,8 @@ utils() {
         '    """Set matplotlib default values."""' \
         "    params = {" \
         "        'axes.labelsize': FONT_SIZE['label']," \
+        "        'axes.spines.right': False," \
+        "        'axes.spines.top': False," \
         "        'axes.titlesize': FONT_SIZE['title']," \
         "        'figure.titlesize': FONT_SIZE['super_title']," \
         "        'patch.edgecolor': 'black'," \
@@ -2542,9 +2638,11 @@ utils() {
         "    nested_get(nested_dict, key_path[:-1])[key_path[-1]] = value" \
         "" \
         "" \
-        "def progress_str(n: int," \
-        "                 total: int,"\
-        "                 msg: Union[None, str] = 'Progress') -> str:" \
+        "def progress_str(" \
+        "    n: int," \
+        "    total: int,"\
+        "    msg: str = 'Progress'," \
+        ") -> str:" \
         '    """' \
         "    Generate progress percentage message." \
         "" \
@@ -2565,7 +2663,7 @@ utils() {
         "# def ray_init(" \
         "#     host: str = '0.0.0.0'," \
         "#     port: Optional[int] = None," \
-        "# ) -> ray._private.worker.RayContext:" \
+        "# ) -> BaseContext:" \
         '#     """' \
         "#     Initialize Ray cluster utilizing provided host and port." \
         "#" \
@@ -2585,8 +2683,9 @@ utils() {
         "#     )" \
         "" \
         "" \
-        "def rle(arr: Union[List[Any], np.ndarray]) \\" \
-        "        -> Union[Tuple[np.ndarray, ...], Tuple[None, ...]]:" \
+        "def rle(" \
+        "    arr: List[Any] | np.ndarray," \
+        ") -> Tuple[np.ndarray, ...] | Tuple[None, ...]:" \
         '    """' \
         "    Run Length Encode provided array." \
         "" \
@@ -2674,7 +2773,6 @@ yapf_ignore() {
 
 
 directories
-usr_vars
 cli
 conftest
 constructor_pkg
@@ -2682,7 +2780,6 @@ constructor_test
 db
 docker_compose
 docker_config_py
-docker_env_link
 docker_ignore
 docker_python
 docker_pytorch
@@ -2704,17 +2801,16 @@ test_conftest
 test_db
 test_utils
 update_nvidia_tags
-sphinx_update_config
+usr_vars
 utils
 yapf_ignore
 
 cd "${MAIN_DIR}" || exit
+./scripts/create_usr_vars.sh
+source usr_vars
+docker_env_link
 make docker-up
 sphinx_initialization
-source usr_vars
-docker container exec "${COMPOSE_PROJECT_NAME}-${SOURCE_DIR}-python" \
-    ./scripts/update_sphinx_config.py
-rm ./scripts/update_sphinx_config.py
 make docs
 make package-dependencies
 make secret-templates
