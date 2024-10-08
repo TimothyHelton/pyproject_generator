@@ -1,30 +1,32 @@
 #!/bin/bash
 # test_pyproject_generator.sh
 
-test_dir="test123"
-
-if [ -d "${test_dir}" ]; then
-    echo "Closing containers and deleting test package"
-    cd "${test_dir}" || exit;
-    make docker-down;
-    cd .. && sudo rm -rf "${test_dir}"
-fi
+TEST_DIR="test123"
 
 echo
 echo "################################"
 echo "Cleaning Docker Artifacts..."
-docker image rm "${test_dir}_python:0.1.0"
-docker network rm "${USER}-${test_dir}-network"
-docker volume rm "${USER}-${test_dir}-secret"
+for c in $(docker ps --format "{{.Names}}" | grep "${TEST_DIR}");
+do
+    docker container rm -f "${c}";
+done
+docker image rm "${TEST_DIR}:0.1.0"
+docker network rm "${USER}-${TEST_DIR}-network"
+docker volume rm "${USER}-${TEST_DIR}-secret"
+docker system prune -f
+
+echo
+echo "################################"
+echo "Remove Existing Test Directory..."
+sudo rm -rf "${TEST_DIR}"
 
 echo
 echo "################################"
 echo "Creating Test package..."
-./pyproject_generator/pypackage_generator.sh "${test_dir}" \
+./pyproject_generator/pypackage_generator_1.sh "${TEST_DIR}" \
 
-echo
-echo "################################"
-echo "Update Docker configuration file..."
-cd "${test_dir}" \
-    && make docker-update-config
-
+#echo
+#echo "################################"
+#echo "Update Docker configuration file..."
+#cd "${TEST_DIR}" \
+#    && make update-package-tooling
