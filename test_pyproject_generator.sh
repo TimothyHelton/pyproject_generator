@@ -25,8 +25,9 @@ echo "################################"
 echo "Creating Test package..."
 ./pyproject_generator/pypackage_generator_1.sh "${TEST_DIR}" \
 
-#echo
-#echo "################################"
-#echo "Update Docker configuration file..."
-#cd "${TEST_DIR}" \
-#    && make update-package-tooling
+echo
+echo "################################"
+echo "Update Docker configuration file..."
+cd "${TEST_DIR}" \
+    && make update-tooling-config \
+    && make update-package-tooling

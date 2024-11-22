@@ -142,7 +142,7 @@ docker_compose_yaml() {
         "    name: \${COMPOSE_PROJECT_NAME:-default}-${PKG_NAME}-secret" \
         "" \
         > "${script_name}"
-        cp "${script_name}" "${DOCKER_PATH}/original-docker-compose.yaml"
+        cp "${script_name}" "${DOCKER_PATH}/original_docker_compose.yaml"
 }
 
 
@@ -163,7 +163,12 @@ docker_config_py() {
         "" \
         "import yaml" \
         "" \
-        "from ${SOURCE_DIR}.pkg_globals import PACKAGE_NAME, PACKAGE_ROOT" \
+        "from ${SOURCE_DIR}.pkg_globals import (" \
+        "    DATASET_DIR," \
+        "    PACKAGE_NAME," \
+        "    PACKAGE_ROOT," \
+        "    PRETRAINED_WEIGHTS_DIR," \
+        ")" \
         "" \
         "" \
         "logger = logging.getLogger('package')" \
@@ -187,7 +192,7 @@ docker_config_py() {
         "    \"\"\"Docker Compose Configuration Class\"\"\"" \
         "" \
         "    _compose_file = DOCKER_DIR / 'docker-compose.yaml'" \
-        "    _original_compose_file = DOCKER_DIR / 'original-docker-compose.yaml'" \
+        "    _original_compose_file = DOCKER_DIR / 'original_docker_compose.yaml'" \
         "" \
         "    def __init__(self):" \
         "        with open(self._original_compose_file, 'r') as f:" \
@@ -243,6 +248,18 @@ docker_config_py() {
         "            self._config['volumes'][volume] = {" \
         "                'name': f'{PACKAGE_NAME}-{volume}'" \
         "            }" \
+        "" \
+        "    def add_fiftyone(self):" \
+        "        \"\"\"Add FiftyOne configuration to Python container.\"\"\"" \
+        "        py_service = self._config['services']['python']" \
+        "        py_service['ipc'] = 'host'" \
+        "        py_service['ports'] += ['\${PORT_FIFTYONE}:5151']" \
+        "        py_service['shm_size'] = '24g'" \
+        "        py_service['ulimits'] = {'memlock': -1}" \
+        "        py_service['volumes'] += [" \
+        "            f'{DATASET_DIR}:{DATASET_DIR}'," \
+        "            f'{PRETRAINED_WEIGHTS_DIR}:{PRETRAINED_WEIGHTS_DIR}'," \
+        "        ]" \
         "" \
         "    def add_gpu(self):" \
         "        \"\"\"Add GPU configuration to Python container.\"\"\"" \
@@ -422,6 +439,44 @@ docker_config_py() {
         "            f'    && pip3 install -e .[{deps}] \\\\\\n'" \
         "        )" \
         "" \
+        "    def fiftyone_(self):" \
+        "        \"\"\"Update Python Dockerfile to install FiftyOne dependencies.\"\"\"" \
+        "        envs = (" \
+        "            'FIFTYONE_DATABASE_DIR=\${ROOT_DIR}/fiftyone/db'," \
+        "            'FIFTYONE_DEFAULT_DATASET_DIR=\${ROOT_DIR}/fiftyone/default'," \
+        "            'FIFTYONE_DATASET_ZOO_DIR=\${ROOT_DIR}/fiftyone/zoo/datasets'," \
+        "            'FIFTYONE_MODEL_ZOO_DIR=\${ROOT_DIR}/fiftyone/zoo/models'," \
+        "        )" \
+        "        for e in envs:" \
+        "            self._insert_(" \
+        "                previous_line='ENV TZ=Etc/UTC'," \
+        "                add_line=f'ENV {e}\n'," \
+        "            )" \
+        "        deps = (" \
+        "            'curl'," \
+        "            'ffmpeg'," \
+        "            'vim'," \
+        "        )" \
+        "        for d in deps:" \
+        "            self._insert_(" \
+        "                previous_line='    && apt install -y'," \
+        "                add_line=f'        {d} \\\\\n'," \
+        "            )" \
+        "" \
+        "    def jupyter_(self):" \
+        "        \"\"\"Update Python Dockerfile with Jupyter dependencies.\"\"\"" \
+        "        deps = (" \
+        "            'pandoc'," \
+        "            'texlive-fonts-recommended'," \
+        "            'texlive-plain-generic'," \
+        "            'texlive-xetex'," \
+        "        )" \
+        "        for dep in deps:" \
+        "            self._insert_(" \
+        "                previous_line='    && apt install -y'," \
+        "                add_line=f'        {dep} \\\\\n'," \
+        "            )" \
+        "" \
         "    def nvidia_pytorch_(self):" \
         "        \"\"\"Update Python Dockerfile to use NVIDIA PyTorch base image.\"\"\"" \
         "        page = urllib.request.urlopen(NVIDIA_NGC_PYTORCH_URL)" \
@@ -429,12 +484,52 @@ docker_config_py() {
         "        match = re.search(r'(?<=latestTag\":\")(.*?)(?=\")', text)" \
         "        tag = match.group(0).rstrip('-igpu')" \
         "        self._dockerfile[0] = f'FROM nvcr.io/nvidia/pytorch:{tag}\n'" \
-        "        env_tz_idx = [" \
-        "            n for n, _ in enumerate(self._dockerfile) if 'TZ=Etc' in _" \
-        "        ][0]" \
-        "        self._dockerfile.insert(" \
-        "            env_tz_idx, f'ENV TORCH_HOME={PACKAGE_ROOT}${CACHE_DIR}\n'" \
+        "        self._insert_(" \
+        "            previous_line='ENV TZ=Etc/UTC'," \
+        "            add_line='ENV TORCH_HOME=\${ROOT_DIR}/cache\n'," \
         "        )" \
+        "        cmd = (" \
+        "            '    # TODO: remove this after OpenCV corrects bug. \\\\\n'" \
+        "            '    # OpenCV reintroduced the DictValue bug in NVIDIA NGC Python 24.10 \\\\\n'" \
+        "            '    && sed -i '" \
+        "            \"'s/\\(LayerId = cv2\\.dnn\\.DictValue.*$\\)/# \\\1/' \"" \
+        "            '/usr/local/lib/python3.10/dist-packages/cv2/typing/__init__.py \\\\\n'" \
+        "        )" \
+        "        self._insert_(" \
+        "            previous_line='    && pip3 install -e'," \
+        "            add_line=cmd," \
+        "        )" \
+        "" \
+        "    def postgres_(self):" \
+        "        \"\"\"Update Python Dockerfile with Postgres dependencies.\"\"\"" \
+        "        self._insert_(" \
+        "            previous_line='    && apt install -y'," \
+        "            add_line='        libpq-dev \\\\\n'," \
+        "        )" \
+        "        deps = (" \
+        "            'build-essential'," \
+        "            'libpq-dev'," \
+        "            'wget'," \
+        "        )" \
+        "        for dep in deps:" \
+        "            self._insert_(" \
+        "                previous_line='    && apt install -y'," \
+        "                add_line=f'        {dep} \\\\\n'," \
+        "            )" \
+        "" \
+        "    def _insert_(self, previous_line: str, add_line: str):" \
+        "        \"\"\"" \
+        "        Insert line into Python Dockerfile." \
+        "" \
+        "        :param previous_line: Substring of existing line in Python Dockerfile" \
+        "        :param add_line: Full line to be add directly after the \`previous_line\`" \
+        "        \"\"\"" \
+        "        id = [" \
+        "            n" \
+        "            for n, _ in enumerate(self._dockerfile, start=1)" \
+        "            if previous_line in _" \
+        "        ][0]" \
+        "        self._dockerfile.insert(id, add_line)" \
         "" \
         "    def write(self, des: Optional[Path] = None):" \
         "        \"\"\"" \
@@ -461,6 +556,7 @@ docker_config_py() {
         "    )" \
         "    for s in services:" \
         "        compose_config.add_service(s)" \
+        "    compose_config.add_fiftyone()" \
         "    compose_config.add_gpu()" \
         "    compose_config.write()" \
         "" \
@@ -468,7 +564,10 @@ docker_config_py() {
         "    python_dockerfile_config.update_pkg_dependencies(" \
         "        deps=['build', 'test', 'jupyter', 'pytorch']," \
         "    )" \
+        "    python_dockerfile_config.fiftyone_()" \
+        "    python_dockerfile_config.jupyter_()" \
         "    python_dockerfile_config.nvidia_pytorch_()" \
+        "    python_dockerfile_config.postgres_()" \
         "    python_dockerfile_config.write()" \
         > "${script_name}"
     chmod u+x ./"${script_name}"
@@ -498,9 +597,11 @@ docker_python() {
     printf "%s\n" \
         "FROM python:latest" \
         "" \
+        "ARG ROOT_DIR=/usr/src/${PKG_NAME}" \
+        "" \
         "ENV TZ=Etc/UTC" \
         "" \
-        "WORKDIR /usr/src/${PKG_NAME}" \
+        "WORKDIR \${ROOT_DIR}" \
         "" \
         "COPY . ." \
         "" \
@@ -509,17 +610,12 @@ docker_python() {
         "    && ln -snf /usr/share/zoneinfo/\$TZ /etc/localtime \\" \
         "    && echo \$TZ > /etc/timezone \\" \
         "    && apt install -y \\" \
-        "        build-essential \\" \
         "        fonts-humor-sans \\" \
-        "        libpq-dev \\" \
-        "        pandoc \\" \
-        "        texlive-fonts-recommended \\" \
-        "        texlive-plain-generic \\" \
-        "        texlive-xetex \\" \
         "        tzdata \\" \
         "    && pip3 install -e .[build,test] \\" \
         "    && rm -rf /tmp/* \\" \
         "    && rm -rf /var/lib/apt/lists/* \\" \
+        "    && apt autoremove -y --purge \\" \
         "    && apt clean -y" \
         "" \
         "CMD [ \"/bin/bash\" ]" \
@@ -855,6 +951,22 @@ makefile_config_py() {
         "            '\n'" \
         "        )" \
         "" \
+        "    def add_fiftyone_dirs_(self):" \
+        "        \"\"\"Add rule to create FiftyOne directories on the host.\"\"\"" \
+        "        self._makefile += (" \
+        "            '_fiftyone_dirs:\n'" \
+        "            '\t@mkdir -p \\\\\n'" \
+        "            '\t\tfiftyone/db \\\\\n'" \
+        "            '\t\tfiftyone/default \\\\\n'" \
+        "            '\t\tfiftyone/datasets \\\\\n'" \
+        "            '\t\tfiftyone/models\n'" \
+        "            '\n'" \
+        "        )" \
+        "        self._makefile = self._makefile.replace(" \
+        "            '\nupdate-package-tooling: docker-up'," \
+        "            '\nupdate-package-tooling: docker-up _fiftyone_dirs'," \
+        "        )" \
+        "" \
         "    def add_format_style_(self):" \
         "        \"\"\"Add rule to format Python code style.\"\"\"" \
         "        self._makefile += (" \
@@ -871,13 +983,13 @@ makefile_config_py() {
         "        self._makefile += (" \
         "            'getting-started: secret-templates _docs-init\n'" \
         "            '\t@mkdir -p ${CACHE_DIR} htmlcov ${NOTEBOOK_DIR} profiles ${WHEELS_DIR} \\\\\n'" \
-	    "            '\t\t@printf \"%s\\\\n\" \\\\\n'" \
-		"            '\t\t\t\"\" \\\\\n'" \
-		"            '\t\t\t\"\" \\\\\n'" \
-		"            '\t\t\t\"\" \\\\\n'" \
-		"            '\t\t\t\"####################################################################\" \\\\\n'" \
-		"            '\t\t\t\"Please update the secret files in the directory docker/secrets.\" \\\\\n'" \
-		"            '\t\t\t\"####################################################################\" \\\\\n'" \
+        "            '\t\t@printf \"%s\\\\n\" \\\\\n'" \
+        "            '\t\t\t\"\" \\\\\n'" \
+        "            '\t\t\t\"\" \\\\\n'" \
+        "            '\t\t\t\"\" \\\\\n'" \
+        "            '\t\t\t\"####################################################################\" \\\\\n'" \
+        "            '\t\t\t\"Please update the secret files in the directory docker/secrets.\" \\\\\n'" \
+        "            '\t\t\t\"####################################################################\" \\\\\n'" \
         "            '\n'" \
         "        )" \
         "" \
@@ -939,6 +1051,8 @@ makefile_config_py() {
         "            '\t\t\t && jupyter lab \\\\\n'" \
         "            '\t\t\t\t--allow-root \\\\\n'" \
         "            '\t\t\t\t--no-browser \\\\\n'" \
+        "            '\t\t\t\t--notebook-dir=/ \\\\\n'" \
+        "            '\t\t\t\t--preferred-dir=/usr/src/${NOTEBOOK_PATH} \\\\\n'" \
         "            '\t\t\t\t--ServerApp.ip=0.0.0.0 \\\\\n'" \
         "            '\t\t\t\t--ServerApp.port=\$(PORT_JUPYTER) \\\\\n'" \
         "            '\t\t\t\t&\"\n'" \
@@ -958,14 +1072,14 @@ makefile_config_py() {
         "        \"\"\"Add rule to log package dependencies to file requirements_txt.\"\"\"" \
         "        self._makefile += (" \
         "            'package-dependencies: docker-up\n'" \
-	    "            '\t@printf \"%s\\\\n\" \\\\\n'" \
-		"            '\t\t\"# \${PKG_NAME} Version: \$(VERSION)\" \\\\\n'" \
-		"            '\t\t\"# Docker Base Image: \$(DOCKER_IMAGE)\" \\\\\n'" \
-		"            '\t\t\"#\" \\\\\n'" \
-		"            '\t\t> requirements.txt\n'" \
-	    "            '\t@docker container exec \$(CONTAINER_PREFIX)-python \\\\\n'" \
-		"            '\t\t/bin/bash -c \\\\\n'" \
-		"            '\t\t\t\"pip freeze -l --exclude \$(PKG_NAME) >> requirements.txt\"\n'" \
+        "            '\t@printf \"%s\\\\n\" \\\\\n'" \
+        "            '\t\t\"# \${PKG_NAME} Version: \$(VERSION)\" \\\\\n'" \
+        "            '\t\t\"# Docker Base Image: \$(DOCKER_IMAGE)\" \\\\\n'" \
+        "            '\t\t\"#\" \\\\\n'" \
+        "            '\t\t> requirements.txt\n'" \
+        "            '\t@docker container exec \$(CONTAINER_PREFIX)-python \\\\\n'" \
+        "            '\t\t/bin/bash -c \\\\\n'" \
+        "            '\t\t\t\"pip freeze -l --exclude \$(PKG_NAME) >> requirements.txt\"\n'" \
         "            '\n'" \
         "        )" \
         "" \
@@ -1058,14 +1172,14 @@ makefile_config_py() {
         "    def add_update_tooling_(self):" \
         "        \"\"\"Add rule to update package tooling.\"\"\"" \
         "        self._makefile += (" \
-        "            'update-package-tooling: docker-up _update-tooling-config docker-rebuild package-dependencies\n'" \
+        "            'update-package-tooling: docker-up docker-rebuild package-dependencies\n'" \
         "            '\n'" \
         "        )" \
         "" \
         "    def add_update_tooling_config_(self):" \
         "        \"\"\"Add rule to update package tooling configuration files.\"\"\"" \
         "        self._makefile += (" \
-        "            '_update-tooling-config: docker-up\n'" \
+        "            'update-tooling-config: docker-up\n'" \
         "            '\t@docker container exec \$(CONTAINER_PREFIX)-python ./${SCRIPTS_DIR}/tooling_config.py\n'" \
         "            '\n'" \
         "        )" \
@@ -1088,6 +1202,7 @@ makefile_config_py() {
         "    # config.add_docs_()" \
         "    # config.add_docs_init_()" \
         "    # config.add_docs_view_()" \
+        "    # config.add_fiftyone_dirs_()" \
         "    config.add_format_style_()" \
         "    # config.add_ipython_()" \
         "    # config.add_latexmk_()" \
@@ -1171,6 +1286,7 @@ pkg_globals_py() {
         "DATASET_DIR = Path('/data/ai/datasets')" \
         "PACKAGE_NAME = PACKAGE_ROOT.name" \
         "PACKAGE_VERSION = f'{PACKAGE_NAME} v{__version__}'" \
+        "PRETRAINED_WEIGHTS_DIR = Path('/data/ai/pretrained_weights')" \
         "with (PACKAGE_ROOT / 'usr_vars').open('r') as f:" \
         "    line = f.readline()" \
         "USER = line.split('=')[-1].rstrip('\n')" \
@@ -1245,6 +1361,21 @@ pyproject_toml() {
         "docs = [" \
         "    \"sphinx\"," \
         "    \"sphinx_rtd_theme\"," \
+        "]" \
+        "fiftyone = [" \
+        "# requires header files:" \
+        "#    curl" \
+        "#    ffmpeg" \
+        "#    vim" \
+        "    \"dask\"," \
+        "    \"dask-expr\"," \
+        "    \"fiftyone\"," \
+        "    \"pycocotools\"," \
+        "    \"opencv-python-headless\"," \
+        "    \"rasterio\"," \
+        "    \"shapely\"," \
+        "    \"ultralytics\"," \
+        "    \"umap-learn\"," \
         "]" \
         "jupyter = [" \
         "# requires header files:" \
@@ -1573,6 +1704,7 @@ tooling_config_py() {
         "    \"\"\"Implemented tools.\"\"\"" \
         "" \
         "    DOCUMENTATION = 'documentation'" \
+        "    FIFTYONE = 'fiftyone'" \
         "    GPU = 'gpu'" \
         "    JUPYTER = 'jupyter'" \
         "    LATEX = 'latex'" \
@@ -1616,6 +1748,17 @@ tooling_config_py() {
         "        sphinx_config.add_tutorials()" \
         "        sphinx_config.update_permissions()" \
         "" \
+        "    def _add_fiftyone(self):" \
+        "        \"\"\"Add FiftyOne tool.\"\"\"" \
+        "        self._docker_config.add_fiftyone()" \
+        "        self._extras_require += [" \
+        "            'fiftyone'," \
+        "            'jupyter'," \
+        "            'pytorch'," \
+        "        ]" \
+        "        self._makefile_rules.append('add_fiftyone_dirs_')" \
+        "        self._python_dockerfile_config.fiftyone_()" \
+        "" \
         "    def _add_gpu(self):" \
         "        \"\"\"Add GPU configuration to Docker Compose.\"\"\"" \
         "        self._docker_config.add_gpu()" \
@@ -1623,6 +1766,7 @@ tooling_config_py() {
         "    def _add_jupyter(self):" \
         "        \"\"\"Add Jupyter tool.\"\"\"" \
         "        self._extras_require.append('jupyter')" \
+        "        self._python_dockerfile_config.jupyter_()" \
         "        self._makefile_rules += [" \
         "            'add_ipython_'," \
         "            'add_notebook_'," \
@@ -1651,6 +1795,7 @@ tooling_config_py() {
         "        self._extras_require.append('postgres')" \
         "        for service in (ComposeService.PGADMIN, ComposeService.POSTGRES):" \
         "            self._docker_config.add_service(service)" \
+        "        self._python_dockerfile_config.postgres_()" \
         "        self._makefile_rules += [" \
         "            'add_pgadmin_'," \
         "            'add_psql_'," \
@@ -1705,6 +1850,7 @@ tooling_config_py() {
         "    config = ToolingConfiguration()" \
         "    tools = (" \
         "        Tool.DOCUMENTATION," \
+        "        Tool.FIFTYONE," \
         "        Tool.GPU," \
         "        Tool.JUPYTER," \
         "        Tool.LATEX," \
@@ -1760,11 +1906,12 @@ usr_vars_sh() {
         "    \"HOST_UID=\${UID}\" \\" \
         "    \"HOST_GID=\${GID}\" \\" \
         "    \"\" \\" \
-        "    \"PORT_JUPYTER=\$((INITIAL_PORT + 1))\" \\" \
-        "    \"PORT_NGINX=\$((INITIAL_PORT + 2))\" \\" \
-        "    \"PORT_PROFILE=\$((INITIAL_PORT + 3))\" \\" \
-        "    \"PORT_POSTGRES=\$((INITIAL_PORT + 4))\" \\" \
-        "    \"PORT_PGADMIN=\$((INITIAL_PORT + 5))\" \\" \
+        "    \"PORT_FIFTYONE=\$((INITIAL_PORT + 1))\" \\" \
+        "    \"PORT_JUPYTER=\$((INITIAL_PORT + 2))\" \\" \
+        "    \"PORT_NGINX=\$((INITIAL_PORT + 3))\" \\" \
+        "    \"PORT_PROFILE=\$((INITIAL_PORT + 4))\" \\" \
+        "    \"PORT_POSTGRES=\$((INITIAL_PORT + 5))\" \\" \
+        "    \"PORT_PGADMIN=\$((INITIAL_PORT + 6))\" \\" \
         "    \"\" \\" \
         "    > \"usr_vars\"" \
         "echo \"Successfully created: usr_vars\"" \
