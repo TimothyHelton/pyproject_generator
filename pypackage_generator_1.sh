@@ -46,12 +46,14 @@ CACHE_PATH="${PKG_NAME}/${CACHE_DIR}"
 DATA_PATH="${PKG_NAME}/${DATA_DIR}"
 DOCKER_PATH="${PKG_NAME}/${DOCKER_DIR}"
 DOCS_PATH="${PKG_NAME}/${DOCS_DIR}"
+GITHUB_PATH="${PKG_NAME}/.github"
 NOTEBOOK_PATH="${PKG_NAME}/${NOTEBOOK_DIR}"
 PYTEST_PATH="${PKG_NAME}/${PYTEST_DIR}"
 SCRIPTS_PATH="${PKG_NAME}/${SCRIPTS_DIR}"
 SECRETS_PATH="${DOCKER_PATH}/${SECRETS_DIR}"
-SOURCE_PATH="${PKG_NAME}/${SOURCE_DIR}"
+SOURCE_PATH="${PKG_NAME}/src/${SOURCE_DIR}"
 TESTS_PATH="${PKG_NAME}/${TESTS_DIR}"
+VSCODE_PATH="${PKG_NAME}/.vscode"
 WHEELS_PATH="${PKG_NAME}/${WHEELS_DIR}"
 
 
@@ -62,13 +64,67 @@ directories() {
         "${DATA_PATH}" \
         "${DOCKER_PATH}" \
         "${DOCS_PATH}" \
+        "${GITHUB_PATH}" \
         "${NOTEBOOK_PATH}" \
         "${PYTEST_PATH}" \
         "${SCRIPTS_PATH}" \
         "${SECRETS_PATH}" \
         "${SOURCE_PATH}" \
         "${TESTS_PATH}" \
+        "${VSCODE_PATH}" \
         "${WHEELS_PATH}"
+}
+
+
+conftest_py() {
+    script_name="${TESTS_PATH}/conftest.py"
+    printf "%s\n" \
+        "#! /usr/bin/env python3" \
+        "# -*- coding: utf-8 -*-" \
+        "\"\"\"Test Configuration File\"\"\"" \
+        "" \
+        "import datetime" \
+        "import logging" \
+        "import time" \
+        "" \
+        "import pytest" \
+        "" \
+        "from ${SOURCE_DIR}.pkg_globals import TIME_FORMAT" \
+        "" \
+        "" \
+        "TEST_TIME = (2007, 12, 25, 8, 16, 32)" \
+        "TEST_DATETIME = datetime.datetime(*TEST_TIME)" \
+        "TEST_STRFTIME = TEST_DATETIME.strftime(TIME_FORMAT)" \
+        "" \
+        "" \
+        "@pytest.fixture" \
+        "def package_logger(caplog):" \
+        "    logger = logging.getLogger('package')" \
+        "    for handler in logger.handlers:" \
+        "        handler.setLevel('DEBUG')" \
+        "    logger.propagate = True" \
+        "    caplog.set_level(logging.DEBUG, logger='package')" \
+        "    yield logger" \
+        "" \
+        "" \
+        "@pytest.fixture" \
+        "def patch_datetime(monkeypatch):" \
+        "    class CustomDatetime:" \
+        "        @classmethod" \
+        "        def now(cls):" \
+        "            return TEST_DATETIME" \
+        "" \
+        "    monkeypatch.setattr(datetime, 'datetime', CustomDatetime)" \
+        "" \
+        "" \
+        "@pytest.fixture" \
+        "def patch_strftime(monkeypatch):" \
+        "    def custom_strftime(fmt):" \
+        "        return fmt.rstrip(TIME_FORMAT) + TEST_STRFTIME" \
+        "" \
+        "    monkeypatch.setattr(time, 'strftime', custom_strftime)" \
+        > "${script_name}"
+    chmod u+x ./"${script_name}"
 }
 
 
@@ -82,6 +138,14 @@ constructor_package() {
         "" \
         "__version__ = importlib.metadata.version('${SOURCE_DIR}')" \
         > "${SOURCE_PATH}/__init__.py"
+}
+
+
+constructor_scripts() {
+    printf "%s\n" \
+        "#! /usr/bin/env python3" \
+        "# -*- coding: utf-8 -*-" \
+        > "${SCRIPTS_PATH}/__init__.py"
 }
 
 
@@ -172,7 +236,7 @@ docker_config_py() {
         "" \
         "" \
         "logger = logging.getLogger('package')" \
-        "DOCKER_DIR = PACKAGE_ROOT / '${DOCKER_DIR}'" \
+        "DOCKER_DIR = PACKAGE_ROOT.parent / '${DOCKER_DIR}'" \
         "NVIDIA_NGC_PYTORCH_URL = (" \
         "    'https://catalog.ngc.nvidia.com/orgs/nvidia/containers/pytorch'" \
         ")" \
@@ -459,7 +523,7 @@ docker_config_py() {
         "        )" \
         "        for d in deps:" \
         "            self._insert_(" \
-        "                previous_line='    && apt install -y'," \
+        "                previous_line='    && apt-get install -y'," \
         "                add_line=f'        {d} \\\\\n'," \
         "            )" \
         "" \
@@ -473,7 +537,7 @@ docker_config_py() {
         "        )" \
         "        for dep in deps:" \
         "            self._insert_(" \
-        "                previous_line='    && apt install -y'," \
+        "                previous_line='    && apt-get install -y'," \
         "                add_line=f'        {dep} \\\\\n'," \
         "            )" \
         "" \
@@ -488,22 +552,11 @@ docker_config_py() {
         "            previous_line='ENV TZ=Etc/UTC'," \
         "            add_line='ENV TORCH_HOME=\${ROOT_DIR}/cache\n'," \
         "        )" \
-        "        cmd = (" \
-        "            '    # TODO: remove this after OpenCV corrects bug. \\\\\n'" \
-        "            '    # OpenCV reintroduced the DictValue bug in NVIDIA NGC Python 24.10 \\\\\n'" \
-        "            '    && sed -i '" \
-        "            \"'s/\\(LayerId = cv2\\.dnn\\.DictValue.*$\\)/# \\\1/' \"" \
-        "            '/usr/local/lib/python3.10/dist-packages/cv2/typing/__init__.py \\\\\n'" \
-        "        )" \
-        "        self._insert_(" \
-        "            previous_line='    && pip3 install -e'," \
-        "            add_line=cmd," \
-        "        )" \
         "" \
         "    def postgres_(self):" \
         "        \"\"\"Update Python Dockerfile with Postgres dependencies.\"\"\"" \
         "        self._insert_(" \
-        "            previous_line='    && apt install -y'," \
+        "            previous_line='    && apt-get install -y'," \
         "            add_line='        libpq-dev \\\\\n'," \
         "        )" \
         "        deps = (" \
@@ -513,7 +566,7 @@ docker_config_py() {
         "        )" \
         "        for dep in deps:" \
         "            self._insert_(" \
-        "                previous_line='    && apt install -y'," \
+        "                previous_line='    && apt-get install -y'," \
         "                add_line=f'        {dep} \\\\\n'," \
         "            )" \
         "" \
@@ -606,17 +659,18 @@ docker_python() {
         "COPY . ." \
         "" \
         "RUN pip3 install --upgrade pip \\" \
-        "    && apt update -y \\" \
+        "    && apt-get update -y \\" \
         "    && ln -snf /usr/share/zoneinfo/\$TZ /etc/localtime \\" \
         "    && echo \$TZ > /etc/timezone \\" \
-        "    && apt install -y \\" \
+        "    && apt-get install -y \\" \
         "        fonts-humor-sans \\" \
         "        tzdata \\" \
         "    && pip3 install -e .[build,test] \\" \
+        "    # Clean up \\" \
         "    && rm -rf /tmp/* \\" \
         "    && rm -rf /var/lib/apt/lists/* \\" \
-        "    && apt autoremove -y --purge \\" \
-        "    && apt clean -y" \
+        "    && apt-get autoremove -y --purge \\" \
+        "    && apt-get clean -y" \
         "" \
         "CMD [ \"/bin/bash\" ]" \
         "" \
@@ -691,6 +745,7 @@ git_ignore() {
         "" \
         "# Logs and databases" \
         "*.log" \
+        "logs/" \
         "*make.bat" \
         "*.sql" \
         "*.sqlite" \
@@ -768,7 +823,7 @@ git_pull_request_template() {
         "" \
         "# Issues Closed (optional)" \
         "- < issue(s) reference >" \
-        > "${PKG_NAME}/.github${FILE_SEP}PULL_REQUEST_TEMPLATE.md"
+        > "${PKG_NAME}/.github/PULL_REQUEST_TEMPLATE.md"
 }
 
 
@@ -778,7 +833,7 @@ history_md() {
         "## ${PKG_VERSION} (YYYY-MM-DD)" \
         "" \
         "**Improvements**" \
-        "- "\
+        "-"\
         > "${PKG_NAME}/HISTORY.md"
 }
 
@@ -796,12 +851,13 @@ makefile_config_py() {
         "\"\"\"Makefile Configuration Module\"\"\"" \
         "" \
         "import logging" \
+        "from pathlib import Path" \
         "from typing import Iterable" \
-        "" \
-        "from ${PKG_NAME}.pkg_globals import PACKAGE_NAME, PACKAGE_ROOT" \
         "" \
         "" \
         "logger = logging.getLogger('package')" \
+        "PACKAGE_ROOT = Path(__file__).parents[1]" \
+        "PACKAGE_NAME = PACKAGE_ROOT.name" \
         "" \
         "" \
         "class MakefileConfiguration:" \
@@ -827,14 +883,6 @@ makefile_config_py() {
         "            'include usr_vars\n'" \
         "            'export\n'" \
         "            '\n'" \
-        "            'ifeq (\"\$(shell uname -s)\", \"Linux*\")\n'" \
-        "            '\tBROWSER=/usr/bin/firefox\n'" \
-        "            'else ifeq (\"\$(shell uname -s)\", \"Linux\")\n'" \
-        "            '\tBROWSER=/usr/bin/firefox\n'" \
-        "            'else\n'" \
-        "            '\tBROWSER=open\n'" \
-        "            'endif\n'" \
-        "            '\n'" \
         "            'CONTAINER_PREFIX:=\$(COMPOSE_PROJECT_NAME)-\$(PKG_NAME)\n'" \
         "            \"DOCKER_IMAGE=\$(shell head -n 1 docker/python.Dockerfile | cut -d ' ' -f 2)\n\"" \
         "            'PROFILE_PY:=\"\"\n'" \
@@ -845,6 +893,8 @@ makefile_config_py() {
         "            'TEX_WORKING_DIR:=\"\"\n'" \
         "            'USER:=\$(shell echo \$\${USER%%@*})\n'" \
         "            'USER_ID:=\$(shell id -u \$(USER))\n'" \
+        "            'USER_GID:=\$(shell id -g \$(USER))\n'" \
+        "            r\"VERSION=\$(shell awk '/\\[project\\]/{getline; print}' pyproject.toml | tr -cd 0-9.)\"" \
         "            '\n'" \
         "        )" \
         "" \
@@ -914,7 +964,7 @@ makefile_config_py() {
         "            'docs: docker-up\n'" \
         "            '\t@docker container exec \$(CONTAINER_PREFIX)-python \\\\\n'" \
         "            '\t\t/bin/bash -c \"cd docs && make html\"\n'" \
-        "            '\t@\${BROWSER} http://localhost:\$(PORT_NGINX) 2>&1 &\n'" \
+        "            '\t@open http://localhost:\$(PORT_NGINX) 2>&1 &\n'" \
         "            '\n'" \
         "        )" \
         "" \
@@ -937,7 +987,7 @@ makefile_config_py() {
         "            '\t\t\t\t--no-batchfile \\\\\n'" \
         "            '\t\t\t && cd .. \\\\\n'" \
         "            '\t\t\t && adduser --system --no-create-home --uid \$(USER_ID) --group \$(USER) &> /dev/null \\\\\n'" \
-        "            '\t\t\t && chown -R \$(USER):\$(USER) ${DOCS_DIR}\"\n'" \
+        "            '\t\t\t && chown -R \$(USER_ID):\$(USER_GID) ${DOCS_DIR}\"\n'" \
         "            '\t@git fetch\n'" \
         "            '\t@git checkout origin/master -- docs/\n'" \
         "            '\n'" \
@@ -947,7 +997,7 @@ makefile_config_py() {
         "        \"\"\"Add rule to view Sphinx documentation in the default browser.\"\"\"" \
         "        self._makefile += (" \
         "            'docs-view: docker-up\n'" \
-        "            '\t@\${BROWSER} http://localhost:\$(PORT_NGINX) &\n'" \
+        "            '\t@open http://localhost:\$(PORT_NGINX) &\n'" \
         "            '\n'" \
         "        )" \
         "" \
@@ -974,7 +1024,7 @@ makefile_config_py() {
         "            '\t@docker container exec \$(CONTAINER_PREFIX)-python \\\\\n'" \
         "            '\t\t/bin/bash -c \\\\\n'" \
         "            '\t\t\t\"ruff format \\\\\n'" \
-        "            '\t\t\t && isort \$(PKG_NAME)/*\"\n'" \
+        "            '\t\t\t && isort src/\$(PKG_NAME)/*\"\n'" \
         "            '\n'" \
         "        )" \
         "" \
@@ -1086,9 +1136,7 @@ makefile_config_py() {
         "    def add_pgadmin_(self):" \
         "        \"\"\"Add rule to display pgAdmin.\"\"\"" \
         "        self._makefile += (" \
-        "            'pgadmin: docker-up\n'" \
-        "            '\t\${BROWSER} http://localhost:\$(PORT_PGADMIN) &\n'" \
-        "            '\n'" \
+        "            'pgadmin: docker-up\n\topen http://localhost:\$(PORT_PGADMIN) &\n\n'" \
         "        )" \
         "" \
         "    def add_profile_(self):" \
@@ -1130,7 +1178,7 @@ makefile_config_py() {
         "        self._makefile += (" \
         "            'snakeviz: docker-up profile _snakeviz-server\n'" \
         "            '\t@sleep 0.5\n'" \
-        "            '\t@\${BROWSER} http://0.0.0.0:\$(PORT_PROFILE)/snakeviz/ &\n'" \
+        "            '\t@open http://0.0.0.0:\$(PORT_PROFILE)/snakeviz/ &\n'" \
         "            '\n'" \
         "        )" \
         "" \
@@ -1150,12 +1198,8 @@ makefile_config_py() {
         "    def add_test_(self):" \
         "        \"\"\"Add rule to execute pytest.\"\"\"" \
         "        self._makefile += (" \
-        "            'test: docker-up\n'" \
-        "            '\t@docker container exec \$(CONTAINER_PREFIX)-python py.test \$(PKG_NAME)\n'" \
-        "            '\t@docker container exec \$(CONTAINER_PREFIX)-python \\\\\n'" \
-        "            '\t\t/bin/bash -c \\\\\n'" \
-        "            '\t\t\t\"adduser --system --no-create-home --uid \$(USER_ID) --group \$(USER) &> /dev/null; \\\\\n'" \
-        "            '\t\t\t chown -R \$(USER):\$(USER) pytest\"\n'" \
+        "            'test: docker-up format-style\n'" \
+        "            '\t@docker container exec \$(CONTAINER_PREFIX)-python py.test tests'" \
         "            '\n'" \
         "        )" \
         "" \
@@ -1164,7 +1208,7 @@ makefile_config_py() {
         "        # fmt: off" \
         "        self._makefile += (" \
         "            'test-coverage: test\n'" \
-        "            '\t@\${BROWSER} htmlcov/index.html &\n'" \
+        "            '\t@open htmlcov/index.html &\n'" \
         "            '\n'" \
         "        )" \
         "        # fmt: on" \
@@ -1267,7 +1311,9 @@ makefile_create_sh() {
 
 
 manifest_in() {
-    touch "${PKG_NAME}/MANIFEST.in"
+    printf "%s\n" \
+        "graft src" \
+        > "${PKG_NAME}/MANIFEST.in"
 }
 
 
@@ -1284,10 +1330,10 @@ pkg_globals_py() {
         "" \
         "PACKAGE_ROOT = Path(__file__).parents[1]" \
         "DATASET_DIR = Path('/data/ai/datasets')" \
-        "PACKAGE_NAME = PACKAGE_ROOT.name" \
+        "PACKAGE_NAME = Path(__file__).parent.name" \
         "PACKAGE_VERSION = f'{PACKAGE_NAME} v{__version__}'" \
         "PRETRAINED_WEIGHTS_DIR = Path('/data/ai/pretrained_weights')" \
-        "with (PACKAGE_ROOT / 'usr_vars').open('r') as f:" \
+        "with (PACKAGE_ROOT.parent / 'usr_vars').open('r') as f:" \
         "    line = f.readline()" \
         "USER = line.split('=')[-1].rstrip('\n')" \
         "" \
@@ -1333,11 +1379,6 @@ pyproject_toml() {
         "    \"setuptools\"," \
         "]" \
         "" \
-        "[tool.setuptools.packages.find]" \
-        "where = [\"/usr/src/${PKG_NAME}\"]" \
-        "include = [\"${PKG_NAME}\"]" \
-        "namespaces = true" \
-        "" \
         "[project]" \
         "version = \"${PKG_VERSION}\"" \
         "name = \"${PKG_NAME}\"" \
@@ -1352,7 +1393,7 @@ pyproject_toml() {
         "]" \
         "" \
         "[project.optional-dependencies]" \
-        "all = [\"${PKG_NAME}[build, docs, jupyter, profile, postgres, test]\"]" \
+        "all = [\"${PKG_NAME}[build, docs, fiftyone, jupyter, profile, postgres, test]\"]" \
         "deploy = [\"${PKG_NAME}[docs, jupyter, postgres]\"]" \
         "build = [" \
         "    \"setuptools\"," \
@@ -1427,7 +1468,7 @@ pyproject_toml() {
         "" \
         "[tool.coverage.paths]" \
         "source = [" \
-        "    \"${SOURCE_DIR}/\"," \
+        "    \"src\"," \
         "]" \
         "" \
         "[tool.coverage.report]" \
@@ -1440,21 +1481,24 @@ pyproject_toml() {
         "" \
         "[tool.isort]" \
         "src_paths = [" \
-        "    \"${SOURCE_DIR}\"," \
+        "    \"src\"," \
         "    \"${SCRIPTS_DIR}\"," \
         "]" \
+        "combine_as_imports = true" \
+        "include_trailing_comma = true" \
         "line_length = 79" \
         "lines_after_imports = 2" \
-        "include_trailing_comma = true" \
-        "combine_as_imports = true" \
+        "multi_line_output = 3" \
+        "skip = [\"__init__.py\"]" \
         "" \
         "[tool.pytest.ini_options]" \
         "addopts = [" \
         "    \"-rvvv\"," \
+        "    # \"-k=<enter_module_name>\"," \
         "    \"--basetemp=pytest\"," \
         "    # \"--cache-clear\"," \
         "    \"--color=yes\"," \
-        "    \"--cov=${SOURCE_DIR}\"," \
+        "    \"--cov=src\"," \
         "    \"--cov-report=html\"," \
         "    \"--doctest-modules\"," \
         "    \"--ff\"," \
@@ -1463,6 +1507,7 @@ pyproject_toml() {
         "    \"--ruff\"," \
         "    \"--ruff-format\"," \
         "]" \
+        "pythonpath = \"src\"" \
         "testpaths = [" \
         "    \"${TESTS_DIR}\"," \
         "]" \
@@ -1471,8 +1516,15 @@ pyproject_toml() {
         "line-length = 79" \
         "src = [" \
         "    \"${NOTEBOOK_DIR}\"," \
-        "    \"${SOURCE_DIR}\"," \
+        "    \"src\"," \
         "    \"${SCRIPTS_DIR}\"," \
+        "]" \
+        "" \
+        "[tool.ruff.lint.per-file-ignores]" \
+        "\"tests/*\" = [" \
+        "    \"F401\"," \
+        "    \"F811\"," \
+        "    \"F841\"," \
         "]" \
         "" \
         "[tool.ruff.format]" \
@@ -1516,7 +1568,7 @@ sphinx_config_py() {
         "class SphinxConfiguration:" \
         "    \"\"\"Sphinx Documentation Configuration Class\"\"\"" \
         "" \
-        "    _docs_path = PACKAGE_ROOT / '${DOCS_DIR}'" \
+        "    _docs_path = PACKAGE_ROOT.parent / '${DOCS_DIR}'" \
         "    _config_py_path = _docs_path / 'conf.py'" \
         "    _custom_css_path = _docs_path / '_static' / 'custom.css'" \
         "    _index_rst_path = _docs_path / 'index.rst'" \
@@ -1533,7 +1585,7 @@ sphinx_config_py() {
         "        shutil.rmtree(self._docs_path)" \
         "        self._docs_path.mkdir()" \
         "        cmd = (" \
-        "            f'cd {PACKAGE_ROOT}'" \
+        "            f'cd {PACKAGE_ROOT.parent}'" \
         "            '&& pip install -e .[docs] '" \
         "            f'&& cd {self._docs_path} '" \
         "            '&& sphinx-quickstart '" \
@@ -1550,7 +1602,7 @@ sphinx_config_py() {
         "" \
         "    def add_config_py(self):" \
         "        \"\"\"Add Sphinx configuration file (conf.py).\"\"\"" \
-        "        self._config_py_path.unlink()" \
+        "        self._config_py_path.unlink(missing_ok=True)" \
         "        self._config_py_path.write_text(" \
         "            'import os\n'" \
         "            'import sys\n'" \
@@ -1587,6 +1639,7 @@ sphinx_config_py() {
         "" \
         "    def add_custom_css(self):" \
         "        \"\"\"Add custom css file.\"\"\"" \
+        "        self._custom_css_path.parent.mkdir(parents=True, exist_ok=True)" \
         "        self._custom_css_path.write_text(" \
         "            '.wy-nav-content {max-width: 1200px !important;}'" \
         "        )" \
@@ -1640,12 +1693,7 @@ sphinx_config_py() {
         "        \"\"\"Add tutorials directory and tutorials.rst file.\"\"\"" \
         "        self._tutorials_dir_path.mkdir(parents=True, exist_ok=True)" \
         "        self._tutorials_rst_path.write_text(" \
-        "            'Tutorials\n'" \
-        "            '=========\n'" \
-        "            '\n'" \
-        "            '.. toctree::\n'" \
-        "            '    :maxdepth: 1\n'" \
-        "            '\n'" \
+        "            'Tutorials\n=========\n\n.. toctree::\n    :maxdepth: 1\n\n'" \
         "        )" \
         "" \
         "    def update_permissions(self):" \
@@ -1673,6 +1721,32 @@ sphinx_config_py() {
     chmod u+x "${script_name}"
 }
 
+
+test_conftest_py() {
+    script_name="${TESTS_PATH}/test_conftest.py"
+    printf "%s\n" \
+        "#! /usr/bin/env python3" \
+        "# -*- coding: utf-8 -*-" \
+        "\"\"\"pytest Fixtures Unit Tests\"\"\"" \
+        "" \
+        "import datetime" \
+        "import time" \
+        "" \
+        "from .conftest import TEST_DATETIME, TEST_STRFTIME" \
+        "from ${SOURCE_DIR}.pkg_globals import TIME_FORMAT" \
+        "" \
+        "" \
+        "# Test patch_datetime()" \
+        "def test_patch_datetime(patch_datetime):" \
+        "    assert datetime.datetime.now() == TEST_DATETIME" \
+        "" \
+        "" \
+        "# Test patch_strftime()" \
+        "def test_patch_strftime(patch_strftime):" \
+        "    assert time.strftime(TIME_FORMAT) == TEST_STRFTIME" \
+        > "${script_name}"
+        chmod u+x ./"${script_name}"
+}
 
 tooling_config_py() {
     script_name="${SCRIPTS_PATH}/tooling_config.py"
@@ -1893,7 +1967,7 @@ usr_vars_sh() {
         "FILE=\"\$(basename \"\$0\")\"" \
         "UID=\"\$(stat -c %u \${DIR}/\${FILE})\"" \
         "GID=\"\$(stat -c %g \${DIR}/\${FILE})\"" \
-        "VERSION=\"\$(grep -A 1 \"\\[project\\]\" pyproject.toml | grep \"version\" | cut -d = -f 2 | tr -d '[\" ]')\"" \
+        "VERSION=\"\$(awk '/\\[project\\]/{getline; print}' pyproject.toml | tr -cd 0-9.)\"" \
         "" \
         "# Create usr_vars configuration file" \
         "INITIAL_PORT=\$(( (UID - 500) * 50 + 10000 ))" \
@@ -1920,11 +1994,122 @@ usr_vars_sh() {
     chmod u+x ./"${script_name}"
 }
 
+vscode_devcontainer_json() {
+    script_name=".devcontainer.json"
+    printf "%s\n" \
+        "{" \
+        "  \"dockerComposeFile\": \"../docker/docker-compose.yaml\"," \
+        "  \"service\": \"python\"," \
+        "  \"workspaceFolder\": \"/usr/src/${PKG_NAME}\"," \
+        "" \
+        "  \"customizations\": {" \
+        "    \"vscode\": {" \
+        "      \"settings\": {" \
+        "        \"python.defaultInterpreterPath\": \"/usr/local/bin/python\"" \
+        "      }," \
+        "      \"extensions\": [" \
+        "        \"aaron-bond.better-comments\"," \
+        "        \"ms-toolsai.jupyter\"," \
+        "        \"ms-toolsai.jupyter-keymap\"," \
+        "        \"ms-toolsai.jupyter-renderers\"," \
+        "        \"ms-toolsai.vscode-jupyter-cell-tags\"," \
+        "        \"ms-toolsai.vscode-jupyter-slideshow\"," \
+        "        \"ms-python.vscode-pylance\"," \
+        "        \"ms-python.python\"," \
+        "        \"ms-python.debugpy\"," \
+        "        \"ms-vscode-remote.remote-ssh\"," \
+        "        \"tamasfe.even-better-toml\"" \
+        "      ]" \
+        "    }" \
+        "  } " \
+        "}" \
+        > "${script_name}"
+    chmod u+x "${script_name}"
+}
+
+vscode_project_settings_json() {
+    printf "%s\n" \
+        "{" \
+        "  \"cSpell.customDictionaries\": {" \
+        "    \"project-words\": {" \
+        "      \"name\": \"project_words\"," \
+        "      \"path\": \"${workspaceRoot}/.vscode/project-words.txt\"," \
+        "      \"description\": \"Project custom words\"," \
+        "      \"addWords\": true" \
+        "    }," \
+        "    \"custom\": true" \
+        "  }," \
+        "  \"files.autoSave\": \"onFocusChange\"," \
+        "  \"files.trimTrailingWhitespace\": true," \
+        "  \"jupyter.askForKernelRestart\": false," \
+        "  \"[python]\": {" \
+        "    \"editor.codeActionsOnSave\": {" \
+        "      \"source.fixAll\": \"always\"," \
+        "    }," \
+        "    \"editor.defaultFormatter\": \"charliermarsh.ruff\"," \
+        "    \"editor.formatOnPaste\": true," \
+        "    \"editor.formatOnSave\": true," \
+        "    \"editor.formatOnSaveMode\": \"file\"," \
+        "    \"editor.rulers\": [80]," \
+        "  }," \
+        "  \"python.testing.pytestArgs\": [" \
+        "    \"--no-cov\"," \
+        "  ]," \
+        "  \"python.testing.pytestEnabled\": true," \
+        "  \"python.testing.unittestEnabled\": false" \
+        "}" \
+        > ${VSCODE_PATH}/"settings.json" 
+}
+
+vscode_project_words_json() {
+    printf "%s\n" \
+        "anns" \
+        "atleast" \
+        "autocast" \
+        "backpropagation" \
+        "charliermarsh" \
+        "cmap" \
+        "colormaps" \
+        "debugpy" \
+        "dropna" \
+        "dset" \
+        "dsets" \
+        "edgecolor" \
+        "facecolor" \
+        "figsize" \
+        "iloc" \
+        "imread" \
+        "imshow" \
+        "itertuples" \
+        "labelsize" \
+        "levelname" \
+        "linalg" \
+        "linestyle" \
+        "mlruns" \
+        "ncols" \
+        "ndarray" \
+        "notna" \
+        "nrows" \
+        "pbar" \
+        "preds" \
+        "pylance" \
+        "supercategory" \
+        "suptitle" \
+        "TensorRT" \
+        "titlesize" \
+        "torchinfo" \
+        "xlim" \
+        "ylim" \
+        > ${VSCODE_PATH}/"project-words.txt" 
+}
+
 
 directories
 makefile_config_py
 docker_config_py
+conftest_py
 constructor_package
+constructor_scripts
 constructor_tests
 docker_compose_yaml
 docker_ignore
@@ -1940,8 +2125,12 @@ pkg_globals_py
 pyproject_toml
 requirements_txt
 sphinx_config_py
+test_conftest_py
 tooling_config_py
 usr_vars_sh
+vscode_devcontainer_json
+vscode_project_settings_json
+vscode_project_words_json
 
 cd "${PKG_NAME}" || exit
 ./"${SCRIPTS_DIR}/create_usr_vars.sh"
