@@ -266,7 +266,7 @@ docker_config_py() {
         "        )" \
         "" \
         "        self._container_prefix = (" \
-        "            f'{os.environ[\"COMPOSE_PROJECT_NAME\"]}-{PACKAGE_NAME}'" \
+        "            f'\${COMPOSE_PROJECT_NAME:-DEFAULT}-{PACKAGE_NAME}'" \
         "        )" \
         "        self._network = f'{PACKAGE_NAME}-network'" \
         "        self._volume_db = f'{PACKAGE_NAME}-db'" \
@@ -658,19 +658,23 @@ docker_python() {
         "" \
         "COPY . ." \
         "" \
-        "RUN pip3 install --upgrade pip \\" \
-        "    && apt-get update -y \\" \
+        "RUN -mount=type=cache,target=/var/cache/apt,sharing=locked \\" \
+        "    -mount=type=cache,target=/var/lib/apt,sharing=locked \\" \
+        "    apt-get update -y \\" \
         "    && ln -snf /usr/share/zoneinfo/\$TZ /etc/localtime \\" \
         "    && echo \$TZ > /etc/timezone \\" \
         "    && apt-get install -y \\" \
         "        fonts-humor-sans \\" \
         "        tzdata \\" \
-        "    && pip3 install -e .[build,test] \\" \
-        "    # Clean up \\" \
-        "    && rm -rf /tmp/* \\" \
-        "    && rm -rf /var/lib/apt/lists/* \\" \
         "    && apt-get autoremove -y --purge \\" \
         "    && apt-get clean -y" \
+        "    && rm -f /etc/apt/apt.conf.d/docker-clean" \
+        "" \
+        "RUN --mount=type=cache,target=/root/.cache/pip \\" \
+        "    pip3 install --upgrade pip \\" \
+        "    && pip3 install -e .[build,test] \\" \
+        "    && rm -rf /tmp/* \\" \
+        "    && rm -rf /var/lib/apt/lists/*" \
         "" \
         "CMD [ \"/bin/bash\" ]" \
         "" \
@@ -1001,6 +1005,18 @@ makefile_config_py() {
         "            '\n'" \
         "        )" \
         "" \
+        "    def add_external_variables_(self):" \
+        "        \"\"\"Add rule to load assign MLflow MinIO environment variables.\"\"\"" \
+        "        self._makefile += (" \
+        "            'external-variables:\n'" \
+        "            '\t@printf "%s\n" \\\\\n'" \
+        "            '\t\t"MINIO_ACCESS_KEY=\$(shell cat \$(MLFLOW_DIR)/docker/secrets/minio_access_key.txt" \\\\\n'" \
+        "            '\t\t"MINIO_SECRET_ACCESS_KEY=\$(shell cat \$(MLFLOW_DIR)/docker/secrets/minio_secret_access_key.txt" \\\\\n'" \
+        "            '\t\t"" \\\\\n'" \
+        "            '\t\t>> usr_vars'" \
+        "            '\n'" \
+        "        )" \
+        "" \
         "    def add_fiftyone_dirs_(self):" \
         "        \"\"\"Add rule to create FiftyOne directories on the host.\"\"\"" \
         "        self._makefile += (" \
@@ -1101,8 +1117,7 @@ makefile_config_py() {
         "            '\t\t\t && jupyter lab \\\\\n'" \
         "            '\t\t\t\t--allow-root \\\\\n'" \
         "            '\t\t\t\t--no-browser \\\\\n'" \
-        "            '\t\t\t\t--notebook-dir=/ \\\\\n'" \
-        "            '\t\t\t\t--preferred-dir=/usr/src/${NOTEBOOK_PATH} \\\\\n'" \
+        "            '\t\t\t\t--notebook-dir=/usr/src/${NOTEBOOK_PATH} \\\\\n'" \
         "            '\t\t\t\t--ServerApp.ip=0.0.0.0 \\\\\n'" \
         "            '\t\t\t\t--ServerApp.port=\$(PORT_JUPYTER) \\\\\n'" \
         "            '\t\t\t\t&\"\n'" \
@@ -1150,7 +1165,7 @@ makefile_config_py() {
         "        )" \
         "" \
         "    def add_psql_(self):" \
-        "        \"\"\"Add rule to display PostreSQL interactive terminal.\"\"\"" \
+        "        \"\"\"Add rule to display PostgreSQL interactive terminal.\"\"\"" \
         "        self._makefile += (" \
         "            'psql: docker-up\n'" \
         "            '\t@docker container exec -it \$(CONTAINER_PREFIX)-postgres \\\\\n'" \
@@ -1199,7 +1214,8 @@ makefile_config_py() {
         "        \"\"\"Add rule to execute pytest.\"\"\"" \
         "        self._makefile += (" \
         "            'test: docker-up format-style\n'" \
-        "            '\t@docker container exec \$(CONTAINER_PREFIX)-python py.test tests'" \
+        "            '\t@docker container exec \$(CONTAINER_PREFIX)-python py.test tests \\\\\n'" \
+        "            '\t@; \$(MAKE) -C /data/ai/ai_tools/mlflow mlflow-clean'" \
         "            '\n'" \
         "        )" \
         "" \
@@ -1217,6 +1233,23 @@ makefile_config_py() {
         "        \"\"\"Add rule to update package tooling.\"\"\"" \
         "        self._makefile += (" \
         "            'update-package-tooling: docker-up docker-rebuild package-dependencies\n'" \
+        "            '\n'" \
+        "        )" \
+        "" \
+        "    def add_test_unit_(self):" \
+        "        \"\"\"Add rule to execute pytest.\"\"\"" \
+        "        self._makefile += (" \
+        "            'test-unit: docker-up format-style\n'" \
+        "            '\t@docker container exec \$(CONTAINER_PREFIX)-python py.test tests -m \"not integration\"\n'" \
+        "            '\n'" \
+        "        )" \
+        "" \
+        "    def add_test_integration_(self):" \
+        "        \"\"\"Add rule to execute pytest.\"\"\"" \
+        "        self._makefile += (" \
+        "            'test-integration: docker-up format-style\n'" \
+        "            '\t@docker container exec \$(CONTAINER_PREFIX)-python py.test tests -m integration\\\\\n'" \
+        "            '\t@; \$(MAKE) -C /data/ai/ai_tools/mlflow mlflow-clean'" \
         "            '\n'" \
         "        )" \
         "" \
@@ -1263,6 +1296,8 @@ makefile_config_py() {
         "    # config.add_snakeviz_server_()" \
         "    config.add_test_()" \
         "    config.add_test_coverage_()" \
+        "    config.add_test-unit_()" \
+        "    config.add_test-integration_()" \
         "    # config.add_update_nvidia_base_images_()" \
         "    config.add_update_tooling_()" \
         "    config.add_update_tooling_config_()" \
@@ -1337,31 +1372,50 @@ pkg_globals_py() {
         "    line = f.readline()" \
         "USER = line.split('=')[-1].rstrip('\n')" \
         "" \
-        "FONT_SIZE = {" \
-        "    'axis': 18," \
-        "    'label': 14," \
-        "    'legend': 12," \
-        "    'super_title': 24," \
-        "    'title': 20," \
+        "" \
+        "class Colors:" \
+        "\"\"\"Colors\"\"\"" \
+        "" \
+        "    BLACK = '#000000'" \
+        "    BLUE = '#2E91E5'" \
+        "    DARK_BLUE = '#1616A7'" \
+        "    GRAY = '#778AAE'" \
+        "    GREEN = '#1CA71C'" \
+        "    PUPLE = '#DA16FF'" \
+        "    RED = '#FB0D0D'" \
+        "" \
+        "" \
+        "class FontSize:" \
+        "\"\"\"Font sizes\"\"\"" \
+        "" \
+        "    AXIS = 18" \
+        "    LABEL = 14" \
+        "    LEGEND = 12" \
+        "    SUPER_TITLE = 24" \
+        "    TITLE = 20" \
         "}" \
-        "FONT_FAMILY = 'Courier New, monospace'" \
-        "PLOTLY_FONTS = {" \
-        "    'axis_font': {" \
-        "        'family': FONT_FAMILY," \
-        "        'size': FONT_SIZE['axis']," \
-        "        'color': 'gray'," \
-        "    }," \
-        "    'legend_font': {" \
-        "        'family': FONT_FAMILY," \
-        "        'size': FONT_SIZE['label']," \
-        "        'color': 'black'," \
-        "    }," \
-        "    'title_font': {" \
-        "        'family': FONT_FAMILY," \
-        "        'size': FONT_SIZE['super_title']," \
-        "        'color': 'black'," \
-        "    }," \
-        "}" \
+        "" \
+        "" \
+        "class PlotlyFonts:" \
+        "\"\"\"Plotly fonts\"\"\"" \
+        "" \
+        "    font_family = 'Courier New, monospace'" \
+        "    AXIS_FONT = {" \
+        "        'family': font_family," \
+        "        'size': FontSize.AXIS," \
+        "        'color': Colors.GRAY," \
+        "    }" \
+        "    LEGEND_FONT = {" \
+        "        'family': font_family," \
+        "        'size': FontSize.LABEL," \
+        "        'color': Colors.BLACK," \
+        "    }" \
+        "    TITLE_FONT = {" \
+        "        'family': font_family," \
+        "        'size': FontSize.SUPER_TITLE," \
+        "        'color': Colors.BLACK," \
+        "    }" \
+        "" \
         "" \
         "TIME_FORMAT = '%Y_%m_%d_%H_%M_%S'" \
         "" \
@@ -1439,14 +1493,17 @@ pyproject_toml() {
         "#    build-essential" \
         "#    libpq-dev" \
         "#    wget" \
-        "    \"psycopg2\"," \
+        "    \"psycopg\"," \
         "    \"sqlalchemy\"," \
         "]" \
         "pytorch = [" \
         "    \"captum\"," \
         "    \"gpustat\"," \
+        "    \"gunicorn\"," \
         "    \"lovely-tensors\"," \
         "    \"optuna\"," \
+        "    \"optuna-dashboard\"," \
+        "    \"optuna-fast-fanova\"," \
         "    \"ray[all]\"," \
         "    # \"torch\"," \
         "    # \"torchdata\"," \
@@ -1472,8 +1529,12 @@ pyproject_toml() {
         "]" \
         "" \
         "[tool.coverage.report]" \
+        "exclude_lines = [" \
+        "    \"pass\"," \
+        "    \"raise NotImplementedError\"," \
+        "" \
         "omit = [" \
-        "    \"*/__init__.py\"" \
+        "    \"*/__init__.py\"," \
         "]" \
         "" \
         "[tool.coverage.run]" \
@@ -1494,7 +1555,8 @@ pyproject_toml() {
         "[tool.pytest.ini_options]" \
         "addopts = [" \
         "    \"-rvvv\"," \
-        "    # \"-k=<enter_module_name>\"," \
+        "    # \"-k=<enter_module_name>\",  # filter tests by name" \
+        "    # \"-m='not integration'\",  # filter tests by mark" \
         "    \"--basetemp=pytest\"," \
         "    # \"--cache-clear\"," \
         "    \"--color=yes\"," \
@@ -1507,12 +1569,23 @@ pyproject_toml() {
         "    \"--ruff\"," \
         "    \"--ruff-format\"," \
         "]" \
+        "markers = [" \
+        "    \"integration\"" \
+        "]" \
         "pythonpath = \"src\"" \
         "testpaths = [" \
         "    \"${TESTS_DIR}\"," \
         "]" \
         "" \
         "[tool.ruff]" \
+        "exclude = [" \
+        "    \"cache/*\"," \
+        "    \"data/*\"," \
+        "    \"docker/*\"," \
+        "    \"pytest/*\"," \
+        "    \"wheels/*\"," \
+        "    \"*/__pycache__/*\"," \
+        "]" \
         "line-length = 79" \
         "src = [" \
         "    \"${NOTEBOOK_DIR}\"," \
@@ -1522,9 +1595,10 @@ pyproject_toml() {
         "" \
         "[tool.ruff.lint.per-file-ignores]" \
         "\"tests/*\" = [" \
-        "    \"F401\"," \
-        "    \"F811\"," \
-        "    \"F841\"," \
+        "    \"D\",  # docstring conventions" \
+        "    \"F401\",  # unused-import" \
+        "    \"F811\",  # redefined-while-unused" \
+        "    \"F841\",  # unused-variable" \
         "]" \
         "" \
         "[tool.ruff.format]" \
@@ -1609,7 +1683,7 @@ sphinx_config_py() {
         "            '\n'" \
         "            'from ${PKG_NAME} import __version__\n'" \
         "            '\n'" \
-        "            \"sys.path.insert(0, os.path.abspath('../${PKG_NAME}'))\n\"" \
+        "            \"sys.path.insert(0, os.path.abspath('../src/${PKG_NAME}'))\n\"" \
         "            '\n'" \
         "            \"project = '${PKG_NAME}'\n\"" \
         "            \"copyright = '$(date +%Y), ${AUTHOR}'\n\"" \
@@ -1654,7 +1728,7 @@ sphinx_config_py() {
         "            n for n, _ in enumerate(txt, start=1)" \
         "            if ':caption: Contents:' in _][0]" \
         "        # fmt: on" \
-        "        txt[idx:idx] = ('\n', 'package', 'tutorials')" \
+        "        txt[idx:idx] = ('\n', '   package', '   tutorials')" \
         "        self._index_rst_path.write_text('\n'.join(txt))" \
         "" \
         "    def add_links_rst(self):" \
@@ -1678,14 +1752,6 @@ sphinx_config_py() {
         "            '    :members:\n'" \
         "            '    :show-inheritance:\n'" \
         "            '    :synopsis: Package exceptions module.\n'" \
-        "            '\n'" \
-        "            'utils\n'" \
-        "            '-----\n'" \
-        "            '.. automodule:: utils\n'" \
-        "            '    :members:\n'" \
-        "            '    :show-inheritance:\n'" \
-        "            '    :synopsis: Package utilities module.\n'" \
-        "            '\n'" \
         "            '\n'" \
         "        )" \
         "" \
@@ -1748,6 +1814,24 @@ test_conftest_py() {
         chmod u+x ./"${script_name}"
 }
 
+
+# TODO:
+#  * add tests/exceptions.py
+#  * add data_utils/__init__.py
+#  * add data_utils/data_util.py
+#  * add tests/data_utils/__init__.py
+#  * add tests/data_utils/test_data_util.py
+#  * add nn_utils.py
+#  * add tests/test_nn_utils.py
+#  * add optimize.py
+#  * add tests/test_optimize.py
+#  * add tracking/__init__.py
+#  * add tracking/mlflow_utils.py
+#  * add tracking/optuna_utils.py
+#  * add tests/tracking/__init__.py
+#  * add tests/tracking/conftest.py
+#  * add tests/tracking/test_mlflow_utils.py
+#  * add tests/tracking/test_optuna_utils.py
 tooling_config_py() {
     script_name="${SCRIPTS_PATH}/tooling_config.py"
     printf "%s\n" \
@@ -1995,7 +2079,7 @@ usr_vars_sh() {
 }
 
 vscode_devcontainer_json() {
-    script_name=".devcontainer.json"
+    script_name="${PKG_NAME}/.devcontainer.json"
     printf "%s\n" \
         "{" \
         "  \"dockerComposeFile\": \"../docker/docker-compose.yaml\"," \
@@ -2009,6 +2093,7 @@ vscode_devcontainer_json() {
         "      }," \
         "      \"extensions\": [" \
         "        \"aaron-bond.better-comments\"," \
+        "        \"ms-toolsai.datawrangler\"," \
         "        \"ms-toolsai.jupyter\"," \
         "        \"ms-toolsai.jupyter-keymap\"," \
         "        \"ms-toolsai.jupyter-renderers\"," \
@@ -2018,6 +2103,7 @@ vscode_devcontainer_json() {
         "        \"ms-python.python\"," \
         "        \"ms-python.debugpy\"," \
         "        \"ms-vscode-remote.remote-ssh\"," \
+        "        \"njpwerner.autodocstring\"," \
         "        \"tamasfe.even-better-toml\"" \
         "      ]" \
         "    }" \
@@ -2040,6 +2126,12 @@ vscode_project_settings_json() {
         "    \"custom\": true" \
         "  }," \
         "  \"files.autoSave\": \"onFocusChange\"," \
+        "  \"files.exclude\": {" \
+        "    \".pytest_cache\": true," \
+        "    \".ruff_cache\": true," \
+        "    \"**/*.egg-info\": true," \
+        "    \"**/__pycache__\": true," \
+        "  }," \
         "  \"files.trimTrailingWhitespace\": true," \
         "  \"jupyter.askForKernelRestart\": false," \
         "  \"[python]\": {" \
@@ -2050,7 +2142,8 @@ vscode_project_settings_json() {
         "    \"editor.formatOnPaste\": true," \
         "    \"editor.formatOnSave\": true," \
         "    \"editor.formatOnSaveMode\": \"file\"," \
-        "    \"editor.rulers\": [80]," \
+        "    \"editor.parameterHints.enabled\": false," \
+        "    \"editor.rulers\": [79]," \
         "  }," \
         "  \"python.testing.pytestArgs\": [" \
         "    \"--no-cov\"," \
@@ -2058,7 +2151,7 @@ vscode_project_settings_json() {
         "  \"python.testing.pytestEnabled\": true," \
         "  \"python.testing.unittestEnabled\": false" \
         "}" \
-        > ${VSCODE_PATH}/"settings.json" 
+        > ${VSCODE_PATH}/"settings.json"
 }
 
 vscode_project_words_json() {
@@ -2100,7 +2193,7 @@ vscode_project_words_json() {
         "torchinfo" \
         "xlim" \
         "ylim" \
-        > ${VSCODE_PATH}/"project-words.txt" 
+        > ${VSCODE_PATH}/"project-words.txt"
 }
 
 

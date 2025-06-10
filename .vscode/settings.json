@@ -1,0 +1,14 @@
+{
+  "cSpell.customDictionaries": {
+    "project-words": {
+      "name": "project_words",
+      "path": "${workspaceRoot}/.vscode/project-words.txt",
+      "description": "Project custom words",
+      "addWords": true
+    },
+    "custom": true
+  },
+  "files.autoSave": "onFocusChange",
+  "files.trimTrailingWhitespace": true,
+}
+
